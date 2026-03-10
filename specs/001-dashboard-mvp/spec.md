@@ -127,7 +127,52 @@ links show no Jira columns or show them as empty.
 
 ---
 
-### User Story 4 - Auto-Refresh with Toggle and Manual Refresh (Priority: P2)
+### User Story 4 - Recommended Actions (Priority: P1)
+
+As a developer, the dashboard shows a prioritized list of
+recommended actions based on rule-based analysis of PR and review
+state. The rules differ based on my relationship to each PR:
+
+- **For my PRs**: Action needed when there are new reviews or
+  comments since my last push. The action is to address feedback.
+- **For PRs I'm reviewing**: Action needed when there are new
+  commits since my last review. The action is to re-review.
+- **For other team PRs**: Action needed when a PR has no reviews
+  at all and is awaiting first review.
+
+The review status column MUST visually distinguish between a PR
+that has never been reviewed and one that has reviews but none from
+me specifically. Actions are sorted by Jira priority (when
+available), then by PR age.
+
+**Why this priority**: This transforms the dashboard from a data
+display into an actionable tool. Knowing what to do next is the
+primary reason to check the dashboard.
+
+**Independent Test**: Can be tested by creating PRs in known review
+states and verifying the correct actions appear in priority order.
+
+**Acceptance Scenarios**:
+
+1. **Given** a PR I authored has a new review since my last push,
+   **When** I view the Recommended Actions, **Then** an action
+   appears telling me to address feedback on that PR.
+2. **Given** a PR I'm reviewing has new commits since my last
+   review, **When** I view the Recommended Actions, **Then** an
+   action appears telling me to re-review that PR.
+3. **Given** a team PR has no reviews at all, **When** I view the
+   Recommended Actions, **Then** an action appears suggesting I
+   review it.
+4. **Given** multiple actions exist, **When** I view the list,
+   **Then** actions are sorted by Jira priority (if available) then
+   by PR age (oldest first).
+5. **Given** a PR I'm reviewing has reviews from others but not
+   from me, **When** I view its review status, **Then** I can
+   distinguish it from a PR with no reviews at all.
+
+---
+
+### User Story 5 - Auto-Refresh with Toggle and Manual Refresh (Priority: P2)
 
 As a developer, the dashboard automatically polls GitHub and Jira
 for updated data on a regular interval so I always see current
@@ -161,7 +206,7 @@ polling stops, and using the manual refresh button.
 
 ---
 
-### User Story 5 - Grouping, Sorting, and Filtering Options (Priority: P2)
+### User Story 6 - Grouping, Sorting, and Filtering Options (Priority: P2)
 
 As a developer, I can change how the PR table is grouped, sorted,
 and filtered. The default grouping is the four-section view described
@@ -192,7 +237,7 @@ and filter options and verifying the table reorganizes correctly.
 
 ---
 
-### User Story 6 - View as Another Team Member or Whole Team (Priority: P2)
+### User Story 7 - View as Another Team Member or Whole Team (Priority: P2)
 
 As a developer, I can switch the dashboard perspective to view it
 as if I were another team member — seeing their authored PRs, their
@@ -219,7 +264,7 @@ member and verifying that the table reflects their PR activity.
 
 ---
 
-### User Story 7 - Activity Timeline View (Priority: P3)
+### User Story 8 - Activity Timeline View (Priority: P3)
 
 As a developer, I can switch to a chronological timeline view that
 shows my recent activity across both GitHub and Jira. The timeline
@@ -252,13 +297,14 @@ correct chronological order grouped by day.
 
 ---
 
-### User Story 8 - Sprint Status View (Priority: P3)
+### User Story 9 - Sprint Status View (Priority: P3)
 
 As a developer, I can switch to a sprint-focused view that shows all
 issues in the current active sprint grouped by Jira status (Review,
 Testing, In Progress, Backlog, Closed/Resolved). Each row shows the
-Jira issue details alongside any linked PR metadata. This replaces
-the `/sprint-status` skill.
+Jira issue details (including story points and original story points)
+alongside any linked PR metadata. This replaces the `/sprint-status`
+skill.
 
 **Why this priority**: The sprint view is a secondary perspective
 useful for sprint ceremonies but is not the primary daily-use view.
@@ -278,7 +324,7 @@ PR linkage.
 
 ---
 
-### User Story 9 - Epic Status View (Priority: P3)
+### User Story 10 - Epic Status View (Priority: P3)
 
 As a developer, I can select a Jira epic (discovered from the
 current sprint's issues) and see all issues in that epic across all
@@ -388,7 +434,9 @@ verifying all its issues appear with sprint and PR metadata.
 - **FR-016**: System MUST support sorting by age, priority, review
   status, and CI status.
 - **FR-017**: System MUST support filtering by repository, action
-  needed, draft status, and review state.
+  needed, draft status, and review state. The "action needed" filter
+  MUST use the same rules as Recommended Actions (FR-029) to ensure
+  consistency between the actions panel and the filtered table view.
 - **FR-018**: System MUST support switching perspective to view as
   another team member or as the whole team.
 - **FR-019**: System MUST use color-coded visual indicators for
@@ -400,6 +448,73 @@ verifying all its issues appear with sprint and PR metadata.
   action-signaling mechanism of the dashboard and MUST NOT be
   omitted from any PR display regardless of view or grouping.
 
+**Recommended Actions**
+
+- **FR-029**: System MUST display a prioritized Recommended Actions
+  list in a collapsible panel above the PR table, expanded by
+  default. The panel is derived from rule-based analysis of PR and
+  review state.
+  Rules differ by relationship to the PR:
+  - For user's own PRs: action needed when new reviews/comments
+    exist since user's last push.
+  - For PRs user is reviewing: action needed when new commits exist
+    since user's last review, OR when user is a requested reviewer
+    who has not yet reviewed.
+  - For other team PRs: action needed when PR has no reviews at all.
+- **FR-030**: Actions MUST be sorted by Jira priority (when
+  available), then by PR age (oldest first).
+- **FR-031**: Review status indicators MUST visually distinguish
+  between "no reviews at all" and "has reviews but none from me".
+  These are different action signals: the first means the PR needs
+  a first reviewer, the second means it may need my review
+  specifically.
+- **FR-032**: Recommended Actions MUST be rule-based for the MVP.
+  LLM-powered action synthesis is a future enhancement and MUST NOT
+  be a dependency for initial delivery.
+- **FR-039**: The review status column MUST clearly communicate WHY
+  action is needed, using a parenthetical label or tooltip to
+  distinguish between action reasons (e.g. "Needs review (requested
+  reviewer)", "Needs re-review (new commits)", "Has new feedback
+  (2 new reviews)").
+
+**Blocked & Stale Indicators**
+
+- **FR-033**: When a Jira issue is marked as blocked, the dashboard
+  MUST show a blocked indicator on the corresponding PR row. A
+  tooltip or popover MUST display the "Blocked Reason" field
+  content.
+- **FR-034**: System MUST support toggleable stale PR highlighting
+  with a user-selectable age cutoff. PRs older than the cutoff
+  MUST be visually distinguished (e.g. color gradient or badge).
+  The stale highlighting MUST be independently toggleable on/off.
+
+**Column Customization**
+
+- **FR-035**: System MUST provide a column customization modal that
+  allows the user to select which columns are visible and reorder
+  them. Column preferences MUST be persisted locally.
+- **FR-036**: Columns MUST be categorized as default-on or
+  default-off (optional). Column visibility is independent of data
+  loading state — a column can be visible (enabled) while its data
+  is still loading. Default-on columns include: PR title,
+  repository, author, age, review status, CI status, Jira issue
+  key, issue type, priority, state, and assignee. Default-off
+  optional columns include: draft state, mergeable state, labels,
+  blocked status, blocked reason, stale indicator, story points,
+  original story points, and any additional metadata columns.
+- **FR-037**: All Jira columns (both default-on and default-off)
+  MUST be present in the column customization modal regardless of
+  whether Jira data has loaded. When Jira data has not yet loaded,
+  enabled Jira columns MUST show loading indicators in their cells
+  rather than being hidden.
+
+**View State Persistence**
+
+- **FR-038**: All view state (grouping, sorting, filtering,
+  perspective, column selection, stale highlighting toggle and
+  cutoff) MUST be encoded in the URL query string so that views
+  can be bookmarked and shared.
+
 **Alternate Views**
 
 - **FR-020**: System MUST provide an Activity Timeline view showing
@@ -407,7 +522,7 @@ verifying all its issues appear with sprint and PR metadata.
   indicators and an adjustable time window (default: 7 days).
 - **FR-021**: System MUST provide a Sprint Status view showing
   current sprint issues grouped by Jira status with linked PR
-  metadata.
+  metadata, story points, and original story points.
 - **FR-022**: System MUST provide an Epic Status view showing all
   issues in a selected epic (including sub-tasks) across sprints,
   with a toggle to show/hide Closed/Resolved issues.
@@ -442,7 +557,8 @@ verifying all its issues appear with sprint and PR metadata.
   author, state, draft status, mergeable state, review status (per
   reviewer), CI status, age, labels, and linked Jira issue (if any).
 - **Jira Issue**: A Jira ticket with key, type, summary, priority,
-  state, assignee, sprint, epic, and linked PR URLs.
+  state, assignee, sprint, epic, linked PR URLs, blocked status,
+  blocked reason, story points, and original story points.
 - **Team Member**: A person with a display name, GitHub username,
   Jira username, and email.
 - **Sprint**: A Jira sprint with a name, ID, state (active/closed),
@@ -460,6 +576,12 @@ verifying all its issues appear with sprint and PR metadata.
 - Q: When a PR qualifies for multiple default groups, which group should it appear in? → A: Priority-based deduplication. Each PR appears in highest-priority group only: "My PRs" > "PRs I'm Reviewing" > "Sprint Review" > "No Jira".
 - Q: How does the system know which GitHub repositories to search? → A: A configured and persisted list of GitHub organizations. Only PRs in repos belonging to those orgs are searched.
 - Q: How are Jira queries scoped? → A: Jira project key, component name, and sprint discovery label are all user-configurable (not hardcoded). Supports reuse if team structure changes and aligns with Jira platform portability (FR-026/027).
+
+### Session 2026-03-10
+
+- Q: Should Jira columns be default-on or default-off? → A: Column visibility (enabled/disabled) is orthogonal to data loading state. Core Jira columns (key, type, priority, state, assignee) are default-on. They show loading indicators while Jira data is fetching, not hidden. Supplementary Jira columns (story points, blocked) are default-off.
+- Q: Where do Recommended Actions appear in the UI? → A: Collapsible panel above the PR table, expanded by default.
+- Q: Should "Needs my action" filter use the same rules as Recommended Actions? → A: Yes, broader rules for both. Includes requested-reviewer-who-hasn't-reviewed in addition to new-commits-since-last-review. Review status column must clearly show WHY action is needed via parenthetical or tooltip.
 
 ## Assumptions
 
