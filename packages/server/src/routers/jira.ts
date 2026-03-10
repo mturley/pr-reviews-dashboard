@@ -28,13 +28,30 @@ export const jiraRouter = router({
         transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
       );
 
-      // Extract sprint info from first issue that has it
-      const sprintIssue = issues.find((i) => i.sprintName);
+      // Find the sprint matching the team name (case-insensitive)
+      const teamName = config.teamName;
+      const teamIssue = teamName
+        ? issues.find(
+            (i) =>
+              i.sprintName &&
+              i.sprintName.toLowerCase().includes(teamName.toLowerCase()),
+          )
+        : null;
+
+      // Fall back to first issue with any sprint if no team match
+      const sprintIssue = teamIssue ?? issues.find((i) => i.sprintName);
+
+      // Filter issues to only the matching sprint
+      const sprintName = sprintIssue?.sprintName ?? "Current Sprint";
+      const sprintId = sprintIssue?.sprintId ?? 0;
+      const filteredIssues = sprintIssue
+        ? issues.filter((i) => i.sprintName === sprintName)
+        : issues;
 
       return {
-        issues,
-        sprintName: sprintIssue?.sprintName ?? "Current Sprint",
-        sprintId: sprintIssue?.sprintId ?? 0,
+        issues: filteredIssues,
+        sprintName,
+        sprintId,
         fetchedAt: new Date().toISOString(),
       };
     } catch (error) {

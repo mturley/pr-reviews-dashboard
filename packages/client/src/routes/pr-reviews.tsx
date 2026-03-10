@@ -165,6 +165,7 @@ export default function PRReviews() {
         onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
         staleHighlight={viewState.staleHighlight}
         onStaleHighlightChange={(v) => updateViewState({ staleHighlight: v })}
+        staleThresholdDays={config?.staleThresholdDays}
         repos={availableRepos}
         selectedRepos={viewState.filterRepo}
         onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}

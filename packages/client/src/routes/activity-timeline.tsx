@@ -16,6 +16,7 @@ import {
 export default function ActivityTimeline() {
   const configQuery = trpc.config.get.useQuery();
   const [days, setDays] = useState(7);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const username = configQuery.data?.config.githubIdentity ?? "";
 
   const githubActivity = trpc.github.getActivity.useQuery(
@@ -30,10 +31,11 @@ export default function ActivityTimeline() {
   const allEvents = useMemo(() => {
     const gh = githubActivity.data?.events ?? [];
     const jira = jiraActivity.data?.events ?? [];
-    return [...gh, ...jira].sort(
+    const sorted = [...gh, ...jira].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
-  }, [githubActivity.data, jiraActivity.data]);
+    return sortOrder === "oldest" ? sorted.reverse() : sorted;
+  }, [githubActivity.data, jiraActivity.data, sortOrder]);
 
   // Group by day
   const groupedByDay = useMemo(() => {
@@ -56,20 +58,34 @@ export default function ActivityTimeline() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Activity Timeline</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Time window:</span>
-          <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-            <SelectTrigger className="h-8 w-24 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1 day</SelectItem>
-              <SelectItem value="3">3 days</SelectItem>
-              <SelectItem value="7">7 days</SelectItem>
-              <SelectItem value="14">14 days</SelectItem>
-              <SelectItem value="30">30 days</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Sort:</span>
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "newest" | "oldest")}>
+              <SelectTrigger className="h-8 w-28 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="oldest">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Time window:</span>
+            <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+              <SelectTrigger className="h-8 w-24 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 day</SelectItem>
+                <SelectItem value="3">3 days</SelectItem>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="14">14 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

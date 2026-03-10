@@ -4,6 +4,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -22,14 +23,19 @@ export function PerspectiveSelector({
   teamMembers,
   currentUser,
 }: PerspectiveSelectorProps) {
-  const displayValue = value || currentUser || "Select...";
+  const selectedValue = value || currentUser;
+  const displayName =
+    selectedValue === "team"
+      ? "Whole Team"
+      : teamMembers.find((m) => m.githubUsername === selectedValue)?.displayName ??
+        selectedValue;
 
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-muted-foreground">View as:</span>
-      <Select value={value || currentUser} onValueChange={onChange}>
+      <Select value={selectedValue} onValueChange={onChange}>
         <SelectTrigger className="h-8 w-40 text-xs" aria-label="View as">
-          <SelectValue>{displayValue}</SelectValue>
+          <SelectValue>{displayName}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {teamMembers.map((member) => (
@@ -42,7 +48,8 @@ export function PerspectiveSelector({
               {member.githubUsername === currentUser && " (you)"}
             </SelectItem>
           ))}
-          <SelectItem value="team" className="text-xs">
+          <SelectSeparator />
+          <SelectItem value="team" className="text-xs font-semibold">
             Whole Team
           </SelectItem>
         </SelectContent>

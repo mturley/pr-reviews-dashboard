@@ -12,8 +12,8 @@ import EpicStatus from "./routes/epic-status";
 
 function NavBar() {
   const links = [
-    { to: "/", label: "PR Reviews" },
-    { to: "/activity", label: "Activity" },
+    { to: "/", label: "My PR Reviews" },
+    { to: "/activity", label: "My Activity" },
     { to: "/sprint", label: "Sprint" },
     { to: "/epic", label: "Epic" },
   ];
