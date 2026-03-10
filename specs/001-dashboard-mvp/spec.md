@@ -425,9 +425,9 @@ verifying all its issues appear with sprint and PR metadata.
 
 - **FR-013**: System MUST display PRs in a table with columns for:
   PR title (linked), repository, author, age, review status
-  indicators, CI status, draft state, and (when Jira data is
-  available) Jira issue key (linked), issue type, priority, state,
-  and assignee.
+  indicators (per FR-041/FR-042), recommended action, CI status,
+  draft state, and (when Jira data is available) Jira issue key
+  (linked), issue type, priority, state, and assignee.
 - **FR-014**: System MUST support the default four-group view:
   "My PRs", "PRs I'm Reviewing", "Other PRs for [sprint] issues
   in Review state", "Other [team] PRs with No Jira in [sprint]".
@@ -444,18 +444,73 @@ verifying all its issues appear with sprint and PR metadata.
   status, and CI status.
 - **FR-017**: System MUST support filtering by repository, action
   needed, draft status, and review state. The "action needed" filter
-  MUST use the same rules as Recommended Actions (FR-029) to ensure
-  consistency between the actions panel and the filtered table view.
+  MUST show only PRs whose review status (per FR-041/FR-042) has an
+  actionable recommendation, consistent with the Recommended Actions
+  panel (FR-029).
 - **FR-018**: System MUST support switching perspective to view as
   another team member or as the whole team.
 - **FR-019**: System MUST use color-coded visual indicators for
-  review status states (e.g. red for "action needed", blue for
-  "needs re-review", yellow for "needs review", green for
-  "approved").
+  review status states as defined in FR-041 (Author Status) and
+  FR-042 (Reviewer Status). Priority statuses (P1–P5) MUST use a
+  color gradient reflecting action urgency; non-action statuses
+  MUST use neutral tones.
 - **FR-028**: Every view that displays a PR MUST show its review
   status with visual indicators. Review status is the core
   action-signaling mechanism of the dashboard and MUST NOT be
   omitted from any PR display regardless of view or grouping.
+
+**Review Status Enumeration**
+
+The review status column is perspective-aware: the same PR may show a
+different status depending on whether the viewer is the author or not.
+The column MUST display three pieces of information: the status value,
+a parenthetical with counts/context, and a recommended action. A
+tooltip on hover MUST show the full reviewer breakdown (each
+reviewer's name, their individual review state, and when they last
+reviewed). The reviewer count in the parenthetical MUST be hoverable
+to show reviewer names in a tooltip.
+
+- **FR-041**: For PRs where the viewer is the author ("My PRs"), the
+  review status column MUST use the Author Status enumeration:
+
+  | Status | When | Action |
+  |--------|------|--------|
+  | **New Feedback** | New reviews/comments since author's last push | Address feedback |
+  | **Approved** | PR has both `lgtm` and `approved` labels | Merge |
+  | **Has LGTM** | PR has `lgtm` label but not `approved` label | Await approver or find one |
+  | **Awaiting Review** | Waiting for reviews or re-reviews | Wait |
+  | **Draft** | PR is in draft state | Keep working |
+
+  Parenthetical examples: `New Feedback (2 new reviews since last
+  push)`, `Approved (3/3)`, `Awaiting Review (requested: @user1,
+  @user2)`, `Awaiting Review (re-review pending from @user1)`.
+
+- **FR-042**: For PRs where the viewer is not the author ("Others'
+  PRs"), the review status column MUST use the Reviewer Status
+  enumeration, ordered by action priority:
+
+  | Priority | Status | When | Action |
+  |----------|--------|------|--------|
+  | P1 | **My Re-review Needed** | Viewer reviewed; new commits since viewer's review | Re-review to help it merge |
+  | P2 | **Needs First Review** | No reviews from anyone | Be the first reviewer |
+  | P3 | **Team Re-review Needed** | Others reviewed (not viewer); new commits since last review | Help with re-review |
+  | P4 | **Needs Additional Review** | Others reviewed (not viewer); no new commits, no change requests | Add supplementary review |
+  | P5 | **Changes Requested (by others)** | Others requested changes (not viewer); author hasn't pushed since | Review if needed, but code may change |
+  | — | **My Changes Requested** | Viewer requested changes; author hasn't pushed since | Wait for author |
+  | — | **Has LGTM** | PR has `lgtm` label but not `approved` label | Approve if you're an approver |
+  | — | **Approved** | PR has both `lgtm` and `approved` labels | No action needed |
+  | — | **Draft** | PR is in draft state | Not ready for review |
+
+  Parenthetical examples: `My Re-review Needed (3 new commits since
+  your review)`, `Needs First Review (you're requested)`,
+  `Team Re-review Needed (reviewed by @user1; 2 new commits)`,
+  `Needs Additional Review (1 approval from @user1)`,
+  `Changes Requested (by @user1, 3 days ago)`.
+
+  The P1–P5 priority statuses MUST have a visual treatment (e.g.
+  color gradient or intensity) reflecting their priority order, with
+  P1 strongest/warmest and P5 most subtle. Non-action statuses use
+  neutral tones.
 
 **Many-to-Many PR/Jira Row Display**
 
@@ -480,31 +535,27 @@ verifying all its issues appear with sprint and PR metadata.
 
 - **FR-029**: System MUST display a prioritized Recommended Actions
   list in a collapsible panel above the table in every view,
-  expanded by default. The panel is derived from rule-based analysis
-  of PR and review state, scoped to the data visible in the current
-  view.
-  Rules differ by relationship to the PR:
-  - For user's own PRs: action needed when new reviews/comments
-    exist since user's last push.
-  - For PRs user is reviewing: action needed when new commits exist
-    since user's last review, OR when user is a requested reviewer
-    who has not yet reviewed.
-  - For other team PRs: action needed when PR has no reviews at all.
+  expanded by default. The panel is derived from the review status
+  enumerations (FR-041/FR-042), scoped to the data visible in the
+  current view. Any PR whose review status has an associated action
+  (non-empty Action column in FR-041/FR-042) MUST appear in the
+  Recommended Actions panel, excluding statuses with "Wait" or
+  "No action needed" actions.
 - **FR-030**: Actions MUST be sorted by Jira priority (when
   available), then by PR age (oldest first).
 - **FR-031**: Review status indicators MUST visually distinguish
-  between "no reviews at all" and "has reviews but none from me".
-  These are different action signals: the first means the PR needs
-  a first reviewer, the second means it may need my review
-  specifically.
+  between all statuses in the Reviewer Status enumeration (FR-042).
+  In particular, "Needs First Review" (no reviews at all) and
+  "Needs Additional Review" (has reviews but none from viewer) MUST
+  be clearly distinct, as they represent different action signals.
 - **FR-032**: Recommended Actions MUST be rule-based for the MVP.
   LLM-powered action synthesis is a future enhancement and MUST NOT
   be a dependency for initial delivery.
-- **FR-039**: The review status column MUST clearly communicate WHY
-  action is needed, using a parenthetical label or tooltip to
-  distinguish between action reasons (e.g. "Needs review (requested
-  reviewer)", "Needs re-review (new commits)", "Has new feedback
-  (2 new reviews)").
+- **FR-039**: The review status column MUST display three components:
+  the status value from FR-041/FR-042, a parenthetical with
+  counts and context (as exemplified in those requirements), and the
+  recommended action text. A tooltip on hover MUST show the full
+  reviewer breakdown.
 
 **Blocked & Stale Indicators**
 
@@ -528,8 +579,9 @@ verifying all its issues appear with sprint and PR metadata.
   default-off (optional). Column visibility is independent of data
   loading state — a column can be visible (enabled) while its data
   is still loading. Default-on columns include: PR title,
-  repository, author, age, review status, CI status, Jira issue
-  key, issue type, priority, state, and assignee. Default-off
+  repository, author, age, review status, recommended action, CI
+  status, Jira issue key, issue type, priority, state, and assignee.
+  Default-off
   optional columns include: draft state, mergeable state, labels,
   blocked status, blocked reason, stale indicator, story points,
   original story points, and any additional metadata columns.
