@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter client typecheck)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm --filter server typecheck)",
+      "Bash(pnpm --filter client add -D @types/node)"
+    ]
+  }
+}

@@ -1,1 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Config
+config.local.json
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.tmp
+.vscode/
+.idea/
+
+# Logs
+*.log

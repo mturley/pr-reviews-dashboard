@@ -1,0 +1,28 @@
+{
+  "name": "pr-reviews-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './packages/*' dev",
+    "build": "pnpm --filter server build && pnpm --filter client build",
+    "start": "pnpm --filter server start",
+    "test": "pnpm --parallel --filter './packages/*' test",
+    "lint": "pnpm --parallel --filter './packages/*' lint",
+    "typecheck": "pnpm --parallel --filter './packages/*' typecheck"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.0"
+  }
+}

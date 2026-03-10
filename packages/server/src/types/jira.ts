@@ -1,0 +1,26 @@
+// T010: Jira types per data-model.md
+
+import type { JiraPriority, PullRequestRef } from "./pr.js";
+
+export type { JiraPriority };
+
+export interface JiraIssue {
+  key: string;
+  url: string;
+  type: string;
+  typeIconUrl: string;
+  summary: string;
+  priority: JiraPriority;
+  state: string;
+  assignee: string | null;
+  assigneeUsername: string | null;
+  sprintName: string | null;
+  sprintId: number | null;
+  epicKey: string | null;
+  storyPoints: number | null;
+  originalStoryPoints: number | null;
+  blocked: boolean;
+  blockedReason: string | null;
+  linkedPRUrls: string[];
+  linkedPRs: PullRequestRef[];
+}

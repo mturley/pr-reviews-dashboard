@@ -25,14 +25,14 @@ This project uses pnpm workspaces with two packages:
 
 **Purpose**: Initialize the pnpm workspace monorepo with both packages, tooling, and config
 
-- [ ] T001 Create root package.json with pnpm workspace config and pnpm-workspace.yaml listing `packages/*`
-- [ ] T002 Create .nvmrc (Node 20), .gitignore (node_modules, dist, .env, config.local.json), and .env.example per quickstart.md
-- [ ] T003 [P] Initialize server package with package.json, tsconfig.json, and dependencies (typescript, express, @trpc/server, dotenv) in packages/server/
-- [ ] T004 [P] Initialize client package with Vite + React + TypeScript scaffold, tsconfig.json, and dependencies (@trpc/client, @trpc/react-query, @tanstack/react-query, @tanstack/react-table, react-router, tailwindcss) in packages/client/
-- [ ] T005 Create tsconfig.base.json at root with strict mode, shared compiler options, and project references
-- [ ] T006 [P] Configure ESLint and Prettier across both packages with root config files
-- [ ] T007 [P] Initialize shadcn/ui in client package and install base components (Table, Tooltip, Collapsible, Badge, Button, Select, Dialog) in packages/client/
-- [ ] T008 Add root-level pnpm scripts: dev (runs both), build, start, test, lint, typecheck
+- [x] T001 Create root package.json with pnpm workspace config and pnpm-workspace.yaml listing `packages/*`
+- [x] T002 Create .nvmrc (Node 20), .gitignore (node_modules, dist, .env, config.local.json), and .env.example per quickstart.md
+- [x] T003 [P] Initialize server package with package.json, tsconfig.json, and dependencies (typescript, express, @trpc/server, dotenv) in packages/server/
+- [x] T004 [P] Initialize client package with Vite + React + TypeScript scaffold, tsconfig.json, and dependencies (@trpc/client, @trpc/react-query, @tanstack/react-query, @tanstack/react-table, react-router, tailwindcss) in packages/client/
+- [x] T005 Create tsconfig.base.json at root with strict mode, shared compiler options, and project references
+- [x] T006 [P] Configure ESLint and Prettier across both packages with root config files
+- [x] T007 [P] Initialize shadcn/ui in client package and install base components (Table, Tooltip, Collapsible, Badge, Button, Select, Dialog) in packages/client/
+- [x] T008 Add root-level pnpm scripts: dev (runs both), build, start, test, lint, typecheck
 
 ---
 
@@ -42,20 +42,20 @@ This project uses pnpm workspaces with two packages:
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 [P] Define PullRequest, Review, ReviewState, and CheckStatus types per data-model.md in packages/server/src/types/pr.ts
-- [ ] T010 [P] Define JiraIssue, JiraPriority, JiraIssueRef, and PullRequestRef types per data-model.md in packages/server/src/types/jira.ts
-- [ ] T011 [P] Define DashboardConfig, TeamMember, and JiraFieldMapping types per data-model.md in packages/server/src/types/config.ts
-- [ ] T012 [P] Define ReviewStatusResult, AuthorStatus, ReviewerStatus, ReviewerBreakdownEntry, RecommendedAction, and PRGroup types per data-model.md in packages/server/src/types/pr.ts
-- [ ] T013 Create tRPC instance with context creation (loads config, env vars) in packages/server/src/trpc.ts
-- [ ] T014 Create root tRPC router (merges github, jira, config sub-routers) in packages/server/src/router.ts
-- [ ] T015 Create Express server entry point: mount tRPC middleware, serve static client in production, load .env in packages/server/src/index.ts
-- [ ] T016 Implement config.get and config.update tRPC procedures with JSON file read/write in packages/server/src/routers/config.ts
-- [ ] T017 Setup tRPC client and QueryClient provider in packages/client/src/trpc.ts
-- [ ] T018 Create App shell with React Router (routes: /, /activity, /sprint, /epic), tRPC provider, and nav layout in packages/client/src/App.tsx and packages/client/src/main.tsx
-- [ ] T019 [P] Create shared LoadingIndicator component in packages/client/src/components/shared/LoadingIndicator.tsx
-- [ ] T020 [P] Create shared ErrorBanner component (displays error message, rate limit reset time) in packages/client/src/components/shared/ErrorBanner.tsx
-- [ ] T021 [P] Create shared StatusBadge component (color-coded badge with text label) in packages/client/src/components/shared/StatusBadge.tsx
-- [ ] T022 Configure Vite dev server proxy (API requests to localhost:3000) in packages/client/vite.config.ts
+- [x] T009 [P] Define PullRequest, Review, ReviewState, and CheckStatus types per data-model.md in packages/server/src/types/pr.ts
+- [x] T010 [P] Define JiraIssue, JiraPriority, JiraIssueRef, and PullRequestRef types per data-model.md in packages/server/src/types/jira.ts
+- [x] T011 [P] Define DashboardConfig, TeamMember, and JiraFieldMapping types per data-model.md in packages/server/src/types/config.ts
+- [x] T012 [P] Define ReviewStatusResult, AuthorStatus, ReviewerStatus, ReviewerBreakdownEntry, RecommendedAction, and PRGroup types per data-model.md in packages/server/src/types/pr.ts
+- [x] T013 Create tRPC instance with context creation (loads config, env vars) in packages/server/src/trpc.ts
+- [x] T014 Create root tRPC router (merges github, jira, config sub-routers) in packages/server/src/router.ts
+- [x] T015 Create Express server entry point: mount tRPC middleware, serve static client in production, load .env in packages/server/src/index.ts
+- [x] T016 Implement config.get and config.update tRPC procedures with JSON file read/write in packages/server/src/routers/config.ts
+- [x] T017 Setup tRPC client and QueryClient provider in packages/client/src/trpc.ts
+- [x] T018 Create App shell with React Router (routes: /, /activity, /sprint, /epic), tRPC provider, and nav layout in packages/client/src/App.tsx and packages/client/src/main.tsx
+- [x] T019 [P] Create shared LoadingIndicator component in packages/client/src/components/shared/LoadingIndicator.tsx
+- [x] T020 [P] Create shared ErrorBanner component (displays error message, rate limit reset time) in packages/client/src/components/shared/ErrorBanner.tsx
+- [x] T021 [P] Create shared StatusBadge component (color-coded badge with text label) in packages/client/src/components/shared/StatusBadge.tsx
+- [x] T022 Configure Vite dev server proxy (API requests to localhost:3000) in packages/client/vite.config.ts
 
 **Checkpoint**: Foundation ready. tRPC client-server connection works. Config can be read/written. App shell renders with routing.
 
@@ -69,17 +69,17 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 1
 
-- [ ] T023 [P] [US1] Implement GitHub GraphQL client (auth, request, rate limit tracking) in packages/server/src/services/github/client.ts
-- [ ] T024 [P] [US1] Define GraphQL query for team PR search with aliases per team member, including reviews, statusCheckRollup, labels, headRefOid, and pushedAt in packages/server/src/services/github/queries.ts
-- [ ] T025 [US1] Implement GitHub response-to-PullRequest transforms (map GraphQL response to typed PullRequest entities) in packages/server/src/services/github/transforms.ts
-- [ ] T026 [US1] Implement github.getTeamPRs tRPC procedure per contract (reads config for team members and orgs, calls GitHub GraphQL, returns typed PRs with rate limit info) in packages/server/src/routers/github.ts
-- [ ] T027 [US1] Implement review status computation logic (Author Status FR-041 and Reviewer Status FR-042 with parentheticals and reviewer breakdown) per data-model.md state transition flow in packages/server/src/logic/review-status.ts
-- [ ] T028 [US1] Implement PR grouping logic (4 default groups with priority-based dedup per FR-014) in packages/server/src/logic/grouping.ts
-- [ ] T029 [P] [US1] Define PR table column definitions (title, repo, author, age, review status, CI status, draft state) with TanStack Table columnHelper in packages/client/src/components/pr-table/columns.tsx
-- [ ] T030 [P] [US1] Implement ReviewStatusCell component (status badge + parenthetical + action text + tooltip with reviewer breakdown) in packages/client/src/components/pr-table/ReviewStatusCell.tsx
-- [ ] T031 [P] [US1] Implement GroupHeader component (group label, PR count, collapsible) in packages/client/src/components/pr-table/GroupHeader.tsx
-- [ ] T032 [US1] Implement PRTable component using TanStack Table with grouped rows, semantic HTML table, and column rendering in packages/client/src/components/pr-table/PRTable.tsx
-- [ ] T033 [US1] Create PR Reviews route view: fetch github.getTeamPRs, compute review status per viewer, group PRs, render PRTable in packages/client/src/routes/pr-reviews.tsx
+- [x] T023 [P] [US1] Implement GitHub GraphQL client (auth, request, rate limit tracking) in packages/server/src/services/github/client.ts
+- [x] T024 [P] [US1] Define GraphQL query for team PR search with aliases per team member, including reviews, statusCheckRollup, labels, headRefOid, and pushedAt in packages/server/src/services/github/queries.ts
+- [x] T025 [US1] Implement GitHub response-to-PullRequest transforms (map GraphQL response to typed PullRequest entities) in packages/server/src/services/github/transforms.ts
+- [x] T026 [US1] Implement github.getTeamPRs tRPC procedure per contract (reads config for team members and orgs, calls GitHub GraphQL, returns typed PRs with rate limit info) in packages/server/src/routers/github.ts
+- [x] T027 [US1] Implement review status computation logic (Author Status FR-041 and Reviewer Status FR-042 with parentheticals and reviewer breakdown) per data-model.md state transition flow in packages/server/src/logic/review-status.ts
+- [x] T028 [US1] Implement PR grouping logic (4 default groups with priority-based dedup per FR-014) in packages/server/src/logic/grouping.ts
+- [x] T029 [P] [US1] Define PR table column definitions (title, repo, author, age, review status, CI status, draft state) with TanStack Table columnHelper in packages/client/src/components/pr-table/columns.tsx
+- [x] T030 [P] [US1] Implement ReviewStatusCell component (status badge + parenthetical + action text + tooltip with reviewer breakdown) in packages/client/src/components/pr-table/ReviewStatusCell.tsx
+- [x] T031 [P] [US1] Implement GroupHeader component (group label, PR count, collapsible) in packages/client/src/components/pr-table/GroupHeader.tsx
+- [x] T032 [US1] Implement PRTable component using TanStack Table with grouped rows, semantic HTML table, and column rendering in packages/client/src/components/pr-table/PRTable.tsx
+- [x] T033 [US1] Create PR Reviews route view: fetch github.getTeamPRs, compute review status per viewer, group PRs, render PRTable in packages/client/src/routes/pr-reviews.tsx
 
 **Checkpoint**: Dashboard shows GitHub PRs in two groups ("My PRs", "PRs I'm Reviewing") with review status indicators. No Jira data yet.
 
@@ -95,13 +95,13 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 3
 
-- [ ] T034 [P] [US3] Implement Jira field mapping (semantic name to custom field ID lookup from config) in packages/server/src/services/jira/field-map.ts
-- [ ] T035 [P] [US3] Implement Jira REST client (Bearer auth, base URL construction, request with rate limit header tracking, error handling for 401/429) in packages/server/src/services/jira/client.ts
-- [ ] T036 [US3] Implement JQL query builders (sprint issues by project/component, epic issues, sprint discovery via openSprints()) in packages/server/src/services/jira/queries.ts
-- [ ] T037 [US3] Implement Jira response-to-JiraIssue transforms (map REST response with custom field IDs to typed JiraIssue entities, parse comma-separated PR URLs from Git Pull Request field) in packages/server/src/services/jira/transforms.ts
-- [ ] T038 [US3] Implement jira.getSprintIssues tRPC procedure per contract (discovers active sprint, fetches issues, returns typed JiraIssues with parsed PR URLs) in packages/server/src/routers/jira.ts
-- [ ] T039 [US3] Add Jira columns (issue key with link, type icon, priority icon, state, assignee) to PR table column definitions in packages/client/src/components/pr-table/columns.tsx
-- [ ] T040 [US3] Implement PR-to-Jira correlation: match Jira issue linkedPRUrls to fetched PRs, populate PullRequest.linkedJiraIssues in packages/client/src/routes/pr-reviews.tsx
+- [x] T034 [P] [US3] Implement Jira field mapping (semantic name to custom field ID lookup from config) in packages/server/src/services/jira/field-map.ts
+- [x] T035 [P] [US3] Implement Jira REST client (Bearer auth, base URL construction, request with rate limit header tracking, error handling for 401/429) in packages/server/src/services/jira/client.ts
+- [x] T036 [US3] Implement JQL query builders (sprint issues by project/component, epic issues, sprint discovery via openSprints()) in packages/server/src/services/jira/queries.ts
+- [x] T037 [US3] Implement Jira response-to-JiraIssue transforms (map REST response with custom field IDs to typed JiraIssue entities, parse comma-separated PR URLs from Git Pull Request field) in packages/server/src/services/jira/transforms.ts
+- [x] T038 [US3] Implement jira.getSprintIssues tRPC procedure per contract (discovers active sprint, fetches issues, returns typed JiraIssues with parsed PR URLs) in packages/server/src/routers/jira.ts
+- [x] T039 [US3] Add Jira columns (issue key with link, type icon, priority icon, state, assignee) to PR table column definitions in packages/client/src/components/pr-table/columns.tsx
+- [x] T040 [US3] Implement PR-to-Jira correlation: match Jira issue linkedPRUrls to fetched PRs, populate PullRequest.linkedJiraIssues in packages/client/src/routes/pr-reviews.tsx
 
 **Checkpoint**: PRs that have linked Jira issues show Jira metadata columns. Jira sprint data enables "Sprint Review" and "No Jira" groups from US1.
 
@@ -117,10 +117,10 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 2
 
-- [ ] T041 [US2] Implement github.getPRsByUrls tRPC procedure per contract (parses PR URLs to owner/repo/number, fetches via GraphQL, returns typed PRs) in packages/server/src/routers/github.ts
-- [ ] T042 [US2] Implement useProgressiveData hook: orchestrate 3-phase cascade (GitHub first, Jira second, cascade GitHub third) using tRPC query enabled flags in packages/client/src/hooks/useProgressiveData.ts
-- [ ] T043 [US2] Add cell-level loading indicators for Jira columns while Jira data is fetching, and row-level loading for cascade PRs in packages/client/src/components/pr-table/PRTable.tsx
-- [ ] T044 [US2] Display per-source last-refreshed timestamps (GitHub fetchedAt, Jira fetchedAt) in the PR Reviews route header in packages/client/src/routes/pr-reviews.tsx
+- [x] T041 [US2] Implement github.getPRsByUrls tRPC procedure per contract (parses PR URLs to owner/repo/number, fetches via GraphQL, returns typed PRs) in packages/server/src/routers/github.ts
+- [x] T042 [US2] Implement useProgressiveData hook: orchestrate 3-phase cascade (GitHub first, Jira second, cascade GitHub third) using tRPC query enabled flags in packages/client/src/hooks/useProgressiveData.ts
+- [x] T043 [US2] Add cell-level loading indicators for Jira columns while Jira data is fetching, and row-level loading for cascade PRs in packages/client/src/components/pr-table/PRTable.tsx
+- [x] T044 [US2] Display per-source last-refreshed timestamps (GitHub fetchedAt, Jira fetchedAt) in the PR Reviews route header in packages/client/src/routes/pr-reviews.tsx
 
 **Checkpoint**: Full progressive loading works: GitHub data fast, Jira cascades in, new PRs discovered via Jira load their GitHub metadata.
 
@@ -136,9 +136,9 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 4
 
-- [ ] T045 [US4] Implement recommended actions derivation: filter PRs with actionable review status (exclude Wait/No action), sort by Jira priority then age, build RecommendedAction list in packages/server/src/logic/recommended-actions.ts
-- [ ] T046 [US4] Implement ActionsPanel collapsible component (expanded by default, lists actions with status badge, PR link, action text, repo name) in packages/client/src/components/actions-panel/ActionsPanel.tsx
-- [ ] T047 [US4] Integrate ActionsPanel into PR Reviews route above the table, passing computed actions from review status + Jira priority data in packages/client/src/routes/pr-reviews.tsx
+- [x] T045 [US4] Implement recommended actions derivation: filter PRs with actionable review status (exclude Wait/No action), sort by Jira priority then age, build RecommendedAction list in packages/server/src/logic/recommended-actions.ts
+- [x] T046 [US4] Implement ActionsPanel collapsible component (expanded by default, lists actions with status badge, PR link, action text, repo name) in packages/client/src/components/actions-panel/ActionsPanel.tsx
+- [x] T047 [US4] Integrate ActionsPanel into PR Reviews route above the table, passing computed actions from review status + Jira priority data in packages/client/src/routes/pr-reviews.tsx
 
 **Checkpoint**: All P1 stories complete. Dashboard shows PRs with review status, Jira correlation, progressive loading, and recommended actions.
 
@@ -152,9 +152,9 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Implement useAutoRefresh hook (manages auto-refresh toggle state, returns refetchInterval value or false, provides manual refetch callback) in packages/client/src/hooks/useAutoRefresh.ts
-- [ ] T049 [US5] Implement RefreshControls component (auto-refresh toggle switch, manual refresh button, last-refreshed timestamp display) in packages/client/src/components/controls/RefreshControls.tsx
-- [ ] T050 [US5] Integrate RefreshControls into PR Reviews route and wire auto-refresh interval to tRPC query refetchInterval option in packages/client/src/routes/pr-reviews.tsx
+- [x] T048 [US5] Implement useAutoRefresh hook (manages auto-refresh toggle state, returns refetchInterval value or false, provides manual refetch callback) in packages/client/src/hooks/useAutoRefresh.ts
+- [x] T049 [US5] Implement RefreshControls component (auto-refresh toggle switch, manual refresh button, last-refreshed timestamp display) in packages/client/src/components/controls/RefreshControls.tsx
+- [x] T050 [US5] Integrate RefreshControls into PR Reviews route and wire auto-refresh interval to tRPC query refetchInterval option in packages/client/src/routes/pr-reviews.tsx
 
 **Checkpoint**: Dashboard auto-refreshes, toggle works, manual refresh works, timestamps visible.
 
@@ -168,12 +168,12 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 6
 
-- [ ] T051 [P] [US6] Implement URL state serialization helpers (parse/stringify groupBy, sortBy, filters, columns, stale settings to/from URLSearchParams) in packages/client/src/lib/url-state.ts
-- [ ] T052 [US6] Implement useViewState hook (reads URL search params via React Router useSearchParams, returns typed view state, provides setters that update URL) in packages/client/src/hooks/useViewState.ts
-- [ ] T053 [P] [US6] Implement GroupBySelector component (dropdown: Default, Repository, Epic, Priority, Flat) in packages/client/src/components/controls/GroupBySelector.tsx
-- [ ] T054 [P] [US6] Implement FilterBar component (repo multi-select, action needed toggle, draft toggle, review state filter) in packages/client/src/components/controls/FilterBar.tsx
-- [ ] T055 [US6] Implement ColumnCustomizer modal (column visibility toggles, drag-to-reorder, per-view persistence, includes all Jira columns per FR-037) in packages/client/src/components/controls/ColumnCustomizer.tsx
-- [ ] T056 [US6] Wire grouping, sorting, filtering, and column customization into PRTable via TanStack Table APIs and useViewState hook in packages/client/src/components/pr-table/PRTable.tsx and packages/client/src/routes/pr-reviews.tsx
+- [x] T051 [P] [US6] Implement URL state serialization helpers (parse/stringify groupBy, sortBy, filters, columns, stale settings to/from URLSearchParams) in packages/client/src/lib/url-state.ts
+- [x] T052 [US6] Implement useViewState hook (reads URL search params via React Router useSearchParams, returns typed view state, provides setters that update URL) in packages/client/src/hooks/useViewState.ts
+- [x] T053 [P] [US6] Implement GroupBySelector component (dropdown: Default, Repository, Epic, Priority, Flat) in packages/client/src/components/controls/GroupBySelector.tsx
+- [x] T054 [P] [US6] Implement FilterBar component (repo multi-select, action needed toggle, draft toggle, review state filter) in packages/client/src/components/controls/FilterBar.tsx
+- [x] T055 [US6] Implement ColumnCustomizer modal (column visibility toggles, drag-to-reorder, per-view persistence, includes all Jira columns per FR-037) in packages/client/src/components/controls/ColumnCustomizer.tsx
+- [x] T056 [US6] Wire grouping, sorting, filtering, and column customization into PRTable via TanStack Table APIs and useViewState hook in packages/client/src/components/pr-table/PRTable.tsx and packages/client/src/routes/pr-reviews.tsx
 
 **Checkpoint**: All grouping/sorting/filtering controls work. URL state persists across page reloads.
 
@@ -187,9 +187,9 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 7
 
-- [ ] T057 [US7] Implement PerspectiveSelector component (dropdown listing all team members from config + "Whole Team" option, syncs with URL state) in packages/client/src/components/controls/PerspectiveSelector.tsx
-- [ ] T058 [US7] Update review status computation and PR grouping to accept perspective parameter (viewer username or "team") in packages/client/src/routes/pr-reviews.tsx
-- [ ] T059 [US7] Update grouping logic for "Whole Team" perspective (flat or repo-grouped without My/Reviewing split) in packages/server/src/logic/grouping.ts
+- [x] T057 [US7] Implement PerspectiveSelector component (dropdown listing all team members from config + "Whole Team" option, syncs with URL state) in packages/client/src/components/controls/PerspectiveSelector.tsx
+- [x] T058 [US7] Update review status computation and PR grouping to accept perspective parameter (viewer username or "team") in packages/client/src/routes/pr-reviews.tsx
+- [x] T059 [US7] Update grouping logic for "Whole Team" perspective (flat or repo-grouped without My/Reviewing split) in packages/server/src/logic/grouping.ts
 
 **Checkpoint**: All P2 stories complete. Dashboard supports refresh controls, flexible grouping/filtering, and perspective switching.
 
@@ -203,10 +203,10 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 8
 
-- [ ] T060 [P] [US8] Define ActivityEvent and ActivityActionType types per data-model.md in packages/server/src/types/activity.ts
-- [ ] T061 [P] [US8] Implement github.getActivity tRPC procedure (fetch PR events for user within time window via GitHub GraphQL) in packages/server/src/routers/github.ts
-- [ ] T062 [P] [US8] Implement jira.getActivity tRPC procedure (fetch issue changelog and comments for user within time window via Jira REST with expand=changelog) in packages/server/src/routers/jira.ts
-- [ ] T063 [US8] Create Activity Timeline route view: fetch both activity sources, merge and sort chronologically, group by day, render with source indicators and time window selector in packages/client/src/routes/activity-timeline.tsx
+- [x] T060 [P] [US8] Define ActivityEvent and ActivityActionType types per data-model.md in packages/server/src/types/activity.ts
+- [x] T061 [P] [US8] Implement github.getActivity tRPC procedure (fetch PR events for user within time window via GitHub GraphQL) in packages/server/src/routers/github.ts
+- [x] T062 [P] [US8] Implement jira.getActivity tRPC procedure (fetch issue changelog and comments for user within time window via Jira REST with expand=changelog) in packages/server/src/routers/jira.ts
+- [x] T063 [US8] Create Activity Timeline route view: fetch both activity sources, merge and sort chronologically, group by day, render with source indicators and time window selector in packages/client/src/routes/activity-timeline.tsx
 
 **Checkpoint**: Activity Timeline view shows merged GitHub + Jira events grouped by day.
 
@@ -222,8 +222,8 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 9
 
-- [ ] T064 [US9] Create Sprint Status route view with Jira-primary progressive loading: fetch jira.getSprintIssues first, then github.getPRsByUrls for linked PRs, group issues by Jira status, display with PR metadata columns in packages/client/src/routes/sprint-status.tsx
-- [ ] T065 [US9] Add story points and original story points columns to Sprint Status table, display Jira issue as primary row with linked PRs as sub-rows per FR-040 in packages/client/src/routes/sprint-status.tsx
+- [x] T064 [US9] Create Sprint Status route view with Jira-primary progressive loading: fetch jira.getSprintIssues first, then github.getPRsByUrls for linked PRs, group issues by Jira status, display with PR metadata columns in packages/client/src/routes/sprint-status.tsx
+- [x] T065 [US9] Add story points and original story points columns to Sprint Status table, display Jira issue as primary row with linked PRs as sub-rows per FR-040 in packages/client/src/routes/sprint-status.tsx
 
 **Checkpoint**: Sprint Status view shows sprint issues with PR linkage.
 
@@ -239,8 +239,8 @@ This project uses pnpm workspaces with two packages:
 
 ### Implementation for User Story 10
 
-- [ ] T066 [US10] Implement jira.getEpicIssues tRPC procedure per contract (JQL for epic issues including sub-tasks, optional closed filter) in packages/server/src/routers/jira.ts
-- [ ] T067 [US10] Create Epic Status route view: epic selector (populated from sprint issues' epics), fetch jira.getEpicIssues, cascade github.getPRsByUrls, display issues with PR metadata and Closed/Resolved toggle in packages/client/src/routes/epic-status.tsx
+- [x] T066 [US10] Implement jira.getEpicIssues tRPC procedure per contract (JQL for epic issues including sub-tasks, optional closed filter) in packages/server/src/routers/jira.ts
+- [x] T067 [US10] Create Epic Status route view: epic selector (populated from sprint issues' epics), fetch jira.getEpicIssues, cascade github.getPRsByUrls, display issues with PR metadata and Closed/Resolved toggle in packages/client/src/routes/epic-status.tsx
 
 **Checkpoint**: All P3 stories complete. All four views (PR Reviews, Activity Timeline, Sprint Status, Epic Status) are functional.
 
@@ -250,12 +250,12 @@ This project uses pnpm workspaces with two packages:
 
 **Purpose**: Resilience, edge cases, accessibility, and validation
 
-- [ ] T068 Add error boundaries per data source: continue displaying cached data on failure, show ErrorBanner with rate limit reset time (FR-023, FR-024) in packages/client/src/routes/pr-reviews.tsx
-- [ ] T069 [P] Add blocked indicator with tooltip (FR-033) and toggleable stale PR highlighting with age cutoff (FR-034) to PR table column definitions in packages/client/src/components/pr-table/columns.tsx
-- [ ] T070 [P] Add empty state messages for all table groups and filter results (edge case: no PRs match filters) in packages/client/src/components/pr-table/PRTable.tsx
-- [ ] T071 Validate URL state persistence (FR-038): verify all view state round-trips through URL across all views
-- [ ] T072 Accessibility audit: verify keyboard navigation, ARIA labels on all interactive elements, screen reader compatibility, and color-is-not-sole-conveyor across all views
-- [ ] T073 Run quickstart.md validation: follow setup steps on a clean environment, verify all scripts work
+- [x] T068 Add error boundaries per data source: continue displaying cached data on failure, show ErrorBanner with rate limit reset time (FR-023, FR-024) in packages/client/src/routes/pr-reviews.tsx
+- [x] T069 [P] Add blocked indicator with tooltip (FR-033) and toggleable stale PR highlighting with age cutoff (FR-034) to PR table column definitions in packages/client/src/components/pr-table/columns.tsx
+- [x] T070 [P] Add empty state messages for all table groups and filter results (edge case: no PRs match filters) in packages/client/src/components/pr-table/PRTable.tsx
+- [x] T071 Validate URL state persistence (FR-038): verify all view state round-trips through URL across all views
+- [x] T072 Accessibility audit: verify keyboard navigation, ARIA labels on all interactive elements, screen reader compatibility, and color-is-not-sole-conveyor across all views
+- [x] T073 Run quickstart.md validation: follow setup steps on a clean environment, verify all scripts work
 
 ---
 
