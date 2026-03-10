@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { appRouter } from "./router.js";
 import { createContext } from "./trpc.js";
+import { loadConfig, getConfigFilePath } from "./services/config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -31,11 +32,15 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-app.listen(PORT, () => {
-  if (process.env.NODE_ENV === "production") {
-    console.log(`Server running on http://localhost:${PORT}`);
-  } else {
-    console.log(`API server running on http://localhost:${PORT}/trpc`);
-    console.log(`Open http://localhost:5173 in your browser`);
-  }
+// Ensure config file exists before accepting requests
+loadConfig().then(() => {
+  app.listen(PORT, () => {
+    if (process.env.NODE_ENV === "production") {
+      console.log(`Server running on http://localhost:${PORT}`);
+    } else {
+      console.log(`Config: ${getConfigFilePath()}`);
+      console.log(`API server running on http://localhost:${PORT}/trpc`);
+      console.log(`Open http://localhost:5173 in your browser`);
+    }
+  });
 });
