@@ -15,7 +15,7 @@ Progressive loading fetches GitHub data first, then Jira, then discovers additio
 
 - Node.js 20+
 - pnpm 9+ (`npm install -g pnpm`)
-- GitHub Personal Access Token with `repo` and `read:org` scopes
+- GitHub Personal Access Token (no scopes needed for public repos; add `repo` scope for private repo access)
 - Jira Personal Access Token with read access to your project
 
 ## Setup
@@ -28,7 +28,8 @@ cp .env.example .env
 Edit `.env` with your tokens:
 
 ```bash
-# Required: GitHub
+# Required: GitHub Personal Access Token
+# No scopes needed for public repos. Add "repo" scope for private repo access.
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 
 # Required: Jira

@@ -6,7 +6,7 @@
 
 - Node.js 20.x or later (specify in `.nvmrc`)
 - pnpm 9.x (`npm install -g pnpm`)
-- GitHub Personal Access Token with `repo` and `read:org` scopes
+- GitHub Personal Access Token (no scopes needed for public repos; add `repo` scope for private repo access)
 - Jira Personal Access Token with read access to the target project
 
 ## Initial Setup
@@ -29,7 +29,8 @@ cp .env.example .env
 Create a `.env` file at the repository root:
 
 ```bash
-# Required: GitHub
+# Required: GitHub Personal Access Token
+# No scopes needed for public repos. Add "repo" scope for private repo access.
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 
 # Required: Jira
