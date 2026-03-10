@@ -22,13 +22,20 @@ app.use(
   }),
 );
 
-// Serve static client build in production
-const clientDist = path.resolve(__dirname, "../../client/dist");
-app.use(express.static(clientDist));
-app.get("*path", (_req, res) => {
-  res.sendFile(path.join(clientDist, "index.html"));
-});
+// Serve static client build in production only
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.resolve(__dirname, "../../client/dist");
+  app.use(express.static(clientDist));
+  app.get("*path", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  if (process.env.NODE_ENV === "production") {
+    console.log(`Server running on http://localhost:${PORT}`);
+  } else {
+    console.log(`API server running on http://localhost:${PORT}/trpc`);
+    console.log(`Open http://localhost:5173 in your browser`);
+  }
 });
