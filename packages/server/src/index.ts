@@ -1,15 +1,24 @@
 // T015: Express server entry point
 
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import path from "path";
 import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env from repo root (src/ -> packages/server/ -> packages/ -> repo root)
+const envPath = path.resolve(__dirname, "../../..", ".env");
+const envResult = loadEnv({ path: envPath });
+if (envResult.error) {
+  console.warn(`Warning: could not load ${envPath}: ${envResult.error.message}`);
+}
+
 import { appRouter } from "./router.js";
 import { createContext } from "./trpc.js";
 import { loadConfig, getConfigFilePath } from "./services/config.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 
 const app = express();
