@@ -13,6 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+function formatActionType(actionType: string): string {
+  return actionType
+    .replace(/_/g, " ")
+    .replace(/\bpr\b/gi, "PR")
+    .replace(/^(\w)/, (c) => c.toUpperCase());
+}
+
 export default function ActivityTimeline() {
   const configQuery = trpc.config.get.useQuery();
   const [days, setDays] = useState(7);
@@ -74,15 +81,15 @@ export default function ActivityTimeline() {
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Time window:</span>
             <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-              <SelectTrigger className="h-8 w-24 text-xs">
+              <SelectTrigger className="h-8 w-28 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 day</SelectItem>
-                <SelectItem value="3">3 days</SelectItem>
-                <SelectItem value="7">7 days</SelectItem>
-                <SelectItem value="14">14 days</SelectItem>
-                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="1">Today</SelectItem>
+                <SelectItem value="3">Last 3 days</SelectItem>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="14">Last 14 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -109,14 +116,18 @@ export default function ActivityTimeline() {
                 className="flex items-center gap-3 rounded-md border border-border px-3 py-2"
               >
                 <StatusBadge
-                  label={event.source}
-                  variant={event.source === "github" ? "info" : "warning"}
-                  className="shrink-0"
+                  label={event.source === "github" ? "GitHub" : "Jira"}
+                  variant="info"
+                  className={
+                    event.source === "github"
+                      ? "shrink-0 bg-purple-100 text-purple-800 border-purple-200"
+                      : "shrink-0 bg-blue-100 text-blue-800 border-blue-200"
+                  }
                 />
                 <span className="text-xs text-muted-foreground">
                   {new Date(event.timestamp).toLocaleTimeString()}
                 </span>
-                <span className="text-sm font-medium">{event.actionType.replace(/_/g, " ")}</span>
+                <span className="text-sm font-medium">{formatActionType(event.actionType)}</span>
                 <span className="min-w-0 flex-1 truncate text-sm">{event.targetTitle}</span>
                 {event.detail && (
                   <span className="text-xs text-muted-foreground">{event.detail}</span>

@@ -163,9 +163,6 @@ export default function PRReviews() {
         onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
         showDraft={viewState.filterDraft}
         onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
-        staleHighlight={viewState.staleHighlight}
-        onStaleHighlightChange={(v) => updateViewState({ staleHighlight: v })}
-        staleThresholdDays={config?.staleThresholdDays}
         repos={availableRepos}
         selectedRepos={viewState.filterRepo}
         onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
@@ -194,8 +191,6 @@ export default function PRReviews() {
           reviewStatuses={reviewStatuses}
           isJiraLoading={data.isJiraLoading}
           visibleColumnIds={visibleColumnIds}
-          staleHighlight={viewState.staleHighlight}
-          staleThresholdDays={config?.staleThresholdDays}
         />
       )}
     </div>

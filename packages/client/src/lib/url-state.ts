@@ -10,7 +10,6 @@ export interface ViewState {
   filterRepo: string[];
   filterActionNeeded: boolean;
   filterDraft: boolean;
-  staleHighlight: boolean;
 }
 
 const DEFAULTS: ViewState = {
@@ -20,7 +19,6 @@ const DEFAULTS: ViewState = {
   filterRepo: [],
   filterActionNeeded: false,
   filterDraft: false,
-  staleHighlight: false,
 };
 
 export function parseViewState(params: URLSearchParams): ViewState {
@@ -31,7 +29,6 @@ export function parseViewState(params: URLSearchParams): ViewState {
     filterRepo: params.get("repo")?.split(",").filter(Boolean) ?? DEFAULTS.filterRepo,
     filterActionNeeded: params.get("action") === "1",
     filterDraft: params.get("draft") === "1",
-    staleHighlight: params.get("stale") === "1",
   };
 }
 
@@ -62,10 +59,5 @@ export function serializeViewState(state: Partial<ViewState>, current: URLSearch
     if (state.filterDraft) next.set("draft", "1");
     else next.delete("draft");
   }
-  if (state.staleHighlight !== undefined) {
-    if (state.staleHighlight) next.set("stale", "1");
-    else next.delete("stale");
-  }
-
   return next;
 }

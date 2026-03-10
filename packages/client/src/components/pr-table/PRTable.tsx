@@ -26,8 +26,6 @@ interface PRTableProps {
   reviewStatuses: Map<string, ReviewStatusResult>;
   isJiraLoading?: boolean;
   visibleColumnIds?: string[];
-  staleHighlight?: boolean;
-  staleThresholdDays?: number;
 }
 
 function CollapsibleGroup({
@@ -100,8 +98,6 @@ export function PRTable({
   reviewStatuses,
   isJiraLoading,
   visibleColumnIds,
-  staleHighlight,
-  staleThresholdDays,
 }: PRTableProps) {
   const columnVisibility = visibleColumnIds
     ? Object.fromEntries(
@@ -151,8 +147,6 @@ export function PRTable({
               action: null,
               reviewerBreakdown: [],
             },
-            staleHighlight,
-            staleThresholdDays,
           }));
 
           return (

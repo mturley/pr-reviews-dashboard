@@ -9,8 +9,6 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 export interface PRRow {
   pr: PullRequest;
   reviewStatus: ReviewStatusResult;
-  staleHighlight?: boolean;
-  staleThresholdDays?: number;
 }
 
 const columnHelper = createColumnHelper<PRRow>();
@@ -79,21 +77,11 @@ export const columns = [
   columnHelper.accessor((row) => row.pr.createdAt, {
     id: "age",
     header: "Age",
-    cell: (info) => {
-      const { staleHighlight, staleThresholdDays } = info.row.original;
-      const days = Math.floor(
-        (Date.now() - new Date(info.getValue()).getTime()) / (1000 * 60 * 60 * 24),
-      );
-      const isStale = staleHighlight && staleThresholdDays != null && days >= staleThresholdDays;
-      return (
-        <span
-          className={`text-sm ${isStale ? "font-semibold text-orange-600" : "text-muted-foreground"}`}
-          title={isStale ? `Stale: ${days} days old (threshold: ${staleThresholdDays})` : undefined}
-        >
-          {formatAge(info.getValue())}
-        </span>
-      );
-    },
+    cell: (info) => (
+      <span className="text-sm text-muted-foreground">
+        {formatAge(info.getValue())}
+      </span>
+    ),
   }),
 
   columnHelper.accessor((row) => row.reviewStatus, {
