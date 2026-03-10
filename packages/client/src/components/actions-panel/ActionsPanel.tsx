@@ -48,7 +48,7 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
       >
         {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <span className="font-semibold">Recommended Actions</span>
-        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-800">
+        <span className="rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-xs text-orange-800 dark:text-orange-300">
           {actions.length}
         </span>
       </Button>
@@ -57,6 +57,9 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
           <ul className="space-y-2">
             {visibleActions.map((action) => (
               <li key={action.prUrl} className="flex items-center gap-3 py-1">
+                <span className="shrink-0 text-xs font-medium text-foreground">
+                  {action.action}
+                </span>
                 <StatusBadge
                   label={action.status}
                   variant={getActionVariant(action.status)}
@@ -66,13 +69,10 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   href={action.prUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-w-0 flex-1 truncate text-sm text-blue-600 hover:underline"
+                  className="min-w-0 flex-1 truncate text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   {action.prTitle}
                 </a>
-                <span className="shrink-0 text-xs font-medium text-foreground">
-                  {action.action}
-                </span>
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {action.repoName}
                 </span>

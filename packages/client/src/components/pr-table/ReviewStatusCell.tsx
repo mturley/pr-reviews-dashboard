@@ -32,19 +32,18 @@ function getStatusVariant(status: AuthorStatus | ReviewerStatus): StatusVariant 
 
 interface ReviewStatusCellProps {
   result: ReviewStatusResult;
+  hasCIFailure?: boolean;
 }
 
-export function ReviewStatusCell({ result }: ReviewStatusCellProps) {
+export function ReviewStatusCell({ result, hasCIFailure }: ReviewStatusCellProps) {
   const hasBreakdown = result.reviewerBreakdown.length > 0;
 
   const content = (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-2">
-        <StatusBadge label={result.status} variant={getStatusVariant(result.status)} />
-        {result.action && (
-          <span className="text-xs font-medium text-blue-600">{result.action}</span>
-        )}
-      </div>
+    <div className="flex flex-col items-start gap-0.5">
+      <StatusBadge label={result.status} variant={getStatusVariant(result.status)} />
+      {hasCIFailure && (
+        <StatusBadge label="CI Failed" variant="danger" />
+      )}
       {result.parenthetical && (
         <span className="text-xs text-muted-foreground">{result.parenthetical}</span>
       )}
@@ -64,19 +63,15 @@ export function ReviewStatusCell({ result }: ReviewStatusCellProps) {
           {result.reviewerBreakdown.map((entry) => (
             <div key={entry.username} className="flex items-center gap-2 text-xs">
               <span className="font-mono">{entry.username}</span>
-              <StatusBadge
-                label={entry.state}
-                variant={
-                  entry.state === "APPROVED"
-                    ? "success"
-                    : entry.state === "CHANGES_REQUESTED"
-                      ? "danger"
-                      : "neutral"
-                }
-                className="text-[10px] px-1 py-0"
-              />
+              <span className="rounded border px-1 py-0 text-[10px] font-medium" style={{
+                backgroundColor: entry.state === "APPROVED" ? "#dcfce7" : entry.state === "CHANGES_REQUESTED" ? "#fee2e2" : "#f1f5f9",
+                color: entry.state === "APPROVED" ? "#166534" : entry.state === "CHANGES_REQUESTED" ? "#991b1b" : "#64748b",
+                borderColor: entry.state === "APPROVED" ? "#bbf7d0" : entry.state === "CHANGES_REQUESTED" ? "#fecaca" : "#e2e8f0",
+              }}>
+                {entry.state}
+              </span>
               {entry.hasNewCommitsSince && (
-                <span className="text-yellow-600">new commits</span>
+                <span className="text-yellow-600 dark:text-yellow-400">⚠ commits since review</span>
               )}
             </div>
           ))}

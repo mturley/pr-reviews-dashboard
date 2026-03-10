@@ -64,7 +64,7 @@ export default function ActivityTimeline() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Activity Timeline</h1>
+        <h1 className="text-2xl font-bold">My Activity Timeline</h1>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Sort:</span>

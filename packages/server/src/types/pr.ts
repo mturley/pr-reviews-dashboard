@@ -45,12 +45,15 @@ export interface PullRequest {
 export interface JiraIssueRef {
   key: string;
   url: string;
+  summary: string;
   type: string;
   typeIconUrl: string;
   priority: JiraPriority;
   state: string;
   assignee: string | null;
   blocked: boolean;
+  epicKey: string | null;
+  epicSummary: string | null;
 }
 
 export interface JiraPriority {

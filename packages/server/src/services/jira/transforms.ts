@@ -6,12 +6,16 @@ import type { JiraFieldMapping } from "../../types/config.js";
 import type { JiraRawIssue } from "./client.js";
 
 function parsePRUrls(rawValue: unknown): string[] {
-  if (!rawValue || typeof rawValue !== "string") return [];
-  // Git Pull Request field is comma-separated PR URLs
-  return rawValue
-    .split(",")
-    .map((url) => url.trim())
-    .filter((url) => url.length > 0);
+  if (!rawValue) return [];
+  // Jira returns the Git Pull Request field as an array of URL strings
+  if (Array.isArray(rawValue)) {
+    return rawValue.filter((v): v is string => typeof v === "string" && v.length > 0);
+  }
+  // Fallback: comma-separated string
+  if (typeof rawValue === "string") {
+    return rawValue.split(",").map((url) => url.trim()).filter((url) => url.length > 0);
+  }
+  return [];
 }
 
 function parseBlocked(rawValue: unknown): boolean {
@@ -83,6 +87,7 @@ export function transformJiraIssue(
     sprintName: sprint.name,
     sprintId: sprint.id,
     epicKey: fields[fieldMapping.epicLink] ?? null,
+    epicSummary: null,
     storyPoints: fields[fieldMapping.storyPoints] ?? null,
     originalStoryPoints: fields[fieldMapping.originalStoryPoints] ?? null,
     blocked: parseBlocked(fields[fieldMapping.blocked]),

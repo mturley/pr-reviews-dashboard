@@ -4,7 +4,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "../trpc.js";
 import { jiraSearch, jiraRequest } from "../services/jira/client.js";
-import { buildSprintIssuesJQL, buildEpicIssuesJQL } from "../services/jira/queries.js";
+import { buildSprintDiscoveryJQL, buildSprintIssuesJQL, buildEpicIssuesJQL } from "../services/jira/queries.js";
 import { getRequiredFields } from "../services/jira/field-map.js";
 import { transformJiraIssue } from "../services/jira/transforms.js";
 
@@ -20,36 +20,58 @@ export const jiraRouter = router({
     }
 
     try {
-      const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName);
       const fields = getRequiredFields(config.jiraFieldMapping);
+      const teamName = config.teamName;
+
+      // Step 1: Discover the team's sprint ID from open sprints
+      let targetSprintId: number | undefined;
+      let sprintName = "Current Sprint";
+
+      if (teamName) {
+        const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
+        const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
+        for (const raw of discoveryResponse.issues) {
+          const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
+          if (issue.sprintName?.toLowerCase().includes(teamName.toLowerCase())) {
+            targetSprintId = issue.sprintId ?? undefined;
+            sprintName = issue.sprintName;
+            break;
+          }
+        }
+      }
+
+      // Step 2: Fetch issues for the specific sprint (or all open sprints as fallback)
+      const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
       const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
 
       const issues = response.issues.map((raw) =>
         transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
       );
 
-      // Find the sprint matching the team name (case-insensitive)
-      const teamName = config.teamName;
-      const teamIssue = teamName
-        ? issues.find(
-            (i) =>
-              i.sprintName &&
-              i.sprintName.toLowerCase().includes(teamName.toLowerCase()),
-          )
-        : null;
+      // Enrich issues with epic summaries
+      const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
+      if (epicKeys.length > 0) {
+        const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
+        try {
+          const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
+          const epicMap = new Map<string, string>();
+          for (const raw of epicResponse.issues) {
+            epicMap.set(raw.key, raw.fields?.summary ?? "");
+          }
+          for (const issue of issues) {
+            if (issue.epicKey) {
+              issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+            }
+          }
+        } catch {
+          // Non-critical — proceed without epic summaries
+        }
+      }
 
-      // Fall back to first issue with any sprint if no team match
-      const sprintIssue = teamIssue ?? issues.find((i) => i.sprintName);
-
-      // Filter issues to only the matching sprint
-      const sprintName = sprintIssue?.sprintName ?? "Current Sprint";
-      const sprintId = sprintIssue?.sprintId ?? 0;
-      const filteredIssues = sprintIssue
-        ? issues.filter((i) => i.sprintName === sprintName)
-        : issues;
+      const sprintId = targetSprintId ?? issues.find((i) => i.sprintId)?.sprintId ?? 0;
 
       return {
-        issues: filteredIssues,
+        issues,
         sprintName,
         sprintId,
         fetchedAt: new Date().toISOString(),
@@ -151,4 +173,61 @@ export const jiraRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
       }
     }),
+
+  // Debug: inspect sprint query results and PR linking
+  debugPRLinks: publicProcedure.query(async ({ ctx }) => {
+    const { config, jiraToken, jiraHost } = ctx;
+    if (!jiraToken || !jiraHost) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
+    }
+
+    const teamName = config.teamName;
+
+    // Step 1: Discover sprint
+    let targetSprintId: number | undefined;
+    let matchedSprintName: string | null = null;
+    const allSprintNames: string[] = [];
+
+    if (teamName) {
+      const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
+      const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
+      for (const raw of discoveryResponse.issues) {
+        const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
+        if (issue.sprintName && !allSprintNames.includes(issue.sprintName)) {
+          allSprintNames.push(issue.sprintName);
+        }
+        if (!targetSprintId && issue.sprintName?.toLowerCase().includes(teamName.toLowerCase())) {
+          targetSprintId = issue.sprintId ?? undefined;
+          matchedSprintName = issue.sprintName;
+        }
+      }
+    }
+
+    // Step 2: Query the specific sprint
+    const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
+    const fields = getRequiredFields(config.jiraFieldMapping);
+    const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
+
+    const issues = response.issues.map((raw) => {
+      const transformed = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
+      return {
+        key: raw.key,
+        sprintName: transformed.sprintName,
+        linkedPRUrls: transformed.linkedPRUrls,
+        rawGitPRField: raw.fields?.[config.jiraFieldMapping.gitPullRequest],
+      };
+    });
+
+    return {
+      jql,
+      totalFromQuery: response.total,
+      maxResults: response.maxResults,
+      returnedCount: response.issues.length,
+      teamName,
+      targetSprintId,
+      matchedSprintName,
+      issuesWithPRLinks: issues.filter((i) => i.linkedPRUrls.length > 0),
+      allSprintNames,
+    };
+  }),
 });

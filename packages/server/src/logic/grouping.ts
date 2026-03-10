@@ -74,7 +74,7 @@ export function groupPRs(prs: PullRequest[], ctx: GroupingContext): PRGroup[] {
       id: "sprint-review",
       label: `Other PRs for ${sprintLabel} issues in Review`,
       prs: sprintReview,
-      emptyMessage: "No sprint review PRs",
+      emptyMessage: "No other PRs for Jira issues in Review state",
     },
     {
       id: "no-jira",

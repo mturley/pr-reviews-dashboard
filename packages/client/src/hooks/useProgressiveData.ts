@@ -1,22 +1,26 @@
 // T042: useProgressiveData hook — orchestrates 3-phase cascade
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { trpc } from "../trpc";
 import type { PullRequest, JiraIssueRef } from "../../../server/src/types/pr";
 import type { JiraIssue } from "../../../server/src/types/jira";
 
 function correlatePRsWithJira(prs: PullRequest[], jiraIssues: JiraIssue[]): PullRequest[] {
+  // Match by PR URL in Jira's Git Pull Request field
   const urlToJiraRefs = new Map<string, JiraIssueRef[]>();
   for (const issue of jiraIssues) {
     const ref: JiraIssueRef = {
       key: issue.key,
       url: issue.url,
+      summary: issue.summary,
       type: issue.type,
       typeIconUrl: issue.typeIconUrl,
       priority: issue.priority,
       state: issue.state,
       assignee: issue.assignee,
       blocked: issue.blocked,
+      epicKey: issue.epicKey,
+      epicSummary: issue.epicSummary,
     };
     for (const prUrl of issue.linkedPRUrls) {
       const normalized = prUrl.replace(/\/$/, "");
@@ -42,6 +46,8 @@ export interface ProgressiveDataResult {
   jiraError: Error | null;
   githubFetchedAt: string | null;
   jiraFetchedAt: string | null;
+  isFetching: boolean;
+  refetch: () => void;
   rateLimitRemaining: number | null;
   sprintName: string | null;
 }
@@ -84,7 +90,8 @@ export function useProgressiveData(
   // Merge all PRs and correlate with Jira
   const prs = useMemo(() => {
     const basePRs = teamPRsQuery.data?.prs ?? [];
-    const cascadePRs = cascadeQuery.data?.prs ?? [];
+    // Cascade PRs come from Jira links and may include merged/closed PRs — filter to open only
+    const cascadePRs = (cascadeQuery.data?.prs ?? []).filter((pr) => pr.state === "OPEN");
     const allPRs = [...basePRs, ...cascadePRs];
 
     if (jiraQuery.data) {
@@ -93,11 +100,19 @@ export function useProgressiveData(
     return allPRs;
   }, [teamPRsQuery.data, cascadeQuery.data, jiraQuery.data]);
 
+  const refetch = useCallback(() => {
+    teamPRsQuery.refetch();
+    jiraQuery.refetch();
+    cascadeQuery.refetch();
+  }, [teamPRsQuery, jiraQuery, cascadeQuery]);
+
   return {
     prs,
     isGitHubLoading: teamPRsQuery.isLoading,
     isJiraLoading: jiraQuery.isLoading,
     isCascadeLoading: cascadeQuery.isLoading,
+    isFetching: teamPRsQuery.isFetching || jiraQuery.isFetching || cascadeQuery.isFetching,
+    refetch,
     githubError: teamPRsQuery.error as Error | null,
     jiraError: jiraQuery.error as Error | null,
     githubFetchedAt: teamPRsQuery.data?.fetchedAt ?? null,

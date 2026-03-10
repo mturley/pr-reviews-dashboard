@@ -19,15 +19,16 @@ export interface ColumnConfig {
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { id: "action", label: "Action Needed", visible: true },
   { id: "title", label: "PR", visible: true },
   { id: "author", label: "Author", visible: true },
   { id: "age", label: "Age", visible: true },
   { id: "reviewStatus", label: "Review Status", visible: true },
-  { id: "ci", label: "CI", visible: true },
   { id: "jiraKey", label: "Jira", visible: true },
   { id: "jiraPriority", label: "Priority", visible: true },
   { id: "jiraState", label: "Jira Status", visible: true },
   { id: "jiraAssignee", label: "Assignee", visible: true },
+  { id: "jiraEpic", label: "Epic", visible: true },
 ];
 
 interface ColumnCustomizerProps {

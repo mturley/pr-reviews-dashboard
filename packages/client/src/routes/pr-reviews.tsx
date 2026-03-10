@@ -36,9 +36,9 @@ export default function PRReviews() {
   const isTeamView = perspective === "team";
   const viewer = isTeamView ? "" : perspective;
 
-  const refreshInterval = config?.autoRefreshIntervalMs ?? 300_000;
-  const { autoRefresh, setAutoRefresh, refetchInterval, manualRefetch } =
-    useAutoRefresh(refreshInterval);
+  const defaultInterval = config?.autoRefreshIntervalMs ?? 300_000;
+  const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
+    useAutoRefresh(defaultInterval);
 
   const data = useProgressiveData({ refetchInterval });
 
@@ -120,7 +120,9 @@ export default function PRReviews() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">PR Reviews</h1>
+        <h1 className="text-2xl font-bold">
+          My PRs and Reviews{data.sprintName ? ` for ${data.sprintName}` : ""}
+        </h1>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {data.githubFetchedAt && (
@@ -138,8 +140,11 @@ export default function PRReviews() {
           <RefreshControls
             autoRefresh={autoRefresh}
             onAutoRefreshChange={setAutoRefresh}
-            onManualRefresh={manualRefetch}
+            intervalMs={intervalMs}
+            onIntervalChange={setIntervalMs}
+            onManualRefresh={data.refetch}
             lastRefreshedAt={data.githubFetchedAt}
+            isFetching={data.isFetching}
           />
         </div>
       </div>

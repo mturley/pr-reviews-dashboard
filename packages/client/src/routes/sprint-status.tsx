@@ -113,7 +113,7 @@ export default function SprintStatus() {
                       href={issue.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                     >
                       {issue.key}
                     </a>
@@ -156,7 +156,7 @@ export default function SprintStatus() {
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="block text-xs text-blue-600 hover:underline"
+                              className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
                             >
                               {pr ? pr.title : url.split("/").pop()}
                             </a>
