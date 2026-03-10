@@ -14,8 +14,9 @@ see a grouped table of pull requests relevant to me. The default
 view shows four sections: "My PRs" (PRs I authored), "PRs I'm
 Reviewing" (PRs where I am a reviewer), "Other PRs for [current
 sprint] issues in Review state" (team PRs linked to Jira issues
-currently in review), and "Other [team] PRs with No Jira" (team
-member PRs that have no associated Jira issue). Each row shows the
+currently in review), and "Other [team] PRs with No Jira in [sprint]" (team
+member PRs that are not linked to any Jira issue in the current
+sprint). Each row shows the
 PR title, repository, author, age, review status with visual
 indicators, CI status, and draft/mergeable state. The review status
 column uses color-coded indicators to distinguish states like
@@ -377,11 +378,15 @@ verifying all its issues appear with sprint and PR metadata.
 - **FR-001**: System MUST allow the user to configure their GitHub
   identity, Jira identity, team name, a list of GitHub organizations
   to search for PRs, Jira project key, Jira component name, sprint
-  discovery label, and team member roster (GitHub and Jira usernames
-  for each member). All configuration MUST be persisted locally.
-- **FR-002**: System MUST accept a Jira personal access token and
-  a GitHub personal access token via environment variables, never
-  stored in source control.
+  discovery label, and team member roster (display name, GitHub
+  username, Jira username, and email for each member). All
+  non-secret configuration MUST be persisted in a local config file
+  (e.g. JSON) that is excluded from version control.
+- **FR-002**: Secrets (Jira personal access token, GitHub personal
+  access token, Jira base URL) MUST be provided via environment
+  variables, never stored in the config file or source control.
+  Non-secret structured configuration (team roster, org list,
+  project settings) MUST be stored in the local config file.
 - **FR-003**: System MUST use the GitHub API directly for all
   GitHub data access. The system MUST NOT depend on the `gh` CLI.
 - **FR-004**: All sensitive configuration (tokens, personal data,
@@ -425,10 +430,14 @@ verifying all its issues appear with sprint and PR metadata.
   and assignee.
 - **FR-014**: System MUST support the default four-group view:
   "My PRs", "PRs I'm Reviewing", "Other PRs for [sprint] issues
-  in Review state", "Other [team] PRs with No Jira". When a PR
-  qualifies for multiple groups, it MUST appear only in the
-  highest-priority group. Priority order: "My PRs" > "PRs I'm
-  Reviewing" > "Sprint Review" > "No Jira".
+  in Review state", "Other [team] PRs with No Jira in [sprint]".
+  The "No Jira" group is scoped to the current sprint: it shows
+  team member PRs that are not linked to any Jira issue found in
+  the current sprint's issue set. This avoids scanning all Jira
+  issues for performance. The group label MUST include the sprint
+  name. When a PR qualifies for multiple groups, it MUST appear
+  only in the highest-priority group. Priority order: "My PRs" >
+  "PRs I'm Reviewing" > "Sprint Review" > "No Jira".
 - **FR-015**: System MUST support alternative grouping options
   (by repository, by Jira epic, by priority, flat list).
 - **FR-016**: System MUST support sorting by age, priority, review
@@ -448,12 +457,32 @@ verifying all its issues appear with sprint and PR metadata.
   action-signaling mechanism of the dashboard and MUST NOT be
   omitted from any PR display regardless of view or grouping.
 
+**Many-to-Many PR/Jira Row Display**
+
+- **FR-040**: A PR may be linked to multiple Jira issues, and a
+  Jira issue may link to multiple PRs. The display strategy MUST
+  differ by view type:
+  - In PR-primary views (PR Reviews): each PR is one logical row.
+    If a PR is linked to multiple Jira issues, the Jira columns
+    MUST show all linked issues (e.g. merged/joined sub-rows within
+    the PR row). PR information is not duplicated.
+  - In Jira-primary views (Sprint Status, Epic Status): each Jira
+    issue is one logical row. If an issue links to multiple PRs,
+    the PR columns MUST show all linked PRs (e.g. merged/joined
+    sub-rows within the issue row). Issue information is not
+    duplicated.
+  - In either view type, when the secondary entity (Jira in PR
+    views, PR in Jira views) has multiple entries, it is acceptable
+    to duplicate the secondary entity's information across rows of
+    the primary entity.
+
 **Recommended Actions**
 
 - **FR-029**: System MUST display a prioritized Recommended Actions
-  list in a collapsible panel above the PR table, expanded by
-  default. The panel is derived from rule-based analysis of PR and
-  review state.
+  list in a collapsible panel above the table in every view,
+  expanded by default. The panel is derived from rule-based analysis
+  of PR and review state, scoped to the data visible in the current
+  view.
   Rules differ by relationship to the PR:
   - For user's own PRs: action needed when new reviews/comments
     exist since user's last push.
@@ -492,7 +521,9 @@ verifying all its issues appear with sprint and PR metadata.
 
 - **FR-035**: System MUST provide a column customization modal that
   allows the user to select which columns are visible and reorder
-  them. Column preferences MUST be persisted locally.
+  them. Column preferences MUST be persisted locally and MUST be
+  independent per view — each view (PR Reviews, Sprint Status,
+  Epic Status) has its own column set and saved preferences.
 - **FR-036**: Columns MUST be categorized as default-on or
   default-off (optional). Column visibility is independent of data
   loading state — a column can be visible (enabled) while its data
