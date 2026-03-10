@@ -121,7 +121,12 @@ export default function PRReviews() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          My PRs and Reviews{data.sprintName ? ` for ${data.sprintName}` : ""}
+          My PRs and Reviews
+          {data.sprintName && (
+            <span className="ml-2 text-base font-normal text-muted-foreground">
+              {data.sprintName}
+            </span>
+          )}
         </h1>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

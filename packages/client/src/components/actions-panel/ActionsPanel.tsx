@@ -65,17 +65,17 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   variant={getActionVariant(action.status)}
                   className="shrink-0"
                 />
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {action.repoName} #{action.prUrl.match(/\/pull\/(\d+)$/)?.[1] ?? ""}
+                </span>
                 <a
                   href={action.prUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="min-w-0 flex-1 truncate text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  className="min-w-0 truncate text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   {action.prTitle}
                 </a>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {action.repoName}
-                </span>
               </li>
             ))}
           </ul>

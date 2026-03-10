@@ -160,7 +160,7 @@ export const jiraRouter = router({
             actorDisplayName: fields.assignee?.displayName ?? input.username,
             actionType: "issue_status_changed",
             targetType: "issue",
-            targetKey: issue.key,
+            targetKey: `https://${jiraHost}/browse/${issue.key}`,
             targetTitle: fields.summary ?? "",
             detail: fields.status?.name ?? null,
           });
