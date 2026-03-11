@@ -77,7 +77,8 @@ export type AuthorStatus =
   | "Approved"
   | "Has LGTM"
   | "Awaiting Review"
-  | "WIP";
+  | "WIP"
+  | "Merged";
 
 export type ReviewerStatus =
   | "My Re-review Needed"
@@ -89,7 +90,8 @@ export type ReviewerStatus =
   | "My Changes Requested"
   | "Has LGTM"
   | "Approved"
-  | "WIP";
+  | "WIP"
+  | "Merged";
 
 export type CommentAction = "LGTM" | "APPROVE" | "COMMENT";
 

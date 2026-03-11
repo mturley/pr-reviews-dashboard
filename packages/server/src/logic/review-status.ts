@@ -64,7 +64,7 @@ function buildReviewerBreakdown(
       username: comment.author,
       state: "COMMENTED",
       submittedAt: comment.createdAt,
-      hasNewCommitsSince: false,
+      hasNewCommitsSince: comment.createdAt < pr.pushedAt,
       source: "comment",
       commentAction: action,
     });
@@ -73,10 +73,20 @@ function buildReviewerBreakdown(
   return entries;
 }
 
-function countReviewsSinceLastPush(pr: PullRequest): number {
-  return pr.reviews.filter(
+function countFeedbackSinceLastPush(pr: PullRequest): number {
+  const reviews = pr.reviews.filter(
     (r) => r.state !== "PENDING" && r.submittedAt > pr.pushedAt,
   ).length;
+  const comments = pr.comments.filter(
+    (c) => c.author !== pr.author && c.createdAt > pr.pushedAt,
+  ).length;
+  return reviews + comments;
+}
+
+function hasCommentedSinceLastPush(pr: PullRequest, username: string): boolean {
+  return pr.comments.some(
+    (c) => c.author === username && c.createdAt > pr.pushedAt,
+  );
 }
 
 function hasLabel(pr: PullRequest, label: string): boolean {
@@ -97,12 +107,12 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
   const breakdown = buildReviewerBreakdown(pr, latestReviews);
 
   // P0: New feedback from reviewers — highest priority
-  const newReviewCount = countReviewsSinceLastPush(pr);
-  if (newReviewCount > 0) {
+  const newFeedbackCount = countFeedbackSinceLastPush(pr);
+  if (newFeedbackCount > 0) {
     return {
       status: "New Feedback" as AuthorStatus,
       priority: 0,
-      parenthetical: `${newReviewCount} new review${newReviewCount > 1 ? "s" : ""} since last push`,
+      parenthetical: `${newFeedbackCount} new response${newFeedbackCount > 1 ? "s" : ""} since last push`,
       action: "Address feedback",
       reviewerBreakdown: breakdown,
     };
@@ -205,8 +215,9 @@ function computeReviewerStatus(
     };
   }
 
-  // P2: Viewer has reviewed and new commits exist since
-  if (viewerReview && viewerReview.commitOid !== pr.headRefOid) {
+  // P2: Viewer has reviewed and new commits exist since (unless they commented after latest push)
+  if (viewerReview && viewerReview.commitOid !== pr.headRefOid
+      && !hasCommentedSinceLastPush(pr, viewer)) {
     return {
       status: "My Re-review Needed" as ReviewerStatus,
       priority: 2,
@@ -305,6 +316,15 @@ export function computeReviewStatus(
   pr: PullRequest,
   viewerGithubUsername: string,
 ): ReviewStatusResult {
+  if (pr.state === "MERGED") {
+    return {
+      status: "Merged",
+      priority: null,
+      parenthetical: "",
+      action: null,
+      reviewerBreakdown: [],
+    };
+  }
   if (pr.author === viewerGithubUsername) {
     return computeAuthorStatus(pr);
   }

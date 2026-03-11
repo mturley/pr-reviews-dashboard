@@ -60,7 +60,7 @@ export function HowItWorksPanel() {
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>
                 <B label="New Feedback" variant="danger" /> — Reviewers have
-                submitted reviews since your last push. Address their feedback.
+                submitted reviews or comments since your last push. Address their feedback.
               </li>
               <li>
                 <B label="WIP" variant="warning" /> — PR is marked as a draft or has the{" "}
@@ -91,7 +91,8 @@ export function HowItWorksPanel() {
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>
                 <B label="My Re-review Needed" variant="danger" /> — You
-                previously reviewed, but the author has pushed new commits since. You should re-review.
+                previously reviewed, but the author has pushed new commits since and you haven't
+                commented or reviewed again. You should re-review.
               </li>
               <li>
                 <B label="Needs First Review" variant="danger" /> — No one

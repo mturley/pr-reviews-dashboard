@@ -8,8 +8,10 @@ import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownToolt
 import type { RecommendedAction, AuthorStatus, ReviewerStatus } from "../../../../server/src/types/pr";
 import { formatUsername } from "@/lib/bot-users";
 
-function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" {
+function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" | "purple" {
   switch (status) {
+    case "Merged":
+      return "purple";
     case "Approved":
       return "success";
     case "WIP":

@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral";
+export type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral" | "purple";
 
 interface StatusBadgeProps {
   label: string;
@@ -17,6 +17,7 @@ const variantClasses: Record<StatusVariant, string> = {
   danger: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800",
   info: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800",
   neutral: "bg-muted text-muted-foreground border-border",
+  purple: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-800",
 };
 
 export function StatusBadge({ label, variant = "neutral", className }: StatusBadgeProps) {

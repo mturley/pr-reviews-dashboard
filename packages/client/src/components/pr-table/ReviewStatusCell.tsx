@@ -4,10 +4,12 @@ import type { ReviewStatusResult, AuthorStatus, ReviewerStatus } from "../../../
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownTooltip";
 
-type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral";
+type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral" | "purple";
 
 function getStatusVariant(status: AuthorStatus | ReviewerStatus, hasAction?: boolean): StatusVariant {
   switch (status) {
+    case "Merged":
+      return "purple";
     case "Approved":
       return "success";
     case "Has LGTM":
