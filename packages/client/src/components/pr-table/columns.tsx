@@ -1,12 +1,20 @@
 // T029: PR table column definitions with TanStack Table columnHelper
 
 import { createColumnHelper } from "@tanstack/react-table";
+import { GitPullRequest, GitMerge, CircleDot, CircleDashed } from "lucide-react";
 import type { PullRequest } from "../../../../server/src/types/pr.js";
 import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
 import { ReviewStatusCell } from "./ReviewStatusCell";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { formatUsername } from "@/lib/bot-users";
+
+function PRStateIcon({ pr }: { pr: PullRequest }) {
+  if (pr.state === "MERGED") return <GitMerge className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />;
+  if (pr.state === "CLOSED") return <CircleDot className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />;
+  if (pr.isDraft) return <CircleDashed className="h-4 w-4 text-muted-foreground shrink-0" />;
+  return <GitPullRequest className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />;
+}
 
 export interface PRRow {
   pr: PullRequest;
@@ -60,16 +68,18 @@ export const columns = [
       const pr = info.row.original.pr;
       return (
         <div>
-          <a
-            href={pr.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {pr.isDraft && <span className="text-muted-foreground">[Draft] </span>}
-            #{pr.number}: {pr.title}
-          </a>
-          <div className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <PRStateIcon pr={pr} />
+            <a
+              href={pr.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              #{pr.number}: {pr.title}
+            </a>
+          </div>
+          <div className="text-xs text-muted-foreground ml-5">
             {pr.repoOwner}/{pr.repoName}
           </div>
         </div>

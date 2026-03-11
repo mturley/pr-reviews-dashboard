@@ -1,210 +1,207 @@
-// T067: Epic Status route view
+// Epic Status route — uses shared JiraIssueTable
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { trpc } from "../trpc";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { RefreshControls } from "@/components/controls/RefreshControls";
+import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import type { JiraIssue } from "../../../server/src/types/jira";
 
 export default function EpicStatus() {
-  const [epicKey, setEpicKey] = useState("");
-  const [submittedKey, setSubmittedKey] = useState("");
+  const configQuery = trpc.config.get.useQuery();
+  const viewer = configQuery.data?.config.githubIdentity ?? "";
+  const jiraHost = configQuery.data?.jiraHost ?? "";
+
+  const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
+    useAutoRefreshContext();
+
+  const [selectedEpic, setSelectedEpic] = useState("");
+  const [customEpicKey, setCustomEpicKey] = useState("");
+  const [submittedCustomKey, setSubmittedCustomKey] = useState("");
+
+  // Fetch sprint issues to discover epics
+  const sprintQuery = trpc.jira.getSprintIssues.useQuery(undefined, {
+    refetchInterval,
+  });
+
+  const sprintEpics = useMemo(() => {
+    if (!sprintQuery.data) return [];
+    const epicMap = new Map<string, string>();
+    for (const issue of sprintQuery.data.issues) {
+      if (issue.epicKey && !epicMap.has(issue.epicKey)) {
+        epicMap.set(issue.epicKey, issue.epicSummary ?? "");
+      }
+    }
+    return [...epicMap.entries()]
+      .map(([key, summary]) => ({ key, summary }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+  }, [sprintQuery.data]);
+
+  const isCustom = selectedEpic === "__other__";
+  const activeEpicKey = isCustom ? submittedCustomKey : selectedEpic;
 
   const epicQuery = trpc.jira.getEpicIssues.useQuery(
-    { epicKey: submittedKey, includeClosedResolved: true },
-    { enabled: !!submittedKey },
+    { epicKey: activeEpicKey, includeClosedResolved: true },
+    { enabled: !!activeEpicKey, refetchInterval },
   );
 
-  // Phase 2: Fetch linked PRs
+  // Collect unique PR URLs for batch fetch
   const linkedPRUrls = useMemo(() => {
     if (!epicQuery.data) return [];
     const urls = new Set<string>();
     for (const issue of epicQuery.data.issues) {
-      for (const url of issue.linkedPRUrls) {
-        urls.add(url);
-      }
+      for (const url of issue.linkedPRUrls) urls.add(url);
     }
     return [...urls];
   }, [epicQuery.data]);
 
-  const linkedPRs = trpc.github.getPRsByUrls.useQuery(
+  const linkedPRsQuery = trpc.github.getPRsByUrls.useQuery(
     { prUrls: linkedPRUrls },
-    { enabled: linkedPRUrls.length > 0 },
+    { enabled: linkedPRUrls.length > 0, refetchInterval },
   );
 
-  // Group issues by Jira status
-  const groupedByStatus = useMemo(() => {
-    if (!epicQuery.data) return [];
-    const groups = new Map<string, JiraIssue[]>();
-    for (const issue of epicQuery.data.issues) {
-      const list = groups.get(issue.state) ?? [];
-      list.push(issue);
-      groups.set(issue.state, list);
-    }
-    return [...groups.entries()];
-  }, [epicQuery.data]);
+  const refetch = useCallback(() => {
+    sprintQuery.refetch();
+    epicQuery.refetch();
+    linkedPRsQuery.refetch();
+  }, [sprintQuery, epicQuery, linkedPRsQuery]);
 
-  // Map PR URLs to PR data
-  const prByUrl = useMemo(() => {
-    const map = new Map<string, { title: string; url: string; author: string }>();
-    for (const pr of linkedPRs.data?.prs ?? []) {
-      map.set(pr.url.replace(/\/$/, ""), { title: pr.title, url: pr.url, author: pr.author });
-    }
-    return map;
-  }, [linkedPRs.data]);
+  const epicUrl = activeEpicKey && jiraHost
+    ? `https://${jiraHost}/browse/${activeEpicKey}`
+    : null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           Epic Status
-          {epicQuery.data && (
+          {epicQuery.data && activeEpicKey && (
             <span className="ml-2 text-base font-normal text-muted-foreground">
-              {submittedKey}: {epicQuery.data.epicSummary}
+              {epicUrl ? (
+                <a
+                  href={epicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {activeEpicKey}
+                </a>
+              ) : (
+                activeEpicKey
+              )}
+              : {epicQuery.data.epicSummary}
             </span>
           )}
         </h1>
-        {epicQuery.data && (
-          <span className="text-xs text-muted-foreground">
-            Jira: {new Date(epicQuery.data.fetchedAt).toLocaleTimeString()}
-          </span>
-        )}
+        <div className="flex items-center gap-4">
+          {epicQuery.data && (
+            <span className="text-xs text-muted-foreground">
+              Jira: {new Date(epicQuery.data.fetchedAt).toLocaleTimeString()}
+            </span>
+          )}
+          <RefreshControls
+            autoRefresh={autoRefresh}
+            onAutoRefreshChange={setAutoRefresh}
+            intervalMs={intervalMs}
+            onIntervalChange={setIntervalMs}
+            onManualRefresh={refetch}
+            lastRefreshedAt={epicQuery.data?.fetchedAt}
+            isFetching={epicQuery.isFetching || linkedPRsQuery.isFetching}
+          />
+        </div>
       </div>
 
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSubmittedKey(epicKey.trim().toUpperCase());
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Enter epic key (e.g. PROJ-123)"
-          value={epicKey}
-          onChange={(e) => setEpicKey(e.target.value)}
-          aria-label="Epic key"
-          className="h-8 rounded-md border border-input bg-background px-3 text-sm"
-        />
-        <Button type="submit" size="sm" disabled={!epicKey.trim()}>
-          Load Epic
-        </Button>
-      </form>
+      <p className="text-sm text-muted-foreground">
+        Jira issues for a selected epic, correlated with GitHub PR status and review data. Epics discovered from the current sprint are shown in the dropdown, or enter any epic key manually.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Epic:</span>
+          <Select
+            value={selectedEpic}
+            onValueChange={(v) => {
+              setSelectedEpic(v);
+              if (v !== "__other__") {
+                setSubmittedCustomKey("");
+                setCustomEpicKey("");
+              }
+            }}
+          >
+            <SelectTrigger className="h-8 w-auto min-w-[200px] text-sm" aria-label="Select epic">
+              <SelectValue placeholder="Select an epic..." />
+            </SelectTrigger>
+            <SelectContent>
+              {sprintQuery.isLoading && (
+                <SelectItem value="__loading__" disabled className="text-sm text-muted-foreground">
+                  Loading sprint epics...
+                </SelectItem>
+              )}
+              {sprintEpics.map((epic) => (
+                <SelectItem key={epic.key} value={epic.key} className="text-sm">
+                  ⚡ {epic.key}{epic.summary ? `: ${epic.summary}` : ""}
+                </SelectItem>
+              ))}
+              {sprintEpics.length > 0 && <SelectSeparator />}
+              <SelectItem value="__other__" className="text-sm">
+                Other (enter key)...
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isCustom && (
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setSubmittedCustomKey(customEpicKey.trim().toUpperCase());
+            }}
+          >
+            <input
+              type="text"
+              placeholder="e.g. RHOAIENG-123"
+              value={customEpicKey}
+              onChange={(e) => setCustomEpicKey(e.target.value)}
+              aria-label="Epic key"
+              className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <Button type="submit" size="sm" disabled={!customEpicKey.trim()}>
+              Load
+            </Button>
+          </form>
+        )}
+      </div>
 
       {epicQuery.error && <ErrorBanner message={epicQuery.error.message} />}
       {epicQuery.isLoading && <LoadingIndicator message="Loading epic issues..." />}
 
-      {groupedByStatus.map(([status, issues]) => (
-        <div key={status} className="space-y-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            {status}
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              {issues.length}
-            </span>
-          </h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead>Summary</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead>SP</TableHead>
-                <TableHead>Linked PRs</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {issues.map((issue) => (
-                <TableRow key={issue.key}>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-xs">
-                      {issue.typeIconUrl && (
-                        <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
-                      )}
-                      {issue.type}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <a
-                      href={issue.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {issue.key}
-                    </a>
-                  </TableCell>
-                  <TableCell className="max-w-md truncate text-sm">
-                    {issue.blocked && (
-                      <StatusBadge label="Blocked" variant="danger" className="mr-2" />
-                    )}
-                    {issue.summary}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-xs">
-                      {issue.priority.iconUrl && (
-                        <img src={issue.priority.iconUrl} alt="" className="h-3 w-3" />
-                      )}
-                      {issue.priority.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs">{issue.assignee ?? "-"}</TableCell>
-                  <TableCell className="text-xs">
-                    {issue.storyPoints ?? "-"}
-                    {issue.originalStoryPoints != null &&
-                      issue.originalStoryPoints !== issue.storyPoints && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          ({issue.originalStoryPoints})
-                        </span>
-                      )}
-                  </TableCell>
-                  <TableCell>
-                    {issue.linkedPRUrls.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    ) : (
-                      <div className="space-y-0.5">
-                        {issue.linkedPRUrls.map((url) => {
-                          const pr = prByUrl.get(url.replace(/\/$/, ""));
-                          return (
-                            <a
-                              key={url}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {pr ? pr.title : url.split("/").pop()}
-                            </a>
-                          );
-                        })}
-                        {linkedPRs.isLoading && (
-                          <span className="text-xs text-muted-foreground animate-pulse">
-                            Loading...
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ))}
+      {epicQuery.data && epicQuery.data.issues.length > 0 && (
+        <JiraIssueTable
+          issues={epicQuery.data.issues}
+          linkedPRs={linkedPRsQuery.data?.prs ?? []}
+          isPRsLoading={linkedPRsQuery.isLoading}
+          viewer={viewer}
+        />
+      )}
 
-      {!epicQuery.isLoading && submittedKey && epicQuery.data?.issues.length === 0 && (
+      {!activeEpicKey && !sprintQuery.isLoading && (
+        <p className="py-8 text-center text-muted-foreground">
+          Select an epic to view its issues
+        </p>
+      )}
+
+      {!epicQuery.isLoading && activeEpicKey && epicQuery.data?.issues.length === 0 && (
         <p className="py-8 text-center text-muted-foreground">No issues found in this epic</p>
       )}
     </div>

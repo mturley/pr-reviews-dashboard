@@ -112,7 +112,7 @@ export const githubRouter = router({
           search(query: $query, type: ISSUE, first: 100) {
             nodes {
               ... on PullRequest {
-                id number title url state createdAt mergedAt closedAt
+                id number title url state isDraft createdAt mergedAt closedAt
                 author { login }
                 repository { owner { login } name }
                 reviews(first: 10) { nodes { author { login } state submittedAt } }
@@ -131,11 +131,20 @@ export const githubRouter = router({
         { query: `is:pr involves:${input.username} updated:>=${since.split("T")[0]}` },
       );
 
+      function derivePRState(pr: Record<string, unknown>): "OPEN" | "MERGED" | "CLOSED" | "DRAFT" {
+        if (pr.mergedAt) return "MERGED";
+        if (pr.state === "CLOSED") return "CLOSED";
+        if (pr.isDraft) return "DRAFT";
+        return "OPEN";
+      }
+
       const events: Array<{
         id: string; source: "github"; timestamp: string;
         actor: string; actorDisplayName: string;
         actionType: string; targetType: string;
         targetKey: string; targetTitle: string; detail: string | null;
+        prState?: "OPEN" | "MERGED" | "CLOSED" | "DRAFT" | null;
+        prAuthor?: string | null;
       }> = [];
 
       for (const node of data.search.nodes) {
@@ -146,6 +155,7 @@ export const githubRouter = router({
         const repoName = `${repo?.owner?.login}/${repo?.name}`;
         const url = pr.url as string;
         const title = pr.title as string;
+        const prState = derivePRState(pr);
 
         if (author === input.username) {
           events.push({
@@ -153,6 +163,7 @@ export const githubRouter = router({
             actor: author, actorDisplayName: author,
             actionType: "pr_opened", targetType: "pr",
             targetKey: url, targetTitle: title, detail: repoName,
+            prState, prAuthor: author,
           });
         }
         if (pr.mergedAt) {
@@ -161,12 +172,16 @@ export const githubRouter = router({
             actor: author, actorDisplayName: author,
             actionType: "pr_merged", targetType: "pr",
             targetKey: url, targetTitle: title, detail: repoName,
+            prState: "MERGED", prAuthor: author,
           });
         }
       }
 
-      events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      // Filter events to only include those within the requested time window
+      const sinceMs = new Date(since).getTime();
+      const filtered = events.filter((e) => new Date(e.timestamp).getTime() >= sinceMs);
+      filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-      return { events, fetchedAt: new Date().toISOString() };
+      return { events: filtered, fetchedAt: new Date().toISOString() };
     }),
 });

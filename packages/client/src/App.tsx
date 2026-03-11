@@ -6,7 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, createTRPCClient } from "./trpc";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/controls/ThemeToggle";
+import { FontSizeToggle } from "@/components/controls/FontSizeToggle";
 import { useTheme } from "@/hooks/useTheme";
+import { useFontSize } from "@/hooks/useFontSize";
+import { AutoRefreshProvider } from "@/hooks/useAutoRefreshContext";
 import PRReviews from "./routes/pr-reviews";
 import ActivityTimeline from "./routes/activity-timeline";
 import SprintStatus from "./routes/sprint-status";
@@ -14,6 +17,7 @@ import EpicStatus from "./routes/epic-status";
 
 function NavBar() {
   const { theme, setTheme } = useTheme();
+  const { fontSize, setFontSize } = useFontSize();
   const links = [
     { to: "/", label: "My PRs and Reviews" },
     { to: "/sprint", label: "Current Sprint Status" },
@@ -45,7 +49,10 @@ function NavBar() {
             ))}
           </div>
         </div>
-        <ThemeToggle theme={theme} onThemeChange={setTheme} />
+        <div className="flex items-center gap-2">
+          <FontSizeToggle fontSize={fontSize} onFontSizeChange={setFontSize} />
+          <ThemeToggle theme={theme} onThemeChange={setTheme} />
+        </div>
       </div>
     </nav>
   );
@@ -59,19 +66,21 @@ export default function App() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-background">
-              <NavBar />
-              <main className="p-6">
-                <Routes>
-                  <Route path="/" element={<PRReviews />} />
-                  <Route path="/activity" element={<ActivityTimeline />} />
-                  <Route path="/sprint" element={<SprintStatus />} />
-                  <Route path="/epic" element={<EpicStatus />} />
-                </Routes>
-              </main>
-            </div>
-          </BrowserRouter>
+          <AutoRefreshProvider>
+            <BrowserRouter>
+              <div className="min-h-screen bg-background">
+                <NavBar />
+                <main className="p-6">
+                  <Routes>
+                    <Route path="/" element={<PRReviews />} />
+                    <Route path="/activity" element={<ActivityTimeline />} />
+                    <Route path="/sprint" element={<SprintStatus />} />
+                    <Route path="/epic" element={<EpicStatus />} />
+                  </Routes>
+                </main>
+              </div>
+            </BrowserRouter>
+          </AutoRefreshProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </trpc.Provider>

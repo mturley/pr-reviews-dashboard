@@ -27,7 +27,7 @@ export function FilterBar({
   onRepoFilterChange,
 }: FilterBarProps) {
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <>
       <div className="flex items-center gap-1.5">
         <Switch
           checked={actionNeeded}
@@ -39,11 +39,11 @@ export function FilterBar({
 
       <div className="flex items-center gap-1.5">
         <Switch
-          checked={showDraft}
-          onCheckedChange={onShowDraftChange}
-          aria-label="Show draft PRs"
+          checked={!showDraft}
+          onCheckedChange={(v) => onShowDraftChange(!v)}
+          aria-label="Ignore draft PRs"
         />
-        <span className="text-xs">Show drafts</span>
+        <span className="text-xs">Ignore drafts</span>
       </div>
 
       <div className="flex items-center gap-1.5">
@@ -80,6 +80,6 @@ export function FilterBar({
           })}
         </div>
       )}
-    </div>
+    </>
   );
 }

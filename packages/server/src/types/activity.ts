@@ -25,4 +25,12 @@ export interface ActivityEvent {
   targetKey: string;
   targetTitle: string;
   detail: string | null;
+  // Optional metadata for richer display
+  jiraTypeIconUrl?: string | null;
+  jiraType?: string | null;
+  epicKey?: string | null;
+  epicSummary?: string | null;
+  epicUrl?: string | null;
+  prState?: "OPEN" | "MERGED" | "CLOSED" | "DRAFT" | null;
+  prAuthor?: string | null;
 }

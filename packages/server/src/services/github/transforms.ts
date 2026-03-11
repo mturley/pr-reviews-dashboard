@@ -1,6 +1,6 @@
 // T025: GitHub GraphQL response to typed PullRequest transforms
 
-import type { PullRequest, Review, CheckStatus, ReviewState } from "../../types/pr.js";
+import type { PullRequest, PRComment, Review, CheckStatus, ReviewState } from "../../types/pr.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GraphQLNode = any;
@@ -66,8 +66,19 @@ function extractMentionedUsers(commentNodes: GraphQLNode[]): string[] {
   return [...mentions];
 }
 
+function transformComments(commentNodes: GraphQLNode[]): PRComment[] {
+  return commentNodes
+    .filter((n: GraphQLNode) => n.author?.login)
+    .map((n: GraphQLNode) => ({
+      author: n.author.login,
+      createdAt: n.createdAt ?? "",
+      body: n.body ?? "",
+    }));
+}
+
 export function transformPullRequest(node: GraphQLNode): PullRequest {
   const lastCommit = node.commits?.nodes?.[0];
+  const commentNodes = node.comments?.nodes ?? [];
 
   return {
     id: node.id,
@@ -88,10 +99,11 @@ export function transformPullRequest(node: GraphQLNode): PullRequest {
     reviews: (node.reviews?.nodes ?? [])
       .filter((r: GraphQLNode) => r.author?.login)
       .map(transformReview),
+    comments: transformComments(commentNodes),
     reviewRequests: (node.reviewRequests?.nodes ?? [])
       .map((r: GraphQLNode) => r.requestedReviewer?.login ?? r.requestedReviewer?.name)
       .filter(Boolean),
-    mentionedUsers: extractMentionedUsers(node.comments?.nodes ?? []),
+    mentionedUsers: extractMentionedUsers(commentNodes),
     checkStatus: transformCheckStatus(lastCommit),
     linkedJiraIssues: [],
   };

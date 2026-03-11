@@ -1,11 +1,13 @@
 // T063: Activity Timeline route view
 
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useCallback, Fragment } from "react";
 import { trpc } from "../trpc";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { RefreshControls } from "@/components/controls/RefreshControls";
+import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
+import { ChevronDown, ChevronRight, GitPullRequest, GitMerge, CircleDot, CircleDashed } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -31,13 +33,11 @@ function formatActionType(actionType: string): string {
 
 function getTargetLink(event: ActivityEvent): { label: string; url: string } | null {
   if (event.source === "github") {
-    // targetKey is the full PR URL, e.g. https://github.com/org/repo/pull/123
     const match = event.targetKey.match(/\/pull\/(\d+)$/);
     if (match) {
       return { label: `#${match[1]}`, url: event.targetKey };
     }
   } else if (event.source === "jira") {
-    // targetKey is the full Jira URL, e.g. https://issues.redhat.com/browse/RHOAIENG-12345
     const match = event.targetKey.match(/\/browse\/(.+)$/);
     if (match) {
       return { label: match[1], url: event.targetKey };
@@ -68,6 +68,28 @@ interface ActivityEvent {
   targetKey: string;
   targetTitle: string;
   detail: string | null;
+  jiraTypeIconUrl?: string | null;
+  jiraType?: string | null;
+  epicKey?: string | null;
+  epicSummary?: string | null;
+  epicUrl?: string | null;
+  prState?: "OPEN" | "MERGED" | "CLOSED" | "DRAFT" | null;
+  prAuthor?: string | null;
+}
+
+function PRStateIcon({ state }: { state: string | null | undefined }) {
+  switch (state) {
+    case "MERGED":
+      return <GitMerge className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
+    case "CLOSED":
+      return <CircleDot className="h-4 w-4 text-red-600 dark:text-red-400" />;
+    case "DRAFT":
+      return <CircleDashed className="h-4 w-4 text-muted-foreground" />;
+    case "OPEN":
+      return <GitPullRequest className="h-4 w-4 text-green-600 dark:text-green-400" />;
+    default:
+      return null;
+  }
 }
 
 function CollapsibleDayGroup({
@@ -122,26 +144,53 @@ function CollapsibleDayGroup({
             <TableCell className="w-32 text-xs text-muted-foreground whitespace-nowrap">
               {event.detail}
             </TableCell>
-            <TableCell className="text-sm truncate max-w-md" title={event.targetTitle}>
-              {(() => {
-                const link = getTargetLink(event);
-                return link ? (
-                  <>
+            <TableCell className="text-sm max-w-md" title={event.targetTitle}>
+              <div className="flex items-center gap-1.5">
+                {event.source === "github" && event.prState && (
+                  <PRStateIcon state={event.prState} />
+                )}
+                {event.source === "jira" && event.jiraTypeIconUrl && (
+                  <img src={event.jiraTypeIconUrl} alt={event.jiraType ?? ""} className="h-4 w-4 shrink-0" />
+                )}
+                {(() => {
+                  const link = getTargetLink(event);
+                  return link ? (
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-medium text-blue-600 hover:underline dark:text-blue-400 mr-1.5"
+                      className="font-medium text-blue-600 hover:underline dark:text-blue-400 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {link.label}
                     </a>
-                    {event.targetTitle}
-                  </>
-                ) : (
-                  event.targetTitle
-                );
-              })()}
+                  ) : null;
+                })()}
+                <span className="truncate">{event.targetTitle}</span>
+                {event.source === "github" && event.prAuthor && (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    by {event.prAuthor}
+                  </span>
+                )}
+                {event.epicKey && event.epicUrl && (
+                  <span className="shrink-0 text-xs text-muted-foreground flex items-center gap-0.5">
+                    ·
+                    <span className="text-green-600 dark:text-green-400">⚡</span>
+                    <a
+                      href={event.epicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {event.epicKey}
+                    </a>
+                    {event.epicSummary && (
+                      <span className="ml-1">{event.epicSummary}</span>
+                    )}
+                  </span>
+                )}
+              </div>
             </TableCell>
           </TableRow>
         ))}
@@ -155,14 +204,29 @@ export default function ActivityTimeline() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const username = configQuery.data?.config.githubIdentity ?? "";
 
+  const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
+    useAutoRefreshContext();
+
   const githubActivity = trpc.github.getActivity.useQuery(
     { username, days },
-    { enabled: !!username },
+    { enabled: !!username, refetchInterval },
   );
   const jiraActivity = trpc.jira.getActivity.useQuery(
     { username: configQuery.data?.config.jiraIdentity ?? "", days },
-    { enabled: !!configQuery.data?.config.jiraIdentity },
+    { enabled: !!configQuery.data?.config.jiraIdentity, refetchInterval },
   );
+
+  const refetch = useCallback(() => {
+    githubActivity.refetch();
+    jiraActivity.refetch();
+  }, [githubActivity, jiraActivity]);
+
+  const latestFetchedAt = useMemo(() => {
+    const gh = githubActivity.data?.fetchedAt;
+    const jira = jiraActivity.data?.fetchedAt;
+    if (gh && jira) return gh > jira ? gh : jira;
+    return gh ?? jira ?? null;
+  }, [githubActivity.data?.fetchedAt, jiraActivity.data?.fetchedAt]);
 
   const allEvents = useMemo(() => {
     const gh = githubActivity.data?.events ?? [];
@@ -192,7 +256,22 @@ export default function ActivityTimeline() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">My Activity Timeline</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">My Activity Timeline</h1>
+        <RefreshControls
+          autoRefresh={autoRefresh}
+          onAutoRefreshChange={setAutoRefresh}
+          intervalMs={intervalMs}
+          onIntervalChange={setIntervalMs}
+          onManualRefresh={refetch}
+          lastRefreshedAt={latestFetchedAt}
+          isFetching={githubActivity.isFetching || jiraActivity.isFetching}
+        />
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        Recent GitHub PR activity and Jira issue updates for your configured identity, combined into a unified timeline.
+      </p>
 
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
         <div className="flex items-center gap-2">

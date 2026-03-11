@@ -142,22 +142,48 @@ export const jiraRouter = router({
 
       const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
       const sinceStr = since.toISOString().split("T")[0];
+      const epicLinkField = config.jiraFieldMapping.epicLink;
       const jql = `project = "${config.jiraProjectKey}" AND updated >= "${sinceStr}" AND (assignee = "${input.username}" OR reporter = "${input.username}")`;
 
       try {
         const response = await jiraSearch(jiraHost, jiraToken, jql, [
-          "summary", "status", "issuetype", "updated", "created", "assignee",
+          "summary", "status", "issuetype", "updated", "created", "assignee", epicLinkField,
         ]);
+
+        // Collect epic keys for batch lookup
+        const epicKeys = new Set<string>();
+        for (const issue of response.issues) {
+          const ek = issue.fields?.[epicLinkField];
+          if (ek) epicKeys.add(ek);
+        }
+
+        // Fetch epic summaries
+        const epicMap = new Map<string, string>();
+        if (epicKeys.size > 0) {
+          try {
+            const epicJql = [...epicKeys].map((k) => `key = "${k}"`).join(" OR ");
+            const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary"], epicKeys.size);
+            for (const raw of epicResponse.issues) {
+              epicMap.set(raw.key, raw.fields?.summary ?? "");
+            }
+          } catch {
+            // Non-critical
+          }
+        }
 
         const events: Array<{
           id: string; source: "jira"; timestamp: string;
           actor: string; actorDisplayName: string;
           actionType: string; targetType: string;
           targetKey: string; targetTitle: string; detail: string | null;
+          jiraTypeIconUrl?: string | null; jiraType?: string | null;
+          epicKey?: string | null; epicSummary?: string | null; epicUrl?: string | null;
         }> = [];
 
         for (const issue of response.issues) {
           const fields = issue.fields ?? {};
+          const issueType = fields.issuetype as { name?: string; iconUrl?: string } | undefined;
+          const ek = fields[epicLinkField] as string | undefined;
           events.push({
             id: `${issue.key}-updated`,
             source: "jira",
@@ -169,6 +195,11 @@ export const jiraRouter = router({
             targetKey: `https://${jiraHost}/browse/${issue.key}`,
             targetTitle: fields.summary ?? "",
             detail: fields.status?.name ?? null,
+            jiraTypeIconUrl: issueType?.iconUrl ?? null,
+            jiraType: issueType?.name ?? null,
+            epicKey: ek ?? null,
+            epicSummary: ek ? (epicMap.get(ek) ?? null) : null,
+            epicUrl: ek ? `https://${jiraHost}/browse/${ek}` : null,
           });
         }
 

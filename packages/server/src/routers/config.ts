@@ -5,11 +5,12 @@ import { router, publicProcedure } from "../trpc.js";
 import { loadConfig, saveConfig, getConfigFilePath } from "../services/config.js";
 
 export const configRouter = router({
-  get: publicProcedure.query(async () => {
+  get: publicProcedure.query(async ({ ctx }) => {
     const config = await loadConfig();
     return {
       config,
       configFilePath: getConfigFilePath(),
+      jiraHost: ctx.jiraHost ?? null,
     };
   }),
 

@@ -39,6 +39,8 @@ const PR_FRAGMENT = `
     }
     comments(first: 100) {
       nodes {
+        author { login }
+        createdAt
         body
       }
     }

@@ -11,6 +11,12 @@ export interface Review {
   commentCount: number;
 }
 
+export interface PRComment {
+  author: string;
+  createdAt: string;
+  body: string;
+}
+
 export interface CheckStatus {
   state: "SUCCESS" | "FAILURE" | "PENDING" | "ERROR" | "EXPECTED" | null;
   totalCount: number;
@@ -36,6 +42,7 @@ export interface PullRequest {
   headRefOid: string;
   labels: string[];
   reviews: Review[];
+  comments: PRComment[];
   reviewRequests: string[];
   mentionedUsers: string[];
   checkStatus: CheckStatus;
@@ -84,11 +91,15 @@ export type ReviewerStatus =
   | "Approved"
   | "WIP";
 
+export type CommentAction = "LGTM" | "APPROVE" | "COMMENT";
+
 export interface ReviewerBreakdownEntry {
   username: string;
   state: ReviewState;
   submittedAt: string | null;
   hasNewCommitsSince: boolean;
+  source: "review" | "comment";
+  commentAction?: CommentAction;
 }
 
 export interface ReviewStatusResult {

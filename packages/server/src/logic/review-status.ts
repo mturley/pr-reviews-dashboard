@@ -6,6 +6,7 @@ import type {
   AuthorStatus,
   ReviewerStatus,
   ReviewerBreakdownEntry,
+  CommentAction,
   Review,
 } from "../types/pr.js";
 
@@ -17,6 +18,13 @@ function getLatestReviewPerUser(reviews: Review[]): Map<string, Review> {
     latest.set(review.author, review);
   }
   return latest;
+}
+
+function detectCommentAction(body: string): CommentAction {
+  const lower = body.toLowerCase();
+  if (lower.includes("/lgtm")) return "LGTM";
+  if (lower.includes("/approve")) return "APPROVE";
+  return "COMMENT";
 }
 
 function buildReviewerBreakdown(
@@ -31,6 +39,7 @@ function buildReviewerBreakdown(
       state: review.state,
       submittedAt: review.submittedAt,
       hasNewCommitsSince: review.commitOid !== pr.headRefOid,
+      source: "review",
     });
   }
 
@@ -42,8 +51,23 @@ function buildReviewerBreakdown(
         state: "PENDING",
         submittedAt: null,
         hasNewCommitsSince: false,
+        source: "review",
       });
     }
+  }
+
+  // Add non-review comments (exclude PR author's own comments)
+  for (const comment of pr.comments) {
+    if (comment.author === pr.author) continue;
+    const action = detectCommentAction(comment.body);
+    entries.push({
+      username: comment.author,
+      state: "COMMENTED",
+      submittedAt: comment.createdAt,
+      hasNewCommitsSince: false,
+      source: "comment",
+      commentAction: action,
+    });
   }
 
   return entries;

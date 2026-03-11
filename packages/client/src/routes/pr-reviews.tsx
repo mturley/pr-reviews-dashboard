@@ -5,9 +5,9 @@ import { trpc } from "../trpc";
 import { computeReviewStatus } from "../../../server/src/logic/review-status";
 import { groupPRs } from "../../../server/src/logic/grouping";
 import { deriveRecommendedActions } from "../../../server/src/logic/recommended-actions";
-import type { PullRequest, ReviewStatusResult } from "../../../server/src/types/pr";
+import type { PullRequest, ReviewStatusResult, PRGroup } from "../../../server/src/types/pr";
 import { useProgressiveData } from "@/hooks/useProgressiveData";
-import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 import { useViewState } from "@/hooks/useViewState";
 import { PRTable } from "@/components/pr-table/PRTable";
 import { ActionsPanel } from "@/components/actions-panel/ActionsPanel";
@@ -37,9 +37,8 @@ export default function PRReviews() {
   const isTeamView = perspective === "team";
   const viewer = isTeamView ? "" : perspective;
 
-  const defaultInterval = config?.autoRefreshIntervalMs ?? 300_000;
   const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
-    useAutoRefresh(defaultInterval);
+    useAutoRefreshContext();
 
   const data = useProgressiveData({ refetchInterval });
 
@@ -107,12 +106,21 @@ export default function PRReviews() {
     if (viewState.groupBy === "repository") {
       return groupByRepo(displayPRs);
     }
+    if (viewState.groupBy === "epic") {
+      return groupByEpic(displayPRs);
+    }
+    if (viewState.groupBy === "jiraPriority") {
+      return groupByJiraPriority(displayPRs);
+    }
+    if (viewState.groupBy === "action") {
+      return groupByAction(displayPRs, reviewStatuses);
+    }
     return groupPRs(displayPRs, {
       viewerGithubUsername: viewer,
       teamMembers: teamMemberUsernames,
       sprintName: data.sprintName ?? undefined,
     });
-  }, [displayPRs, viewer, teamMemberUsernames, data.sprintName, viewState.groupBy, isTeamView]);
+  }, [displayPRs, viewer, teamMemberUsernames, data.sprintName, viewState.groupBy, isTeamView, reviewStatuses]);
 
   // Only include PRs that appear in the table groups
   const groupedPRs = useMemo(() => {
@@ -186,6 +194,12 @@ export default function PRReviews() {
         </div>
       </div>
 
+      <p className="text-sm text-muted-foreground">
+        Open pull requests from your team's GitHub repos, enriched with Jira sprint data and review status. Filter, group, and prioritize PRs that need your attention.
+      </p>
+
+      <HowItWorksPanel />
+
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
         <PerspectiveSelector
           value={perspective}
@@ -198,19 +212,18 @@ export default function PRReviews() {
           onChange={(v) => updateViewState({ groupBy: v })}
         />
         <ColumnCustomizer columns={columnConfig} onColumnsChange={setColumnConfig} />
+        <FilterBar
+          actionNeeded={viewState.filterActionNeeded}
+          onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
+          showDraft={viewState.filterDraft}
+          onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
+          ignoreOtherTeams={viewState.ignoreOtherTeams}
+          onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
+          repos={availableRepos}
+          selectedRepos={viewState.filterRepo}
+          onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
+        />
       </div>
-
-      <FilterBar
-        actionNeeded={viewState.filterActionNeeded}
-        onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
-        showDraft={viewState.filterDraft}
-        onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
-        ignoreOtherTeams={viewState.ignoreOtherTeams}
-        onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
-        repos={availableRepos}
-        selectedRepos={viewState.filterRepo}
-        onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
-      />
 
       {data.githubError && (
         <ErrorBanner message={`GitHub error: ${data.githubError.message}`} />
@@ -219,7 +232,6 @@ export default function PRReviews() {
         <ErrorBanner message={`Jira error: ${data.jiraError.message}`} />
       )}
 
-      <HowItWorksPanel />
       <ActionsPanel actions={actions} />
 
       {data.isGitHubLoading ? (
@@ -242,7 +254,7 @@ export default function PRReviews() {
   );
 }
 
-function groupByRepo(prs: PullRequest[]) {
+function groupByRepo(prs: PullRequest[]): PRGroup[] {
   const repoMap = new Map<string, PullRequest[]>();
   for (const pr of prs) {
     const key = `${pr.repoOwner}/${pr.repoName}`;
@@ -256,4 +268,109 @@ function groupByRepo(prs: PullRequest[]) {
     prs: repoPRs,
     emptyMessage: `No PRs in ${repo}`,
   }));
+}
+
+function groupByEpic(prs: PullRequest[]): PRGroup[] {
+  const epicMap = new Map<string, { label: string; prs: PullRequest[] }>();
+  const noEpic: PullRequest[] = [];
+  for (const pr of prs) {
+    const epic = pr.linkedJiraIssues[0];
+    if (epic?.epicKey) {
+      const key = epic.epicKey;
+      const existing = epicMap.get(key);
+      if (existing) {
+        existing.prs.push(pr);
+      } else {
+        epicMap.set(key, {
+          label: epic.epicSummary ? `${key}: ${epic.epicSummary}` : key,
+          prs: [pr],
+        });
+      }
+    } else {
+      noEpic.push(pr);
+    }
+  }
+  const groups: PRGroup[] = [...epicMap.entries()].map(([key, { label, prs: epicPRs }]) => ({
+    id: key,
+    label,
+    prs: epicPRs,
+    emptyMessage: `No PRs for ${key}`,
+  }));
+  if (noEpic.length > 0) {
+    groups.push({ id: "no-epic", label: "No Epic", prs: noEpic, emptyMessage: "No PRs without an epic" });
+  }
+  return groups;
+}
+
+const JIRA_PRIORITY_ORDER = ["blocker", "critical", "major", "normal", "minor"];
+
+function groupByJiraPriority(prs: PullRequest[]): PRGroup[] {
+  const priorityMap = new Map<string, PullRequest[]>();
+  const noPriority: PullRequest[] = [];
+  for (const pr of prs) {
+    const priority = pr.linkedJiraIssues[0]?.priority;
+    if (priority?.name) {
+      const key = priority.name;
+      const list = priorityMap.get(key) ?? [];
+      list.push(pr);
+      priorityMap.set(key, list);
+    } else {
+      noPriority.push(pr);
+    }
+  }
+  // Sort by known priority order, then any unknown ones alphabetically
+  const sortedKeys = [...priorityMap.keys()].sort((a, b) => {
+    const ai = JIRA_PRIORITY_ORDER.indexOf(a.toLowerCase());
+    const bi = JIRA_PRIORITY_ORDER.indexOf(b.toLowerCase());
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+  const groups: PRGroup[] = sortedKeys.map((key) => ({
+    id: key,
+    label: key,
+    prs: priorityMap.get(key)!,
+    emptyMessage: `No ${key} PRs`,
+  }));
+  if (noPriority.length > 0) {
+    groups.push({ id: "no-priority", label: "No Jira Priority", prs: noPriority, emptyMessage: "No PRs without priority" });
+  }
+  return groups;
+}
+
+function groupByAction(prs: PullRequest[], reviewStatuses: Map<string, ReviewStatusResult>): PRGroup[] {
+  const actionMap = new Map<string, PullRequest[]>();
+  const noAction: PullRequest[] = [];
+  for (const pr of prs) {
+    const status = reviewStatuses.get(pr.id);
+    const action = status?.action;
+    if (action) {
+      const list = actionMap.get(action) ?? [];
+      list.push(pr);
+      actionMap.set(action, list);
+    } else {
+      noAction.push(pr);
+    }
+  }
+  // Sort by priority (lowest number first)
+  const ACTION_ORDER = ["Address feedback", "Fix CI", "Re-review PR", "Review PR", "Complete work", "Merge PR"];
+  const sortedKeys = [...actionMap.keys()].sort((a, b) => {
+    const ai = ACTION_ORDER.indexOf(a);
+    const bi = ACTION_ORDER.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+  const groups: PRGroup[] = sortedKeys.map((key) => ({
+    id: key,
+    label: key,
+    prs: actionMap.get(key)!,
+    emptyMessage: `No PRs needing "${key}"`,
+  }));
+  if (noAction.length > 0) {
+    groups.push({ id: "no-action", label: "No Action Needed", prs: noAction, emptyMessage: "No PRs without actions" });
+  }
+  return groups;
 }

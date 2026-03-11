@@ -1,6 +1,6 @@
 // T051: URL state serialization helpers
 
-export type GroupByOption = "default" | "repository" | "epic" | "priority" | "flat";
+export type GroupByOption = "default" | "repository" | "epic" | "jiraPriority" | "action" | "flat";
 export type SortByOption = "age" | "priority" | "reviewStatus" | "ci";
 
 export interface ViewState {
@@ -19,7 +19,7 @@ const DEFAULTS: ViewState = {
   perspective: "",
   filterRepo: [],
   filterActionNeeded: false,
-  filterDraft: false,
+  filterDraft: true,
   ignoreOtherTeams: true,
 };
 
@@ -30,7 +30,7 @@ export function parseViewState(params: URLSearchParams): ViewState {
     perspective: params.get("perspective") ?? DEFAULTS.perspective,
     filterRepo: params.get("repo")?.split(",").filter(Boolean) ?? DEFAULTS.filterRepo,
     filterActionNeeded: params.get("action") === "1",
-    filterDraft: params.get("draft") === "1",
+    filterDraft: params.get("noDraft") !== "1",
     ignoreOtherTeams: params.get("teamOnly") !== "0",
   };
 }
@@ -59,8 +59,8 @@ export function serializeViewState(state: Partial<ViewState>, current: URLSearch
     else next.delete("action");
   }
   if (state.filterDraft !== undefined) {
-    if (state.filterDraft) next.set("draft", "1");
-    else next.delete("draft");
+    if (!state.filterDraft) next.set("noDraft", "1");
+    else next.delete("noDraft");
   }
   if (state.ignoreOtherTeams !== undefined) {
     if (!state.ignoreOtherTeams) next.set("teamOnly", "0");

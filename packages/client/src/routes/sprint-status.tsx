@@ -1,60 +1,43 @@
-// T064-T065: Sprint Status route (Jira-primary progressive loading)
+// Sprint Status route — uses shared JiraIssueTable
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { trpc } from "../trpc";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { JiraIssue } from "../../../server/src/types/jira";
+import { RefreshControls } from "@/components/controls/RefreshControls";
+import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 
 export default function SprintStatus() {
-  const jiraQuery = trpc.jira.getSprintIssues.useQuery();
+  const configQuery = trpc.config.get.useQuery();
+  const viewer = configQuery.data?.config.githubIdentity ?? "";
 
-  // Phase 2: Fetch linked PRs
+  const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
+    useAutoRefreshContext();
+
+  const jiraQuery = trpc.jira.getSprintIssues.useQuery(undefined, {
+    refetchInterval,
+  });
+
+  // Collect unique PR URLs for batch fetch
   const linkedPRUrls = useMemo(() => {
     if (!jiraQuery.data) return [];
     const urls = new Set<string>();
     for (const issue of jiraQuery.data.issues) {
-      for (const url of issue.linkedPRUrls) {
-        urls.add(url);
-      }
+      for (const url of issue.linkedPRUrls) urls.add(url);
     }
     return [...urls];
   }, [jiraQuery.data]);
 
-  const linkedPRs = trpc.github.getPRsByUrls.useQuery(
+  const linkedPRsQuery = trpc.github.getPRsByUrls.useQuery(
     { prUrls: linkedPRUrls },
-    { enabled: linkedPRUrls.length > 0 },
+    { enabled: linkedPRUrls.length > 0, refetchInterval },
   );
 
-  // Group issues by Jira status
-  const groupedByStatus = useMemo(() => {
-    if (!jiraQuery.data) return [];
-    const groups = new Map<string, JiraIssue[]>();
-    for (const issue of jiraQuery.data.issues) {
-      const list = groups.get(issue.state) ?? [];
-      list.push(issue);
-      groups.set(issue.state, list);
-    }
-    return [...groups.entries()];
-  }, [jiraQuery.data]);
-
-  // Map PR URLs to PR data
-  const prByUrl = useMemo(() => {
-    const map = new Map<string, { title: string; url: string; author: string }>();
-    for (const pr of linkedPRs.data?.prs ?? []) {
-      map.set(pr.url.replace(/\/$/, ""), { title: pr.title, url: pr.url, author: pr.author });
-    }
-    return map;
-  }, [linkedPRs.data]);
+  const refetch = useCallback(() => {
+    jiraQuery.refetch();
+    linkedPRsQuery.refetch();
+  }, [jiraQuery, linkedPRsQuery]);
 
   return (
     <div className="space-y-4">
@@ -78,115 +61,39 @@ export default function SprintStatus() {
             )
           )}
         </h1>
-        {jiraQuery.data && (
-          <span className="text-xs text-muted-foreground">
-            Jira: {new Date(jiraQuery.data.fetchedAt).toLocaleTimeString()}
-          </span>
-        )}
+        <div className="flex items-center gap-4">
+          {jiraQuery.data && (
+            <span className="text-xs text-muted-foreground">
+              Jira: {new Date(jiraQuery.data.fetchedAt).toLocaleTimeString()}
+            </span>
+          )}
+          <RefreshControls
+            autoRefresh={autoRefresh}
+            onAutoRefreshChange={setAutoRefresh}
+            intervalMs={intervalMs}
+            onIntervalChange={setIntervalMs}
+            onManualRefresh={refetch}
+            lastRefreshedAt={jiraQuery.data?.fetchedAt}
+            isFetching={jiraQuery.isFetching || linkedPRsQuery.isFetching}
+          />
+        </div>
       </div>
+
+      <p className="text-sm text-muted-foreground">
+        All Jira issues in your team's current sprint, correlated with GitHub PR status and review data for linked pull requests.
+      </p>
 
       {jiraQuery.error && <ErrorBanner message={jiraQuery.error.message} />}
       {jiraQuery.isLoading && <LoadingIndicator message="Loading sprint issues..." />}
 
-      {groupedByStatus.map(([status, issues]) => (
-        <div key={status} className="space-y-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            {status}
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              {issues.length}
-            </span>
-          </h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead>Summary</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead>SP</TableHead>
-                <TableHead>Linked PRs</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {issues.map((issue) => (
-                <TableRow key={issue.key}>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-xs">
-                      {issue.typeIconUrl && (
-                        <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
-                      )}
-                      {issue.type}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <a
-                      href={issue.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {issue.key}
-                    </a>
-                  </TableCell>
-                  <TableCell className="max-w-md truncate text-sm">
-                    {issue.blocked && (
-                      <StatusBadge label="Blocked" variant="danger" className="mr-2" />
-                    )}
-                    {issue.summary}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-xs">
-                      {issue.priority.iconUrl && (
-                        <img src={issue.priority.iconUrl} alt="" className="h-3 w-3" />
-                      )}
-                      {issue.priority.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs">{issue.assignee ?? "-"}</TableCell>
-                  <TableCell className="text-xs">
-                    {issue.storyPoints ?? "-"}
-                    {issue.originalStoryPoints != null &&
-                      issue.originalStoryPoints !== issue.storyPoints && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          ({issue.originalStoryPoints})
-                        </span>
-                      )}
-                  </TableCell>
-                  <TableCell>
-                    {issue.linkedPRUrls.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    ) : (
-                      <div className="space-y-0.5">
-                        {issue.linkedPRUrls.map((url) => {
-                          const pr = prByUrl.get(url.replace(/\/$/, ""));
-                          return (
-                            <a
-                              key={url}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {pr ? pr.title : url.split("/").pop()}
-                            </a>
-                          );
-                        })}
-                        {linkedPRs.isLoading && (
-                          <span className="text-xs text-muted-foreground animate-pulse">
-                            Loading...
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ))}
+      {jiraQuery.data && (
+        <JiraIssueTable
+          issues={jiraQuery.data.issues}
+          linkedPRs={linkedPRsQuery.data?.prs ?? []}
+          isPRsLoading={linkedPRsQuery.isLoading}
+          viewer={viewer}
+        />
+      )}
     </div>
   );
 }
