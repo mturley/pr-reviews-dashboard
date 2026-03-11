@@ -176,18 +176,16 @@ function PRLinkCell({ pr }: { pr: LinkedPR }) {
   );
 }
 
-function IssueRow({
+function IssueCells({
   issue,
-  linkedPRs,
-  isPRsLoading,
+  rowSpan,
 }: {
   issue: JiraIssue;
-  linkedPRs: LinkedPR[];
-  isPRsLoading: boolean;
+  rowSpan: number;
 }) {
   return (
-    <TableRow key={issue.key}>
-      <TableCell>
+    <>
+      <TableCell rowSpan={rowSpan}>
         <div className="flex items-center gap-1 text-xs">
           {issue.typeIconUrl && (
             <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
@@ -195,7 +193,7 @@ function IssueRow({
           {issue.type}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell rowSpan={rowSpan}>
         <a
           href={issue.url}
           target="_blank"
@@ -205,13 +203,13 @@ function IssueRow({
           {issue.key}
         </a>
       </TableCell>
-      <TableCell className="max-w-md truncate text-sm">
+      <TableCell rowSpan={rowSpan} className="max-w-md truncate text-sm">
         {issue.blocked && (
           <StatusBadge label="Blocked" variant="danger" className="mr-2" />
         )}
         {issue.summary}
       </TableCell>
-      <TableCell>
+      <TableCell rowSpan={rowSpan}>
         <div className="flex items-center gap-1 text-xs">
           {issue.priority.iconUrl && (
             <img src={issue.priority.iconUrl} alt="" className="h-4 w-4" />
@@ -219,8 +217,8 @@ function IssueRow({
           {issue.priority.name}
         </div>
       </TableCell>
-      <TableCell className="text-xs">{issue.assignee ?? "-"}</TableCell>
-      <TableCell className="text-xs">
+      <TableCell rowSpan={rowSpan} className="text-xs">{issue.assignee ?? "-"}</TableCell>
+      <TableCell rowSpan={rowSpan} className="text-xs">
         {issue.storyPoints ?? "-"}
         {issue.originalStoryPoints != null &&
           issue.originalStoryPoints !== issue.storyPoints && (
@@ -230,53 +228,85 @@ function IssueRow({
             </span>
           )}
       </TableCell>
-      <TableCell>
-        {linkedPRs.length === 0 ? (
-          issue.linkedPRUrls.length === 0 ? (
-            <span className="text-xs text-muted-foreground">-</span>
-          ) : (
-            <div className="space-y-0.5">
-              {issue.linkedPRUrls.map((url) => (
-                <a
-                  key={url}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {url.split("/").pop()}
-                </a>
-              ))}
-              {isPRsLoading && (
-                <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
-              )}
-            </div>
-          )
-        ) : (
-          <div className="space-y-2">
-            {linkedPRs.map((pr) => (
-              <PRLinkCell key={pr.url} pr={pr} />
-            ))}
-          </div>
-        )}
+    </>
+  );
+}
+
+function PRCells({ pr, isSubRow }: { pr: LinkedPR; isSubRow?: boolean }) {
+  return (
+    <>
+      <TableCell className={isSubRow ? "!border-l-0" : ""}>
+        <PRLinkCell pr={pr} />
       </TableCell>
       <TableCell>
-        {linkedPRs.length === 0 ? (
+        <ReviewStatusCell
+          result={pr.reviewStatus}
+          hasCIFailure={pr.checkState === "FAILURE" || pr.checkState === "ERROR"}
+        />
+      </TableCell>
+    </>
+  );
+}
+
+function NoPRCells({ issue, isPRsLoading }: { issue: JiraIssue; isPRsLoading: boolean }) {
+  return (
+    <>
+      <TableCell>
+        {issue.linkedPRUrls.length === 0 ? (
           <span className="text-xs text-muted-foreground">-</span>
         ) : (
-          <div className="space-y-2">
-            {linkedPRs.map((pr) => (
-              <div key={pr.url}>
-                <ReviewStatusCell
-                  result={pr.reviewStatus}
-                  hasCIFailure={pr.checkState === "FAILURE" || pr.checkState === "ERROR"}
-                />
-              </div>
+          <div className="space-y-0.5">
+            {issue.linkedPRUrls.map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {url.split("/").pop()}
+              </a>
             ))}
+            {isPRsLoading && (
+              <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
+            )}
           </div>
         )}
       </TableCell>
-    </TableRow>
+      <TableCell>
+        <span className="text-xs text-muted-foreground">-</span>
+      </TableCell>
+    </>
+  );
+}
+
+function IssueRow({
+  issue,
+  linkedPRs,
+  isPRsLoading,
+}: {
+  issue: JiraIssue;
+  linkedPRs: LinkedPR[];
+  isPRsLoading: boolean;
+}) {
+  const rowCount = Math.max(linkedPRs.length, 1);
+
+  return (
+    <>
+      <TableRow>
+        <IssueCells issue={issue} rowSpan={rowCount} />
+        {linkedPRs.length === 0 ? (
+          <NoPRCells issue={issue} isPRsLoading={isPRsLoading} />
+        ) : (
+          <PRCells pr={linkedPRs[0]} />
+        )}
+      </TableRow>
+      {linkedPRs.slice(1).map((pr) => (
+        <TableRow key={pr.url}>
+          <PRCells pr={pr} isSubRow />
+        </TableRow>
+      ))}
+    </>
   );
 }
 
