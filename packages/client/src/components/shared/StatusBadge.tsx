@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral";
+export type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral";
 
 interface StatusBadgeProps {
   label: string;

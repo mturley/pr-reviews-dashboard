@@ -11,6 +11,7 @@ import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useViewState } from "@/hooks/useViewState";
 import { PRTable } from "@/components/pr-table/PRTable";
 import { ActionsPanel } from "@/components/actions-panel/ActionsPanel";
+import { HowItWorksPanel } from "@/components/actions-panel/HowItWorksPanel";
 import { RefreshControls } from "@/components/controls/RefreshControls";
 import { GroupBySelector } from "@/components/controls/GroupBySelector";
 import { FilterBar } from "@/components/controls/FilterBar";
@@ -42,9 +43,16 @@ export default function PRReviews() {
 
   const data = useProgressiveData({ refetchInterval });
 
+  // Strip reviewRequests when toggle is on — PRs only count as "reviewing"
+  // if the viewer has actually posted a review, not just been requested
+  const effectivePRs = useMemo(() => {
+    if (!viewState.ignoreReviewRequests) return data.prs;
+    return data.prs.map((pr) => ({ ...pr, reviewRequests: [] as string[] }));
+  }, [data.prs, viewState.ignoreReviewRequests]);
+
   // Filtering
   const filteredPRs = useMemo(() => {
-    let prs = data.prs;
+    let prs = effectivePRs;
 
     if (viewState.filterRepo.length > 0) {
       prs = prs.filter((pr) =>
@@ -56,7 +64,7 @@ export default function PRReviews() {
     }
 
     return prs;
-  }, [data.prs, viewState.filterRepo, viewState.filterDraft]);
+  }, [effectivePRs, viewState.filterRepo, viewState.filterDraft]);
 
   // Available repos for filter
   const availableRepos = useMemo(() => {
@@ -104,9 +112,20 @@ export default function PRReviews() {
     });
   }, [displayPRs, viewer, teamMemberUsernames, data.sprintName, viewState.groupBy, isTeamView]);
 
+  // Only include PRs that appear in the table groups
+  const groupedPRs = useMemo(() => {
+    const ids = new Set<string>();
+    for (const group of groups) {
+      for (const pr of group.prs) {
+        ids.add(pr.id);
+      }
+    }
+    return displayPRs.filter((pr) => ids.has(pr.id));
+  }, [groups, displayPRs]);
+
   const actions = useMemo(
-    () => deriveRecommendedActions(displayPRs, reviewStatuses),
-    [displayPRs, reviewStatuses],
+    () => deriveRecommendedActions(groupedPRs, reviewStatuses),
+    [groupedPRs, reviewStatuses],
   );
 
   if (configQuery.isLoading) {
@@ -173,6 +192,8 @@ export default function PRReviews() {
         onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
         showDraft={viewState.filterDraft}
         onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
+        ignoreReviewRequests={viewState.ignoreReviewRequests}
+        onIgnoreReviewRequestsChange={(v) => updateViewState({ ignoreReviewRequests: v })}
         repos={availableRepos}
         selectedRepos={viewState.filterRepo}
         onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
@@ -185,6 +206,7 @@ export default function PRReviews() {
         <ErrorBanner message={`Jira error: ${data.jiraError.message}`} />
       )}
 
+      <HowItWorksPanel />
       <ActionsPanel actions={actions} />
 
       {data.isGitHubLoading ? (

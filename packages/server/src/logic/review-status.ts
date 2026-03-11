@@ -59,6 +59,11 @@ function hasLabel(pr: PullRequest, label: string): boolean {
   return pr.labels.some((l) => l.toLowerCase() === label.toLowerCase());
 }
 
+function hasCIFailure(pr: PullRequest): boolean {
+  const ciState = pr.checkStatus.state;
+  return ciState === "FAILURE" || ciState === "ERROR";
+}
+
 function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
   const latestReviews = getLatestReviewPerUser(pr.reviews);
   const breakdown = buildReviewerBreakdown(pr, latestReviews);
@@ -73,10 +78,33 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
     };
   }
 
+  // P0: New feedback from reviewers — highest author priority
+  const newReviewCount = countReviewsSinceLastPush(pr);
+  if (newReviewCount > 0) {
+    return {
+      status: "New Feedback" as AuthorStatus,
+      priority: 0,
+      parenthetical: `${newReviewCount} new review${newReviewCount > 1 ? "s" : ""} since last push`,
+      action: "Address feedback",
+      reviewerBreakdown: breakdown,
+    };
+  }
+
   if (hasLabel(pr, "approved") && hasLabel(pr, "lgtm")) {
+    // P1: Approved but CI failing
+    if (hasCIFailure(pr)) {
+      return {
+        status: "Approved" as AuthorStatus,
+        priority: 1,
+        parenthetical: `${pr.checkStatus.failureCount} check${pr.checkStatus.failureCount !== 1 ? "s" : ""} failed`,
+        action: "Fix CI errors",
+        reviewerBreakdown: breakdown,
+      };
+    }
+    // P2: Approved and ready to merge
     return {
       status: "Approved" as AuthorStatus,
-      priority: null,
+      priority: 2,
       parenthetical: "Ready to merge",
       action: "Merge PR",
       reviewerBreakdown: breakdown,
@@ -89,17 +117,6 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
       priority: null,
       parenthetical: "Awaiting approval",
       action: null,
-      reviewerBreakdown: breakdown,
-    };
-  }
-
-  const newReviewCount = countReviewsSinceLastPush(pr);
-  if (newReviewCount > 0) {
-    return {
-      status: "New Feedback" as AuthorStatus,
-      priority: null,
-      parenthetical: `${newReviewCount} new review${newReviewCount > 1 ? "s" : ""} since last push`,
-      action: "Address feedback",
       reviewerBreakdown: breakdown,
     };
   }
@@ -158,11 +175,11 @@ function computeReviewerStatus(
     };
   }
 
-  // P1: Viewer has reviewed and new commits exist since
+  // P3: Viewer has reviewed and new commits exist since
   if (viewerReview && viewerReview.commitOid !== pr.headRefOid) {
     return {
       status: "My Re-review Needed" as ReviewerStatus,
-      priority: 1,
+      priority: 3,
       parenthetical: "New commits since your review",
       action: "Re-review PR",
       reviewerBreakdown: breakdown,
@@ -180,11 +197,11 @@ function computeReviewerStatus(
     };
   }
 
-  // P2: No reviews from anyone
+  // P4: No reviews from anyone
   if (latestReviews.size === 0) {
     return {
       status: "Needs First Review" as ReviewerStatus,
-      priority: 2,
+      priority: 4,
       parenthetical: "No reviews yet",
       action: "Review PR",
       reviewerBreakdown: breakdown,
@@ -194,39 +211,39 @@ function computeReviewerStatus(
   // Check if other reviewers have reviewed
   const othersReviewed = [...latestReviews.entries()].filter(([u]) => u !== viewer);
 
-  // P3: Others reviewed and new commits since their review
+  // P5: Others reviewed and new commits since their review
   const othersWithNewCommits = othersReviewed.filter(
     ([, r]) => r.commitOid !== pr.headRefOid,
   );
   if (othersWithNewCommits.length > 0 && !viewerReview) {
     return {
       status: "Team Re-review Needed" as ReviewerStatus,
-      priority: 3,
+      priority: 5,
       parenthetical: `${othersWithNewCommits.length} reviewer${othersWithNewCommits.length > 1 ? "s" : ""} need re-review`,
       action: "Review PR",
       reviewerBreakdown: breakdown,
     };
   }
 
-  // P5: Others requested changes (no new push)
+  // Others requested changes (no new push) — no action needed
   const othersRequestedChanges = othersReviewed.filter(
     ([, r]) => r.state === "CHANGES_REQUESTED" && r.commitOid === pr.headRefOid,
   );
   if (othersRequestedChanges.length > 0) {
     return {
       status: "Changes Requested (by others)" as ReviewerStatus,
-      priority: 5,
+      priority: null,
       parenthetical: `${othersRequestedChanges.length} change request${othersRequestedChanges.length > 1 ? "s" : ""}`,
       action: null,
       reviewerBreakdown: breakdown,
     };
   }
 
-  // P4: Others reviewed (no viewer review), no new commits, no change requests
+  // P6: Others reviewed (no viewer review), no new commits, no change requests
   if (othersReviewed.length > 0 && !viewerReview) {
     return {
       status: "Needs Additional Review" as ReviewerStatus,
-      priority: 4,
+      priority: 6,
       parenthetical: `${othersReviewed.length} review${othersReviewed.length > 1 ? "s" : ""} so far`,
       action: "Review PR",
       reviewerBreakdown: breakdown,

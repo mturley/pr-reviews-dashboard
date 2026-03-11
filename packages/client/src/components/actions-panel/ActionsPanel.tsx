@@ -10,18 +10,34 @@ function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "w
   switch (status) {
     case "Approved":
       return "success";
-    case "New Feedback":
-    case "My Re-review Needed":
-    case "Needs First Review":
     case "Team Re-review Needed":
     case "Needs Additional Review":
       return "warning";
+    case "New Feedback":
+    case "Needs First Review":
+    case "My Re-review Needed":
+      return "danger";
     case "Changes Requested (by others)":
     case "My Changes Requested":
-      return "danger";
+      return "neutral";
     default:
       return "neutral";
   }
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours === 0) return "just now";
+    if (diffHours === 1) return "1 hour ago";
+    return `${diffHours} hours ago`;
+  }
+  if (diffDays === 1) return "1 day ago";
+  return `${diffDays} days ago`;
 }
 
 interface ActionsPanelProps {
@@ -56,26 +72,95 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
         <div className="border-t border-border px-4 py-2">
           <ul className="space-y-2">
             {visibleActions.map((action) => (
-              <li key={action.prUrl} className="flex items-center gap-3 py-1">
-                <span className="shrink-0 text-xs font-medium text-foreground">
-                  {action.action}
-                </span>
-                <StatusBadge
-                  label={action.status}
-                  variant={getActionVariant(action.status)}
-                  className="shrink-0"
-                />
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {action.repoName} #{action.prUrl.match(/\/pull\/(\d+)$/)?.[1] ?? ""}
-                </span>
-                <a
-                  href={action.prUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-w-0 truncate text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {action.prTitle}
-                </a>
+              <li key={action.prUrl} className="py-1">
+                <div className="flex items-center gap-3">
+                  <span className="shrink-0 text-xs font-medium text-foreground">
+                    {action.action}
+                  </span>
+                  <StatusBadge
+                    label={action.status}
+                    variant={getActionVariant(action.status)}
+                    className="shrink-0"
+                  />
+                  {action.hasCIFailure && (
+                    <StatusBadge label="CI Failed" variant="danger" className="shrink-0" />
+                  )}
+                  {action.parenthetical && (
+                    <span className="text-xs text-muted-foreground">{action.parenthetical}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 ml-12 mt-0.5">
+                  <a
+                    href={action.prUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="min-w-0 truncate text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    #{action.prUrl.match(/\/pull\/(\d+)$/)?.[1] ?? ""}: {action.prTitle}
+                  </a>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {action.repoName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 ml-12 mt-0.5">
+                  <span className="shrink-0 text-sm"><span className="text-muted-foreground">Author:</span> {action.author}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Created: {formatRelativeTime(action.createdAt)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Updated: {formatRelativeTime(action.updatedAt)}
+                  </span>
+                </div>
+                {(action.jiraKey || action.epicKey) && (
+                  <div className="flex items-center gap-3 ml-12 mt-0.5">
+                    {action.jiraKey && (
+                      <>
+                        {action.jiraPriority && (
+                          <span className="shrink-0 flex items-center gap-1 text-xs">
+                            {action.jiraPriority.iconUrl && (
+                              <img src={action.jiraPriority.iconUrl} alt={action.jiraPriority.name} className="h-3 w-3" />
+                            )}
+                            {action.jiraPriority.name}
+                          </span>
+                        )}
+                        <a
+                          href={action.jiraUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {action.jiraTypeIconUrl && (
+                            <img src={action.jiraTypeIconUrl} alt="" className="h-4 w-4" />
+                          )}
+                          {action.jiraKey}
+                        </a>
+                        {action.jiraSummary && (
+                          <span className="text-xs text-muted-foreground">
+                            {action.jiraSummary}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {action.epicKey && (
+                      <>
+                        <a
+                          href={`https://issues.redhat.com/browse/${action.epicKey}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          <span className="text-green-600 dark:text-green-400">⚡</span>
+                          {action.epicKey}
+                        </a>
+                        {action.epicSummary && (
+                          <span className="text-xs text-muted-foreground">
+                            {action.epicSummary}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

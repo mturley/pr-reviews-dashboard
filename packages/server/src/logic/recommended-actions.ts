@@ -26,11 +26,22 @@ export function deriveRecommendedActions(
       prUrl: pr.url,
       prTitle: pr.title,
       repoName: `${pr.repoOwner}/${pr.repoName}`,
+      author: pr.author,
       action: status.action,
       status: status.status,
+      parenthetical: status.parenthetical,
+      hasCIFailure: pr.checkStatus.state === "FAILURE" || pr.checkStatus.state === "ERROR",
       priority: status.priority,
       jiraPriority: jiraIssue?.priority ?? null,
       prAge: Date.now() - new Date(pr.createdAt).getTime(),
+      createdAt: pr.createdAt,
+      updatedAt: pr.updatedAt,
+      jiraKey: jiraIssue?.key ?? null,
+      jiraUrl: jiraIssue?.url ?? null,
+      jiraSummary: jiraIssue?.summary ?? null,
+      jiraTypeIconUrl: jiraIssue?.typeIconUrl ?? null,
+      epicKey: jiraIssue?.epicKey ?? null,
+      epicSummary: jiraIssue?.epicSummary ?? null,
     });
   }
 

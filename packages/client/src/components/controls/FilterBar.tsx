@@ -8,6 +8,8 @@ interface FilterBarProps {
   onActionNeededChange: (value: boolean) => void;
   showDraft: boolean;
   onShowDraftChange: (value: boolean) => void;
+  ignoreReviewRequests: boolean;
+  onIgnoreReviewRequestsChange: (value: boolean) => void;
   repos: string[];
   selectedRepos: string[];
   onRepoFilterChange: (repos: string[]) => void;
@@ -18,6 +20,8 @@ export function FilterBar({
   onActionNeededChange,
   showDraft,
   onShowDraftChange,
+  ignoreReviewRequests,
+  onIgnoreReviewRequestsChange,
   repos,
   selectedRepos,
   onRepoFilterChange,
@@ -40,6 +44,15 @@ export function FilterBar({
           aria-label="Show draft PRs"
         />
         <span className="text-xs">Show drafts</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <Switch
+          checked={ignoreReviewRequests}
+          onCheckedChange={onIgnoreReviewRequestsChange}
+          aria-label="Ignore review requested status"
+        />
+        <span className="text-xs">Ignore review requests</span>
       </div>
 
       {repos.length > 0 && (

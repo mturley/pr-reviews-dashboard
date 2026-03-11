@@ -27,4 +27,14 @@ TypeScript 5.x (strict mode): Follow standard conventions
 - 001-dashboard-mvp: Added TypeScript 5.x (strict mode) + React 19.x, Vite 6.x, tRPC 11.x, @tanstack/react-query 5.x, @tanstack/react-table 8.x, Express 5.x, Tailwind CSS 4.x, shadcn/ui, React Router 7.x
 
 <!-- MANUAL ADDITIONS START -->
+
+## "How It Works" Explainer
+
+The file `packages/client/src/components/actions-panel/HowItWorksPanel.tsx` contains a user-facing explanation of how PR inclusion, review status, action needed, and priority ordering work. **When modifying any of the following logic, you must also update HowItWorksPanel.tsx to keep the explanation accurate:**
+
+- PR inclusion/grouping logic (`packages/server/src/logic/grouping.ts`)
+- Review status computation (`packages/server/src/logic/review-status.ts`)
+- Recommended actions derivation (`packages/server/src/logic/recommended-actions.ts`)
+- PR filtering in the route (`packages/client/src/routes/pr-reviews.tsx`)
+
 <!-- MANUAL ADDITIONS END -->

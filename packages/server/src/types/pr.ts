@@ -101,11 +101,22 @@ export interface RecommendedAction {
   prUrl: string;
   prTitle: string;
   repoName: string;
+  author: string;
   action: string;
   status: AuthorStatus | ReviewerStatus;
+  parenthetical: string;
+  hasCIFailure: boolean;
   priority: number | null;
   jiraPriority: JiraPriority | null;
   prAge: number;
+  createdAt: string;
+  updatedAt: string;
+  jiraKey: string | null;
+  jiraUrl: string | null;
+  jiraSummary: string | null;
+  jiraTypeIconUrl: string | null;
+  epicKey: string | null;
+  epicSummary: string | null;
 }
 
 export interface PRGroup {

@@ -4,11 +4,13 @@ import { Fragment, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import type { PRGroup } from "../../../../server/src/types/pr.js";
 import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
-import { columns, type PRRow } from "./columns";
+import { columns, SORTABLE_COLUMNS, type PRRow } from "./columns";
 
 // Cell-based card styling for each group tbody.
 // With border-separate, we apply borders and rounded corners on individual cells
@@ -45,10 +47,12 @@ function CollapsibleGroup({
   group,
   rows,
   columnVisibility,
+  sorting,
 }: {
   group: PRGroup;
   rows: PRRow[];
   columnVisibility: VisibilityState | undefined;
+  sorting: SortingState;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -56,7 +60,12 @@ function CollapsibleGroup({
     data: rows,
     columns: columns as ColumnDef<PRRow, unknown>[],
     getCoreRowModel: getCoreRowModel(),
-    state: columnVisibility ? { columnVisibility } : undefined,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      ...(columnVisibility ? { columnVisibility } : {}),
+      sorting,
+    },
+    enableSortingRemoval: false,
   });
 
   const colCount = table.getVisibleFlatColumns().length;
@@ -112,6 +121,10 @@ export function PRTable({
   isJiraLoading,
   visibleColumnIds,
 }: PRTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "jiraPriority", desc: false },
+  ]);
+
   const columnVisibility = visibleColumnIds
     ? Object.fromEntries(
         columns.map((c) => [c.id ?? "", visibleColumnIds.includes(c.id ?? "")]),
@@ -123,7 +136,13 @@ export function PRTable({
     data: [],
     columns: columns as ColumnDef<PRRow, unknown>[],
     getCoreRowModel: getCoreRowModel(),
-    state: columnVisibility ? { columnVisibility } : undefined,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      ...(columnVisibility ? { columnVisibility } : {}),
+      sorting,
+    },
+    onSortingChange: setSorting,
+    enableSortingRemoval: false,
   });
 
   return (
@@ -137,16 +156,35 @@ export function PRTable({
         <TableHeader>
           {headerTable.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="border-none hover:bg-transparent">
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="border-none">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
+              {headerGroup.headers.map((header) => {
+                const isSortable = SORTABLE_COLUMNS.has(header.id);
+                const sorted = header.column.getIsSorted();
+                return (
+                  <TableHead
+                    key={header.id}
+                    className={`border-none ${isSortable ? "cursor-pointer select-none hover:text-foreground" : ""}`}
+                    onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                  >
+                    <div className="flex items-center gap-1">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                      {isSortable && (
+                        sorted === "asc" ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : sorted === "desc" ? (
+                          <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-30" />
+                        )
                       )}
-                </TableHead>
-              ))}
+                    </div>
+                  </TableHead>
+                );
+              })}
             </TableRow>
           ))}
         </TableHeader>
@@ -175,6 +213,7 @@ export function PRTable({
                 group={group}
                 rows={rows}
                 columnVisibility={columnVisibility}
+                sorting={sorting}
               />
             </Fragment>
           );
