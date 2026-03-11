@@ -83,7 +83,7 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   <span className="shrink-0 text-xs font-medium text-foreground">
                     {action.action}
                   </span>
-                  <ReviewBreakdownTooltip breakdown={action.reviewerBreakdown}>
+                  <ReviewBreakdownTooltip breakdown={action.reviewerBreakdown} pushedAt={action.pushedAt} pushDates={action.pushDates}>
                     <div className="flex items-center gap-2">
                       <StatusBadge
                         label={action.status}

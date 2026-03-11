@@ -65,7 +65,7 @@ export default function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={0}>
           <AutoRefreshProvider>
             <BrowserRouter>
               <div className="min-h-screen bg-background">

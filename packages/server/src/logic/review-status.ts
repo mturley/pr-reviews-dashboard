@@ -10,11 +10,35 @@ import type {
   Review,
 } from "../types/pr.js";
 
+const BOT_USERNAMES = new Set([
+  "dependabot[bot]", "dependabot",
+  "coderabbitai[bot]", "coderabbitai",
+  "openshift-ci[bot]", "openshift-ci",
+  "openshift-merge[bot]", "openshift-merge-robot", "openshift-merge-bot",
+  "codecov[bot]", "codecov",
+  "google-oss-prow",
+]);
+
+function isBot(username: string): boolean {
+  return BOT_USERNAMES.has(username.toLowerCase());
+}
+
 function getLatestReviewPerUser(reviews: Review[]): Map<string, Review> {
   const latest = new Map<string, Review>();
   // Reviews are returned chronologically; later ones override earlier
   for (const review of reviews) {
     if (review.state === "PENDING") continue;
+    latest.set(review.author, review);
+  }
+  return latest;
+}
+
+/** Latest reviews from humans only (excludes bots) — used for status computation */
+function getLatestHumanReviewPerUser(reviews: Review[]): Map<string, Review> {
+  const latest = new Map<string, Review>();
+  for (const review of reviews) {
+    if (review.state === "PENDING") continue;
+    if (isBot(review.author)) continue;
     latest.set(review.author, review);
   }
   return latest;
@@ -75,10 +99,10 @@ function buildReviewerBreakdown(
 
 function countFeedbackSinceLastPush(pr: PullRequest): number {
   const reviews = pr.reviews.filter(
-    (r) => r.state !== "PENDING" && r.submittedAt > pr.pushedAt,
+    (r) => r.state !== "PENDING" && !isBot(r.author) && r.submittedAt > pr.pushedAt,
   ).length;
   const comments = pr.comments.filter(
-    (c) => c.author !== pr.author && c.createdAt > pr.pushedAt,
+    (c) => c.author !== pr.author && !isBot(c.author) && c.createdAt > pr.pushedAt,
   ).length;
   return reviews + comments;
 }
@@ -104,6 +128,7 @@ function isDraftOrWIP(pr: PullRequest): boolean {
 
 function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
   const latestReviews = getLatestReviewPerUser(pr.reviews);
+  const humanReviews = getLatestHumanReviewPerUser(pr.reviews);
   const breakdown = buildReviewerBreakdown(pr, latestReviews);
 
   // P0: New feedback from reviewers — highest priority
@@ -161,7 +186,7 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
   }
 
   const requestedCount = pr.reviewRequests.length;
-  const reviewedCount = latestReviews.size;
+  const reviewedCount = humanReviews.size;
   return {
     status: "Awaiting Review" as AuthorStatus,
     priority: null,
@@ -181,8 +206,9 @@ function computeReviewerStatus(
   viewer: string,
 ): ReviewStatusResult {
   const latestReviews = getLatestReviewPerUser(pr.reviews);
+  const humanReviews = getLatestHumanReviewPerUser(pr.reviews);
   const breakdown = buildReviewerBreakdown(pr, latestReviews);
-  const viewerReview = latestReviews.get(viewer);
+  const viewerReview = humanReviews.get(viewer);
 
   if (isDraftOrWIP(pr)) {
     return {
@@ -238,8 +264,8 @@ function computeReviewerStatus(
     };
   }
 
-  // P3: No reviews from anyone
-  if (latestReviews.size === 0) {
+  // P3: No human reviews from anyone
+  if (humanReviews.size === 0) {
     return {
       status: "Needs First Review" as ReviewerStatus,
       priority: 3,
@@ -260,8 +286,8 @@ function computeReviewerStatus(
     };
   }
 
-  // Check if other reviewers have reviewed
-  const othersReviewed = [...latestReviews.entries()].filter(([u]) => u !== viewer);
+  // Check if other human reviewers have reviewed
+  const othersReviewed = [...humanReviews.entries()].filter(([u]) => u !== viewer);
 
   // P3: Others reviewed and new commits since their review
   const othersWithNewCommits = othersReviewed.filter(
@@ -325,8 +351,8 @@ export function computeReviewStatus(
       reviewerBreakdown: [],
     };
   }
-  if (pr.author === viewerGithubUsername) {
-    return computeAuthorStatus(pr);
-  }
-  return computeReviewerStatus(pr, viewerGithubUsername);
+  const result = pr.author === viewerGithubUsername
+    ? computeAuthorStatus(pr)
+    : computeReviewerStatus(pr, viewerGithubUsername);
+  return { ...result, pushedAt: pr.pushedAt, pushDates: pr.pushDates };
 }

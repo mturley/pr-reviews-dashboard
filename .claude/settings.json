@@ -6,7 +6,8 @@
       "Bash(pnpm --filter server typecheck)",
       "Bash(pnpm --filter client add -D @types/node)",
       "Bash(pnpm dev)",
-      "Bash(pnpm typecheck)"
+      "Bash(pnpm typecheck)",
+      "Bash(npx tsc --noEmit)"
     ]
   }
 }

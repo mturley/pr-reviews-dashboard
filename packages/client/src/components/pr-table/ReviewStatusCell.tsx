@@ -53,7 +53,7 @@ export function ReviewStatusCell({ result, hasCIFailure }: ReviewStatusCellProps
   );
 
   return (
-    <ReviewBreakdownTooltip breakdown={result.reviewerBreakdown}>
+    <ReviewBreakdownTooltip breakdown={result.reviewerBreakdown} pushedAt={result.pushedAt} pushDates={result.pushDates}>
       {content}
     </ReviewBreakdownTooltip>
   );

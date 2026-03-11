@@ -39,6 +39,7 @@ export interface PullRequest {
   createdAt: string;
   updatedAt: string;
   pushedAt: string;
+  pushDates: string[];
   headRefOid: string;
   labels: string[];
   reviews: Review[];
@@ -110,6 +111,8 @@ export interface ReviewStatusResult {
   parenthetical: string;
   action: string | null;
   reviewerBreakdown: ReviewerBreakdownEntry[];
+  pushedAt?: string;
+  pushDates?: string[];
 }
 
 export interface RecommendedAction {
@@ -133,6 +136,8 @@ export interface RecommendedAction {
   epicKey: string | null;
   epicSummary: string | null;
   reviewerBreakdown: ReviewerBreakdownEntry[];
+  pushedAt?: string;
+  pushDates?: string[];
 }
 
 export interface PRGroup {

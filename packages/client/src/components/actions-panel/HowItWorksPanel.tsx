@@ -138,23 +138,35 @@ export function HowItWorksPanel() {
           <section>
             <h3 className="font-semibold text-foreground mb-1">Reviewer Breakdown Tooltip</h3>
             <p className="mb-2">
-              Hover any review status badge to see a breakdown of individual reviewers. The tooltip
-              shows each reviewer who has submitted a review (pending reviewers are excluded), along
-              with their review state and when they reviewed. If new commits have been pushed since
-              a reviewer's review, a warning indicator is shown.
+              Hover any review status badge to see a chronological timeline of all reviews and
+              comments. A dashed "Commits pushed" divider shows when the author last pushed code.
+              Entries above the divider are stale (dimmed) — entries below are current. Multiple
+              consecutive comments from the same user are collapsed into one line with a count.
             </p>
-            <div className="inline-block ml-12 rounded border border-border bg-popover p-3 space-y-2 text-xs">
-              <p className="font-semibold text-foreground">Reviewer Breakdown</p>
+            <div className="inline-block ml-12 rounded border border-border bg-popover p-3 space-y-1 text-xs">
+              <p className="font-semibold text-foreground mb-2">Reviewer Breakdown</p>
+              <div className="flex items-center gap-2 whitespace-nowrap opacity-50">
+                <span className="text-muted-foreground min-w-[70px]">Feb 9</span>
+                <span className="font-mono font-medium min-w-[100px]">reviewer1</span>
+                <B label="Changes requested" variant="danger" />
+              </div>
+              <div className="flex items-center gap-2 whitespace-nowrap opacity-50">
+                <span className="text-muted-foreground min-w-[70px]">Feb 10</span>
+                <span className="font-mono font-medium min-w-[100px]">reviewer2</span>
+                <B label="Commented" variant="neutral" />
+                <span className="text-muted-foreground">&times;3</span>
+              </div>
+              <div className="flex items-center gap-2 py-1">
+                <div className="flex-1 border-t border-dashed border-yellow-500/50" />
+                <span className="text-[10px] text-yellow-500 font-medium whitespace-nowrap">
+                  Commits pushed (2d ago)
+                </span>
+                <div className="flex-1 border-t border-dashed border-yellow-500/50" />
+              </div>
               <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="text-muted-foreground min-w-[70px]">yesterday</span>
                 <span className="font-mono font-medium min-w-[100px]">reviewer1</span>
-                <B label="APPROVED" variant="success" />
-              </div>
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-muted-foreground min-w-[70px]">3d ago</span>
-                <span className="font-mono font-medium min-w-[100px]">reviewer2</span>
-                <B label="CHANGES REQUESTED" variant="danger" />
-                <span className="text-yellow-500">⚠ commits since review</span>
+                <B label="Approved" variant="success" />
               </div>
             </div>
           </section>

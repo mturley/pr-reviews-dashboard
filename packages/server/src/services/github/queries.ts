@@ -44,10 +44,19 @@ const PR_FRAGMENT = `
         body
       }
     }
-    commits(last: 1) {
+    commits(last: 50) {
       nodes {
         commit {
           pushedDate
+          committedDate
+        }
+      }
+    }
+    lastCommit: commits(last: 1) {
+      nodes {
+        commit {
+          pushedDate
+          committedDate
           statusCheckRollup {
             state
             contexts(first: 100) {

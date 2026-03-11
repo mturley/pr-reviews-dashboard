@@ -76,8 +76,19 @@ function transformComments(commentNodes: GraphQLNode[]): PRComment[] {
     }));
 }
 
+function extractPushDates(commitNodes: GraphQLNode[]): string[] {
+  const dates = new Set<string>();
+  for (const node of commitNodes) {
+    const date = node?.commit?.pushedDate ?? node?.commit?.committedDate;
+    if (date) dates.add(date);
+  }
+  return [...dates].sort();
+}
+
 export function transformPullRequest(node: GraphQLNode): PullRequest {
-  const lastCommit = node.commits?.nodes?.[0];
+  // lastCommit uses the aliased field (with statusCheckRollup), falling back to commits
+  const lastCommit = node.lastCommit?.nodes?.[0] ?? node.commits?.nodes?.[(node.commits?.nodes?.length ?? 1) - 1];
+  const allCommitNodes = node.commits?.nodes ?? [];
   const commentNodes = node.comments?.nodes ?? [];
 
   return {
@@ -93,7 +104,8 @@ export function transformPullRequest(node: GraphQLNode): PullRequest {
     isMergeable: node.mergeable === "MERGEABLE" ? true : node.mergeable === "CONFLICTING" ? false : null,
     createdAt: node.createdAt,
     updatedAt: node.updatedAt,
-    pushedAt: lastCommit?.commit?.pushedDate ?? node.updatedAt,
+    pushedAt: lastCommit?.commit?.pushedDate ?? lastCommit?.commit?.committedDate ?? node.updatedAt,
+    pushDates: extractPushDates(allCommitNodes),
     headRefOid: node.headRefOid,
     labels: (node.labels?.nodes ?? []).map((l: GraphQLNode) => l.name),
     reviews: (node.reviews?.nodes ?? [])

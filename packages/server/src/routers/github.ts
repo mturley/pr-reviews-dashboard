@@ -17,10 +17,12 @@ export const githubRouter = router({
 
     const members = config.teamMembers.map((m) => m.githubUsername);
     if (members.length === 0) {
+      const rl = getLastRateLimit();
       return {
         prs: [],
-        rateLimitRemaining: getLastRateLimit().remaining,
-        rateLimitResetAt: getLastRateLimit().resetAt,
+        rateLimitRemaining: rl.remaining,
+        rateLimitLimit: rl.limit,
+        rateLimitResetAt: rl.resetAt,
         fetchedAt: new Date().toISOString(),
       };
     }
@@ -36,6 +38,7 @@ export const githubRouter = router({
       return {
         prs,
         rateLimitRemaining: rateLimit.remaining,
+        rateLimitLimit: rateLimit.limit,
         rateLimitResetAt: rateLimit.resetAt,
         fetchedAt: new Date().toISOString(),
       };

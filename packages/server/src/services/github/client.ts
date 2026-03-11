@@ -1,11 +1,12 @@
 // T023: GitHub GraphQL client with auth, request, and rate limit tracking
 
 export interface GitHubRateLimit {
+  limit: number;
   remaining: number;
   resetAt: string;
 }
 
-let lastRateLimit: GitHubRateLimit = { remaining: 5000, resetAt: "" };
+let lastRateLimit: GitHubRateLimit = { limit: 5000, remaining: 5000, resetAt: "" };
 
 export function getLastRateLimit(): GitHubRateLimit {
   return lastRateLimit;
@@ -36,6 +37,7 @@ export async function githubGraphQL<T>(
   if (response.status === 403) {
     const resetAt = response.headers.get("x-ratelimit-reset");
     lastRateLimit = {
+      limit: lastRateLimit.limit,
       remaining: 0,
       resetAt: resetAt ? new Date(parseInt(resetAt, 10) * 1000).toISOString() : "",
     };
@@ -49,9 +51,11 @@ export async function githubGraphQL<T>(
 
   // Update rate limit from response headers
   const remaining = response.headers.get("x-ratelimit-remaining");
+  const limit = response.headers.get("x-ratelimit-limit");
   const resetAt = response.headers.get("x-ratelimit-reset");
   if (remaining !== null) {
     lastRateLimit = {
+      limit: limit ? parseInt(limit, 10) : lastRateLimit.limit,
       remaining: parseInt(remaining, 10),
       resetAt: resetAt ? new Date(parseInt(resetAt, 10) * 1000).toISOString() : "",
     };

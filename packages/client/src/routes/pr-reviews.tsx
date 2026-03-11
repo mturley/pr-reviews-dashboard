@@ -123,16 +123,25 @@ export default function PRReviews() {
     });
   }, [displayPRs, viewer, teamMemberUsernames, data.sprintName, viewState.groupBy, isTeamView, reviewStatuses]);
 
+  // When "Action needed only" filter is active, override empty messages to reflect filtering
+  const displayGroups = useMemo(() => {
+    if (!viewState.filterActionNeeded) return groups;
+    return groups.map((group) => ({
+      ...group,
+      emptyMessage: "No action needed",
+    }));
+  }, [groups, viewState.filterActionNeeded]);
+
   // Only include PRs that appear in the table groups
   const groupedPRs = useMemo(() => {
     const ids = new Set<string>();
-    for (const group of groups) {
+    for (const group of displayGroups) {
       for (const pr of group.prs) {
         ids.add(pr.id);
       }
     }
     return displayPRs.filter((pr) => ids.has(pr.id));
-  }, [groups, displayPRs]);
+  }, [displayGroups, displayPRs]);
 
   const actions = useMemo(
     () => deriveRecommendedActions(groupedPRs, reviewStatuses),
@@ -199,7 +208,10 @@ export default function PRReviews() {
               <span>Jira: {new Date(data.jiraFetchedAt).toLocaleTimeString()}</span>
             )}
             {data.rateLimitRemaining !== null && (
-              <span>Rate limit: {data.rateLimitRemaining}</span>
+              <span title={data.rateLimitResetAt ? `Resets at ${new Date(data.rateLimitResetAt).toLocaleTimeString()}` : undefined}>
+                GitHub rate limit: {data.rateLimitRemaining}{data.rateLimitLimit ? ` / ${data.rateLimitLimit}` : ""}
+                {data.rateLimitResetAt && ` (resets ${new Date(data.rateLimitResetAt).toLocaleTimeString()})`}
+              </span>
             )}
           </div>
           <RefreshControls
@@ -264,7 +276,7 @@ export default function PRReviews() {
         </p>
       ) : (
         <PRTable
-          groups={groups}
+          groups={displayGroups}
           reviewStatuses={reviewStatuses}
           isJiraLoading={data.isJiraLoading}
           visibleColumnIds={visibleColumnIds}

@@ -57,6 +57,8 @@ export interface ProgressiveDataResult {
   isFetching: boolean;
   refetch: () => void;
   rateLimitRemaining: number | null;
+  rateLimitLimit: number | null;
+  rateLimitResetAt: string | null;
   sprintName: string | null;
   sprintId: number | null;
   sprintUrl: string | null;
@@ -174,6 +176,8 @@ export function useProgressiveData(
     githubFetchedAt: teamPRsQuery.data?.fetchedAt ?? null,
     jiraFetchedAt: jiraQuery.data?.fetchedAt ?? null,
     rateLimitRemaining: teamPRsQuery.data?.rateLimitRemaining ?? null,
+    rateLimitLimit: teamPRsQuery.data?.rateLimitLimit ?? null,
+    rateLimitResetAt: teamPRsQuery.data?.rateLimitResetAt ?? null,
     sprintName: jiraQuery.data?.sprintName ?? null,
     sprintId: jiraQuery.data?.sprintId ?? null,
     sprintUrl: jiraQuery.data?.sprintUrl ?? null,
