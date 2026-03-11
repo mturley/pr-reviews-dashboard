@@ -50,7 +50,7 @@ interface ActionsPanelProps {
   actions: RecommendedAction[];
 }
 
-const MAX_COLLAPSED = 3;
+const MAX_COLLAPSED = 1;
 
 export function ActionsPanel({ actions }: ActionsPanelProps) {
   const [expanded, setExpanded] = useState(true);
