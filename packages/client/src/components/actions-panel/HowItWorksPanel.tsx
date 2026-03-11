@@ -28,8 +28,11 @@ export function HowItWorksPanel() {
           <section>
             <h3 className="font-semibold text-foreground mb-1">Which PRs are included?</h3>
             <p className="mb-1">
-              PRs are fetched from all configured GitHub repositories and filtered into four groups.
-              Only PRs that fall into at least one group appear in the tables and recommended actions:
+              PRs are fetched from all configured GitHub repositories. When{" "}
+              <span className="font-medium text-foreground">"Ignore PRs from other scrums"</span> is
+              enabled (the default), only PRs authored by configured scrum team members (and
+              Dependabot) are shown. PRs are then filtered into four groups — only PRs that fall
+              into at least one group appear in the tables and recommended actions:
             </p>
             <ol className="list-decimal list-inside space-y-1 ml-2">
               <li>
@@ -37,7 +40,8 @@ export function HowItWorksPanel() {
               </li>
               <li>
                 <span className="font-medium text-foreground">PRs I'm Reviewing</span> — PRs where
-                you've been requested as a reviewer or have submitted a review.
+                you have submitted a review or are mentioned in a comment. PRs where you've only
+                been requested as a reviewer (but haven't reviewed yet) appear in the other groups below.
               </li>
               <li>
                 <span className="font-medium text-foreground">Sprint Review PRs</span> — PRs by
@@ -59,6 +63,11 @@ export function HowItWorksPanel() {
                 submitted reviews since your last push. Address their feedback.
               </li>
               <li>
+                <B label="WIP" variant="warning" /> — PR is marked as a draft or has the{" "}
+                <code className="text-xs bg-muted px-1 rounded">do-not-merge/work-in-progress</code>{" "}
+                label. Complete the work and mark ready for review.
+              </li>
+              <li>
                 <B label="Approved" variant="success" /> — PR has both{" "}
                 <code className="text-xs bg-muted px-1 rounded">approved</code> and{" "}
                 <code className="text-xs bg-muted px-1 rounded">lgtm</code> labels.
@@ -72,9 +81,6 @@ export function HowItWorksPanel() {
               <li>
                 <B label="Awaiting Review" variant="info" /> — No new
                 feedback; waiting for reviewers.
-              </li>
-              <li>
-                <B label="Draft" variant="neutral" /> — PR is marked as a draft.
               </li>
             </ul>
           </section>
@@ -90,6 +96,10 @@ export function HowItWorksPanel() {
               <li>
                 <B label="Needs First Review" variant="danger" /> — No one
                 has reviewed this PR yet. It needs your attention.
+              </li>
+              <li>
+                <B label="I'm mentioned" variant="danger" /> — You were tagged
+                in a comment on this PR. You should take a look.
               </li>
               <li>
                 <B label="Team Re-review Needed" variant="warning" /> — Other
@@ -116,47 +126,73 @@ export function HowItWorksPanel() {
                 — Other reviewers requested changes (no new commits since). Waiting on the author.
               </li>
               <li>
-                <B label="Draft" variant="neutral" /> — PR is marked as a draft.
-                No action needed until the author marks it ready for review.
+                <B label="WIP" variant="neutral" /> — PR is marked as a draft or
+                has the{" "}
+                <code className="text-xs bg-muted px-1 rounded">do-not-merge/work-in-progress</code>{" "}
+                label. No action needed until the author marks it ready for review.
               </li>
             </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-foreground mb-1">Reviewer Breakdown Tooltip</h3>
+            <p className="mb-2">
+              Hover any review status badge to see a breakdown of individual reviewers. The tooltip
+              shows each reviewer who has submitted a review (pending reviewers are excluded), along
+              with their review state and when they reviewed. If new commits have been pushed since
+              a reviewer's review, a warning indicator is shown.
+            </p>
+            <div className="inline-block ml-12 rounded border border-border bg-popover p-3 space-y-2 text-xs">
+              <p className="font-semibold text-foreground">Reviewer Breakdown</p>
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-muted-foreground min-w-[70px]">yesterday</span>
+                <span className="font-mono font-medium min-w-[100px]">reviewer1</span>
+                <B label="APPROVED" variant="success" />
+              </div>
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-muted-foreground min-w-[70px]">3d ago</span>
+                <span className="font-mono font-medium min-w-[100px]">reviewer2</span>
+                <B label="CHANGES REQUESTED" variant="danger" />
+                <span className="text-yellow-500">⚠ commits since review</span>
+              </div>
+            </div>
           </section>
 
           <section>
             <h3 className="font-semibold text-foreground mb-1">Action Needed</h3>
             <p className="mb-1">
               Actions are derived from the review status and sorted by priority. Not every PR has an
-              action — statuses like <B label="Awaiting Review" variant="info" />,{" "}
-              <B label="My Changes Requested" variant="neutral" />, or{" "}
-              <B label="Draft" variant="neutral" /> mean no action is needed from you.
+              action — statuses like <B label="Awaiting Review" variant="info" /> or{" "}
+              <B label="My Changes Requested" variant="neutral" /> mean no action is needed from you.
             </p>
-            <p className="mb-1 font-medium text-foreground">Your PRs (highest priority):</p>
-            <ul className="list-disc list-inside space-y-1 ml-2 mb-2">
+            <p className="mb-1 font-medium text-foreground">In priority order:</p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
               <li>
-                <span className="font-medium text-foreground">Address feedback</span> — Reviewers
-                left <B label="New Feedback" variant="danger" /> on your PR since your last push.
+                <span className="font-medium text-foreground">Address feedback</span> (your PR) — Reviewers
+                left <B label="New Feedback" variant="danger" /> since your last push.
               </li>
               <li>
-                <span className="font-medium text-foreground">Fix CI errors</span> — Your PR is{" "}
+                <span className="font-medium text-foreground">Fix CI errors</span> (your PR) — Your PR is{" "}
                 <B label="Approved" variant="success" /> but{" "}
                 <B label="CI Failed" variant="danger" />.
               </li>
               <li>
-                <span className="font-medium text-foreground">Merge PR</span> — Your PR is{" "}
-                <B label="Approved" variant="success" /> and CI is passing.
-              </li>
-            </ul>
-            <p className="mb-1 font-medium text-foreground">Others' PRs:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>
-                <span className="font-medium text-foreground">Re-review PR</span> — Author pushed
+                <span className="font-medium text-foreground">Re-review PR</span> (others' PR) — Author pushed
                 new commits since your last review (<B label="My Re-review Needed" variant="danger" />).
               </li>
               <li>
-                <span className="font-medium text-foreground">Review PR</span> — A PR{" "}
+                <span className="font-medium text-foreground">Review PR</span> (others' PR) — A PR{" "}
                 <B label="Needs First Review" variant="danger" />,{" "}
                 <B label="Team Re-review Needed" variant="warning" />, or{" "}
                 <B label="Needs Additional Review" variant="warning" />.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">Complete work</span> (your PR) — Your PR is{" "}
+                <B label="WIP" variant="warning" />. Finish and mark ready for review.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">Merge PR</span> (any PR) — PR is{" "}
+                <B label="Approved" variant="success" /> and CI is passing.
               </li>
             </ul>
           </section>
@@ -164,11 +200,10 @@ export function HowItWorksPanel() {
           <section>
             <h3 className="font-semibold text-foreground mb-1">Priority Ordering</h3>
             <p>
-              Recommended actions are sorted by three criteria in order: (1) action priority — your
-              own PRs needing attention (address feedback, fix CI, merge) come first, then reviewer
-              actions ordered by urgency (re-review, first review, team re-review, additional
-              review); (2) Jira priority of the linked issue (Blocker &gt; Critical &gt; Major &gt;
-              Normal &gt; Minor); (3) PR age, with older PRs first.
+              Recommended actions are sorted by three criteria in order: (1) action priority —
+              address feedback, fix CI, re-review, review, complete draft, merge; (2) Jira priority
+              of the linked issue (Blocker &gt; Critical &gt; Major &gt; Normal &gt; Minor); (3) PR
+              age, with older PRs first.
             </p>
           </section>
         </div>

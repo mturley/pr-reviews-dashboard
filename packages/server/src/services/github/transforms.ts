@@ -54,6 +54,18 @@ function transformCheckStatus(commitNode: GraphQLNode): CheckStatus {
   };
 }
 
+function extractMentionedUsers(commentNodes: GraphQLNode[]): string[] {
+  const mentions = new Set<string>();
+  for (const node of commentNodes) {
+    const body: string = node.body ?? "";
+    const matches = body.matchAll(/@([a-zA-Z0-9-]+)/g);
+    for (const match of matches) {
+      mentions.add(match[1]);
+    }
+  }
+  return [...mentions];
+}
+
 export function transformPullRequest(node: GraphQLNode): PullRequest {
   const lastCommit = node.commits?.nodes?.[0];
 
@@ -79,6 +91,7 @@ export function transformPullRequest(node: GraphQLNode): PullRequest {
     reviewRequests: (node.reviewRequests?.nodes ?? [])
       .map((r: GraphQLNode) => r.requestedReviewer?.login ?? r.requestedReviewer?.name)
       .filter(Boolean),
+    mentionedUsers: extractMentionedUsers(node.comments?.nodes ?? []),
     checkStatus: transformCheckStatus(lastCommit),
     linkedJiraIssues: [],
   };

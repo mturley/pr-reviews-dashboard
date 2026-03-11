@@ -64,21 +64,15 @@ function hasCIFailure(pr: PullRequest): boolean {
   return ciState === "FAILURE" || ciState === "ERROR";
 }
 
+function isDraftOrWIP(pr: PullRequest): boolean {
+  return pr.isDraft || hasLabel(pr, "do-not-merge/work-in-progress");
+}
+
 function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
   const latestReviews = getLatestReviewPerUser(pr.reviews);
   const breakdown = buildReviewerBreakdown(pr, latestReviews);
 
-  if (pr.isDraft) {
-    return {
-      status: "Draft" as AuthorStatus,
-      priority: null,
-      parenthetical: "",
-      action: null,
-      reviewerBreakdown: breakdown,
-    };
-  }
-
-  // P0: New feedback from reviewers — highest author priority
+  // P0: New feedback from reviewers — highest priority
   const newReviewCount = countReviewsSinceLastPush(pr);
   if (newReviewCount > 0) {
     return {
@@ -86,6 +80,17 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
       priority: 0,
       parenthetical: `${newReviewCount} new review${newReviewCount > 1 ? "s" : ""} since last push`,
       action: "Address feedback",
+      reviewerBreakdown: breakdown,
+    };
+  }
+
+  // P4: Draft or WIP — author needs to complete work
+  if (isDraftOrWIP(pr)) {
+    return {
+      status: "WIP" as AuthorStatus,
+      priority: 4,
+      parenthetical: pr.isDraft ? "" : "has do-not-merge/work-in-progress label",
+      action: "Complete work",
       reviewerBreakdown: breakdown,
     };
   }
@@ -101,10 +106,10 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
         reviewerBreakdown: breakdown,
       };
     }
-    // P2: Approved and ready to merge
+    // P5: Approved and ready to merge
     return {
       status: "Approved" as AuthorStatus,
-      priority: 2,
+      priority: 5,
       parenthetical: "Ready to merge",
       action: "Merge PR",
       reviewerBreakdown: breakdown,
@@ -145,22 +150,23 @@ function computeReviewerStatus(
   const breakdown = buildReviewerBreakdown(pr, latestReviews);
   const viewerReview = latestReviews.get(viewer);
 
-  if (pr.isDraft) {
+  if (isDraftOrWIP(pr)) {
     return {
-      status: "Draft" as ReviewerStatus,
+      status: "WIP" as ReviewerStatus,
       priority: null,
-      parenthetical: "",
+      parenthetical: pr.isDraft ? "" : "has do-not-merge/work-in-progress label",
       action: null,
       reviewerBreakdown: breakdown,
     };
   }
 
+  // P5: Approved and ready to merge
   if (hasLabel(pr, "approved") && hasLabel(pr, "lgtm")) {
     return {
       status: "Approved" as ReviewerStatus,
-      priority: null,
+      priority: 5,
       parenthetical: "Ready to merge",
-      action: null,
+      action: "Merge PR",
       reviewerBreakdown: breakdown,
     };
   }
@@ -175,11 +181,11 @@ function computeReviewerStatus(
     };
   }
 
-  // P3: Viewer has reviewed and new commits exist since
+  // P2: Viewer has reviewed and new commits exist since
   if (viewerReview && viewerReview.commitOid !== pr.headRefOid) {
     return {
       status: "My Re-review Needed" as ReviewerStatus,
-      priority: 3,
+      priority: 2,
       parenthetical: "New commits since your review",
       action: "Re-review PR",
       reviewerBreakdown: breakdown,
@@ -197,12 +203,23 @@ function computeReviewerStatus(
     };
   }
 
-  // P4: No reviews from anyone
+  // P3: No reviews from anyone
   if (latestReviews.size === 0) {
     return {
       status: "Needs First Review" as ReviewerStatus,
-      priority: 4,
+      priority: 3,
       parenthetical: "No reviews yet",
+      action: "Review PR",
+      reviewerBreakdown: breakdown,
+    };
+  }
+
+  // P3: Viewer is mentioned in PR comments (after Needs First Review)
+  if (!viewerReview && pr.mentionedUsers.includes(viewer)) {
+    return {
+      status: "I'm mentioned" as ReviewerStatus,
+      priority: 3,
+      parenthetical: "You were tagged in a comment",
       action: "Review PR",
       reviewerBreakdown: breakdown,
     };
@@ -211,14 +228,14 @@ function computeReviewerStatus(
   // Check if other reviewers have reviewed
   const othersReviewed = [...latestReviews.entries()].filter(([u]) => u !== viewer);
 
-  // P5: Others reviewed and new commits since their review
+  // P3: Others reviewed and new commits since their review
   const othersWithNewCommits = othersReviewed.filter(
     ([, r]) => r.commitOid !== pr.headRefOid,
   );
   if (othersWithNewCommits.length > 0 && !viewerReview) {
     return {
       status: "Team Re-review Needed" as ReviewerStatus,
-      priority: 5,
+      priority: 3,
       parenthetical: `${othersWithNewCommits.length} reviewer${othersWithNewCommits.length > 1 ? "s" : ""} need re-review`,
       action: "Review PR",
       reviewerBreakdown: breakdown,
@@ -239,11 +256,11 @@ function computeReviewerStatus(
     };
   }
 
-  // P6: Others reviewed (no viewer review), no new commits, no change requests
+  // P3: Others reviewed (no viewer review), no new commits, no change requests
   if (othersReviewed.length > 0 && !viewerReview) {
     return {
       status: "Needs Additional Review" as ReviewerStatus,
-      priority: 6,
+      priority: 3,
       parenthetical: `${othersReviewed.length} review${othersReviewed.length > 1 ? "s" : ""} so far`,
       action: "Review PR",
       reviewerBreakdown: breakdown,

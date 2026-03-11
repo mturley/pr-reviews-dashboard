@@ -43,16 +43,18 @@ export default function PRReviews() {
 
   const data = useProgressiveData({ refetchInterval });
 
-  // Strip reviewRequests when toggle is on — PRs only count as "reviewing"
-  // if the viewer has actually posted a review, not just been requested
-  const effectivePRs = useMemo(() => {
-    if (!viewState.ignoreReviewRequests) return data.prs;
-    return data.prs.map((pr) => ({ ...pr, reviewRequests: [] as string[] }));
-  }, [data.prs, viewState.ignoreReviewRequests]);
-
   // Filtering
   const filteredPRs = useMemo(() => {
-    let prs = effectivePRs;
+    let prs = data.prs;
+
+    // Filter to team members + dependabot when toggle is on
+    if (viewState.ignoreOtherTeams && teamMemberUsernames.length > 0) {
+      const teamSet = new Set(teamMemberUsernames.map((u) => u.toLowerCase()));
+      prs = prs.filter((pr) => {
+        const authorLower = pr.author.toLowerCase();
+        return teamSet.has(authorLower) || authorLower === "dependabot[bot]" || authorLower === "dependabot";
+      });
+    }
 
     if (viewState.filterRepo.length > 0) {
       prs = prs.filter((pr) =>
@@ -64,7 +66,7 @@ export default function PRReviews() {
     }
 
     return prs;
-  }, [effectivePRs, viewState.filterRepo, viewState.filterDraft]);
+  }, [data.prs, viewState.ignoreOtherTeams, teamMemberUsernames, viewState.filterRepo, viewState.filterDraft]);
 
   // Available repos for filter
   const availableRepos = useMemo(() => {
@@ -142,9 +144,20 @@ export default function PRReviews() {
         <h1 className="text-2xl font-bold">
           My PRs and Reviews
           {data.sprintName && (
-            <span className="ml-2 text-base font-normal text-muted-foreground">
-              {data.sprintName}
-            </span>
+            data.sprintUrl ? (
+              <a
+                href={data.sprintUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {data.sprintName}
+              </a>
+            ) : (
+              <span className="ml-2 text-base font-normal text-muted-foreground">
+                {data.sprintName}
+              </span>
+            )
           )}
         </h1>
         <div className="flex items-center gap-4">
@@ -192,8 +205,8 @@ export default function PRReviews() {
         onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
         showDraft={viewState.filterDraft}
         onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
-        ignoreReviewRequests={viewState.ignoreReviewRequests}
-        onIgnoreReviewRequestsChange={(v) => updateViewState({ ignoreReviewRequests: v })}
+        ignoreOtherTeams={viewState.ignoreOtherTeams}
+        onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
         repos={availableRepos}
         selectedRepos={viewState.filterRepo}
         onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}

@@ -37,6 +37,11 @@ const PR_FRAGMENT = `
         comments { totalCount }
       }
     }
+    comments(first: 100) {
+      nodes {
+        body
+      }
+    }
     commits(last: 1) {
       nodes {
         commit {

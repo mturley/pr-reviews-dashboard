@@ -4,17 +4,21 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownTooltip";
 import type { RecommendedAction, AuthorStatus, ReviewerStatus } from "../../../../server/src/types/pr";
+import { formatUsername } from "@/lib/bot-users";
 
 function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" {
   switch (status) {
     case "Approved":
       return "success";
+    case "WIP":
     case "Team Re-review Needed":
     case "Needs Additional Review":
       return "warning";
     case "New Feedback":
     case "Needs First Review":
+    case "I'm mentioned":
     case "My Re-review Needed":
       return "danger";
     case "Changes Requested (by others)":
@@ -77,17 +81,21 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   <span className="shrink-0 text-xs font-medium text-foreground">
                     {action.action}
                   </span>
-                  <StatusBadge
-                    label={action.status}
-                    variant={getActionVariant(action.status)}
-                    className="shrink-0"
-                  />
-                  {action.hasCIFailure && (
-                    <StatusBadge label="CI Failed" variant="danger" className="shrink-0" />
-                  )}
-                  {action.parenthetical && (
-                    <span className="text-xs text-muted-foreground">{action.parenthetical}</span>
-                  )}
+                  <ReviewBreakdownTooltip breakdown={action.reviewerBreakdown}>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge
+                        label={action.status}
+                        variant={getActionVariant(action.status)}
+                        className="shrink-0"
+                      />
+                      {action.hasCIFailure && (
+                        <StatusBadge label="CI Failed" variant="danger" className="shrink-0" />
+                      )}
+                      {action.parenthetical && (
+                        <span className="text-xs text-muted-foreground">{action.parenthetical}</span>
+                      )}
+                    </div>
+                  </ReviewBreakdownTooltip>
                 </div>
                 <div className="flex items-center gap-3 ml-12 mt-0.5">
                   <a
@@ -103,7 +111,7 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-3 ml-12 mt-0.5">
-                  <span className="shrink-0 text-sm"><span className="text-muted-foreground">Author:</span> {action.author}</span>
+                  <span className="shrink-0 text-sm"><span className="text-muted-foreground">Author:</span> {formatUsername(action.author)}</span>
                   <span className="text-xs text-muted-foreground">
                     Created: {formatRelativeTime(action.createdAt)}
                   </span>
@@ -118,7 +126,7 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                         {action.jiraPriority && (
                           <span className="shrink-0 flex items-center gap-1 text-xs">
                             {action.jiraPriority.iconUrl && (
-                              <img src={action.jiraPriority.iconUrl} alt={action.jiraPriority.name} className="h-3 w-3" />
+                              <img src={action.jiraPriority.iconUrl} alt={action.jiraPriority.name} className="h-4 w-4" />
                             )}
                             {action.jiraPriority.name}
                           </span>

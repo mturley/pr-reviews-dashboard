@@ -42,6 +42,7 @@ export function deriveRecommendedActions(
       jiraTypeIconUrl: jiraIssue?.typeIconUrl ?? null,
       epicKey: jiraIssue?.epicKey ?? null,
       epicSummary: jiraIssue?.epicSummary ?? null,
+      reviewerBreakdown: status.reviewerBreakdown,
     });
   }
 

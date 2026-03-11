@@ -1,6 +1,6 @@
 // T032: PRTable component using TanStack Table
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -121,9 +121,24 @@ export function PRTable({
   isJiraLoading,
   visibleColumnIds,
 }: PRTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "jiraPriority", desc: false },
+  // User-selected sort (single column). Tiebreakers are added implicitly.
+  const [userSort, setUserSort] = useState<SortingState>([
+    { id: "action", desc: false },
   ]);
+
+  // Build full sorting state: user sort + implicit tiebreakers
+  // When sorting by any column, tie-break by action needed, then jira priority
+  const sorting = useMemo(() => {
+    const result = [...userSort];
+    const sortedIds = new Set(result.map((s) => s.id));
+    if (!sortedIds.has("action")) {
+      result.push({ id: "action", desc: false });
+    }
+    if (!sortedIds.has("jiraPriority")) {
+      result.push({ id: "jiraPriority", desc: false });
+    }
+    return result;
+  }, [userSort]);
 
   const columnVisibility = visibleColumnIds
     ? Object.fromEntries(
@@ -141,7 +156,11 @@ export function PRTable({
       ...(columnVisibility ? { columnVisibility } : {}),
       sorting,
     },
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      // Only keep the user's primary sort (first column), strip implicit tiebreakers
+      setUserSort(next.slice(0, 1));
+    },
     enableSortingRemoval: false,
   });
 

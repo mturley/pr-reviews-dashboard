@@ -27,6 +27,7 @@ export interface DashboardConfig {
   sprintDiscoveryLabel: string;
   teamMembers: TeamMember[];
   jiraFieldMapping: JiraFieldMapping;
+  jiraRapidViewId: number | null;
   autoRefreshIntervalMs: number;
   staleThresholdDays: number;
 }

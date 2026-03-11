@@ -26,6 +26,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
     blocked: "customfield_12316543",
     blockedReason: "customfield_12316544",
   },
+  jiraRapidViewId: null,
   autoRefreshIntervalMs: 300_000,
   staleThresholdDays: 14,
 };
@@ -44,6 +45,7 @@ const INITIAL_CONFIG_CONTENT = `{
   "jiraProjectKey": "MYPROJECT",
   "jiraComponentName": "",
   "sprintDiscoveryLabel": "",
+  "jiraRapidViewId": null,
   "autoRefreshIntervalMs": 300000,
   "staleThresholdDays": 14,
   "teamMembers": [

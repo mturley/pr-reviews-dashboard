@@ -50,6 +50,8 @@ export interface ProgressiveDataResult {
   refetch: () => void;
   rateLimitRemaining: number | null;
   sprintName: string | null;
+  sprintId: number | null;
+  sprintUrl: string | null;
 }
 
 export function useProgressiveData(
@@ -119,5 +121,7 @@ export function useProgressiveData(
     jiraFetchedAt: jiraQuery.data?.fetchedAt ?? null,
     rateLimitRemaining: teamPRsQuery.data?.rateLimitRemaining ?? null,
     sprintName: jiraQuery.data?.sprintName ?? null,
+    sprintId: jiraQuery.data?.sprintId ?? null,
+    sprintUrl: jiraQuery.data?.sprintUrl ?? null,
   };
 }

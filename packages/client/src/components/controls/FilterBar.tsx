@@ -8,8 +8,8 @@ interface FilterBarProps {
   onActionNeededChange: (value: boolean) => void;
   showDraft: boolean;
   onShowDraftChange: (value: boolean) => void;
-  ignoreReviewRequests: boolean;
-  onIgnoreReviewRequestsChange: (value: boolean) => void;
+  ignoreOtherTeams: boolean;
+  onIgnoreOtherTeamsChange: (value: boolean) => void;
   repos: string[];
   selectedRepos: string[];
   onRepoFilterChange: (repos: string[]) => void;
@@ -20,8 +20,8 @@ export function FilterBar({
   onActionNeededChange,
   showDraft,
   onShowDraftChange,
-  ignoreReviewRequests,
-  onIgnoreReviewRequestsChange,
+  ignoreOtherTeams,
+  onIgnoreOtherTeamsChange,
   repos,
   selectedRepos,
   onRepoFilterChange,
@@ -48,11 +48,11 @@ export function FilterBar({
 
       <div className="flex items-center gap-1.5">
         <Switch
-          checked={ignoreReviewRequests}
-          onCheckedChange={onIgnoreReviewRequestsChange}
-          aria-label="Ignore review requested status"
+          checked={ignoreOtherTeams}
+          onCheckedChange={onIgnoreOtherTeamsChange}
+          aria-label="Ignore PRs from other scrums"
         />
-        <span className="text-xs">Ignore review requests</span>
+        <span className="text-xs">Ignore PRs from other scrums</span>
       </div>
 
       {repos.length > 0 && (

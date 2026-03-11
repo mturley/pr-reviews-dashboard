@@ -26,10 +26,10 @@ export function groupPRs(prs: PullRequest[], ctx: GroupingContext): PRGroup[] {
       continue;
     }
 
-    // Group 2: PRs I'm Reviewing
+    // Group 2: PRs I'm Reviewing (viewer has posted a review or is mentioned in comments)
     const isReviewer =
-      pr.reviewRequests.includes(ctx.viewerGithubUsername) ||
-      pr.reviews.some((r) => r.author === ctx.viewerGithubUsername);
+      pr.reviews.some((r) => r.author === ctx.viewerGithubUsername) ||
+      pr.mentionedUsers.includes(ctx.viewerGithubUsername);
     if (isReviewer) {
       reviewing.push(pr);
       assigned.add(pr.id);
@@ -47,9 +47,11 @@ export function groupPRs(prs: PullRequest[], ctx: GroupingContext): PRGroup[] {
       continue;
     }
 
-    // Group 4: Team PRs with no Jira
-    const isTeamMember = ctx.teamMembers.includes(pr.author);
-    if (isTeamMember && pr.linkedJiraIssues.length === 0) {
+    // Group 4: Team PRs with no Jira (includes bots like dependabot)
+    const authorLower = pr.author.toLowerCase();
+    const isTeamOrBot = ctx.teamMembers.includes(pr.author) ||
+      authorLower === "dependabot[bot]" || authorLower === "dependabot";
+    if (isTeamOrBot && pr.linkedJiraIssues.length === 0) {
       noJira.push(pr);
       assigned.add(pr.id);
     }

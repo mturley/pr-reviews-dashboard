@@ -6,6 +6,7 @@ import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
 import { ReviewStatusCell } from "./ReviewStatusCell";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { formatUsername } from "@/lib/bot-users";
 
 export interface PRRow {
   pr: PullRequest;
@@ -37,13 +38,13 @@ function reviewStatusSortValue(row: PRRow): number {
   return row.reviewStatus.priority ?? 999;
 }
 
-export const SORTABLE_COLUMNS = new Set(["age", "reviewStatus", "jiraPriority", "jiraState"]);
+export const SORTABLE_COLUMNS = new Set(["action", "age", "updated", "reviewStatus", "jiraPriority", "jiraState"]);
 
 export const columns = [
-  columnHelper.accessor((row) => row.reviewStatus.action ?? "", {
+  columnHelper.accessor((row) => row.reviewStatus.priority ?? 999, {
     id: "action",
     header: "Action Needed",
-    enableSorting: false,
+    enableSorting: true,
     cell: (info) => {
       const action = info.row.original.reviewStatus.action;
       if (!action) return <span className="text-xs text-muted-foreground">-</span>;
@@ -80,12 +81,23 @@ export const columns = [
     id: "author",
     header: "Author",
     enableSorting: false,
-    cell: (info) => <span className="text-sm">{info.getValue()}</span>,
+    cell: (info) => <span className="text-sm">{formatUsername(info.getValue())}</span>,
   }),
 
   columnHelper.accessor((row) => row.pr.createdAt, {
     id: "age",
     header: "Created",
+    enableSorting: true,
+    cell: (info) => (
+      <span className="text-sm text-muted-foreground">
+        {formatAge(info.getValue())}
+      </span>
+    ),
+  }),
+
+  columnHelper.accessor((row) => row.pr.updatedAt, {
+    id: "updated",
+    header: "Updated",
     enableSorting: true,
     cell: (info) => (
       <span className="text-sm text-muted-foreground">
@@ -159,7 +171,7 @@ export const columns = [
       return (
         <div className="flex items-center gap-1 text-xs">
           {priority.iconUrl && (
-            <img src={priority.iconUrl} alt={priority.name} className="h-3 w-3" />
+            <img src={priority.iconUrl} alt={priority.name} className="h-4 w-4" />
           )}
           {priority.name}
         </div>

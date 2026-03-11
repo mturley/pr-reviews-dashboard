@@ -69,11 +69,17 @@ export const jiraRouter = router({
       }
 
       const sprintId = targetSprintId ?? issues.find((i) => i.sprintId)?.sprintId ?? 0;
+      const sprintUrl = sprintId
+        ? config.jiraRapidViewId
+          ? `https://${jiraHost}/secure/RapidBoard.jspa?rapidView=${config.jiraRapidViewId}&sprint=${sprintId}`
+          : `https://${jiraHost}/issues/?jql=${encodeURIComponent(`sprint = ${sprintId}`)}`
+        : null;
 
       return {
         issues,
         sprintName,
         sprintId,
+        sprintUrl,
         fetchedAt: new Date().toISOString(),
       };
     } catch (error) {

@@ -10,7 +10,7 @@ export interface ViewState {
   filterRepo: string[];
   filterActionNeeded: boolean;
   filterDraft: boolean;
-  ignoreReviewRequests: boolean;
+  ignoreOtherTeams: boolean;
 }
 
 const DEFAULTS: ViewState = {
@@ -20,7 +20,7 @@ const DEFAULTS: ViewState = {
   filterRepo: [],
   filterActionNeeded: false,
   filterDraft: false,
-  ignoreReviewRequests: true,
+  ignoreOtherTeams: true,
 };
 
 export function parseViewState(params: URLSearchParams): ViewState {
@@ -31,7 +31,7 @@ export function parseViewState(params: URLSearchParams): ViewState {
     filterRepo: params.get("repo")?.split(",").filter(Boolean) ?? DEFAULTS.filterRepo,
     filterActionNeeded: params.get("action") === "1",
     filterDraft: params.get("draft") === "1",
-    ignoreReviewRequests: params.get("ignoreRR") !== "0",
+    ignoreOtherTeams: params.get("teamOnly") !== "0",
   };
 }
 
@@ -62,9 +62,9 @@ export function serializeViewState(state: Partial<ViewState>, current: URLSearch
     if (state.filterDraft) next.set("draft", "1");
     else next.delete("draft");
   }
-  if (state.ignoreReviewRequests !== undefined) {
-    if (!state.ignoreReviewRequests) next.set("ignoreRR", "0");
-    else next.delete("ignoreRR");
+  if (state.ignoreOtherTeams !== undefined) {
+    if (!state.ignoreOtherTeams) next.set("teamOnly", "0");
+    else next.delete("teamOnly");
   }
   return next;
 }

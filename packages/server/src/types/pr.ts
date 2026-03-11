@@ -37,6 +37,7 @@ export interface PullRequest {
   labels: string[];
   reviews: Review[];
   reviewRequests: string[];
+  mentionedUsers: string[];
   checkStatus: CheckStatus;
   linkedJiraIssues: JiraIssueRef[];
 }
@@ -69,18 +70,19 @@ export type AuthorStatus =
   | "Approved"
   | "Has LGTM"
   | "Awaiting Review"
-  | "Draft";
+  | "WIP";
 
 export type ReviewerStatus =
   | "My Re-review Needed"
   | "Needs First Review"
+  | "I'm mentioned"
   | "Team Re-review Needed"
   | "Needs Additional Review"
   | "Changes Requested (by others)"
   | "My Changes Requested"
   | "Has LGTM"
   | "Approved"
-  | "Draft";
+  | "WIP";
 
 export interface ReviewerBreakdownEntry {
   username: string;
@@ -117,6 +119,7 @@ export interface RecommendedAction {
   jiraTypeIconUrl: string | null;
   epicKey: string | null;
   epicSummary: string | null;
+  reviewerBreakdown: ReviewerBreakdownEntry[];
 }
 
 export interface PRGroup {

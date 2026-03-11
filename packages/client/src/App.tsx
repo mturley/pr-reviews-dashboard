@@ -16,9 +16,9 @@ function NavBar() {
   const { theme, setTheme } = useTheme();
   const links = [
     { to: "/", label: "My PRs and Reviews" },
+    { to: "/sprint", label: "Current Sprint Status" },
+    { to: "/epic", label: "Epic Status" },
     { to: "/activity", label: "My Activity" },
-    { to: "/sprint", label: "Sprint" },
-    { to: "/epic", label: "Epic" },
   ];
 
   return (

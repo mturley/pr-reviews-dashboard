@@ -62,9 +62,20 @@ export default function SprintStatus() {
         <h1 className="text-2xl font-bold">
           Sprint Status
           {jiraQuery.data && (
-            <span className="ml-2 text-base font-normal text-muted-foreground">
-              {jiraQuery.data.sprintName}
-            </span>
+            jiraQuery.data.sprintUrl ? (
+              <a
+                href={jiraQuery.data.sprintUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {jiraQuery.data.sprintName}
+              </a>
+            ) : (
+              <span className="ml-2 text-base font-normal text-muted-foreground">
+                {jiraQuery.data.sprintName}
+              </span>
+            )
           )}
         </h1>
         {jiraQuery.data && (
