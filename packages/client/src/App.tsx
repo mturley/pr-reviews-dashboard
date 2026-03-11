@@ -29,7 +29,7 @@ function NavBar() {
     <nav aria-label="Main navigation" className="border-b border-border bg-card px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="text-lg font-semibold">My GitHub + Jira Dashboard</span>
+          <span className="text-lg font-semibold">GitHub + Jira Combined Sprint Dashboard</span>
           <div className="flex gap-1">
             {links.map((link) => (
               <NavLink

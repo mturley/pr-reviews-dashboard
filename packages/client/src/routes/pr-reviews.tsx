@@ -6,7 +6,7 @@ import { computeReviewStatus } from "../../../server/src/logic/review-status";
 import { groupPRs } from "../../../server/src/logic/grouping";
 import { deriveRecommendedActions } from "../../../server/src/logic/recommended-actions";
 import type { PullRequest, ReviewStatusResult, PRGroup } from "../../../server/src/types/pr";
-import { useProgressiveData } from "@/hooks/useProgressiveData";
+import { useProgressiveData, type LoadingPhase } from "@/hooks/useProgressiveData";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 import { useViewState } from "@/hooks/useViewState";
 import { PRTable } from "@/components/pr-table/PRTable";
@@ -139,16 +139,37 @@ export default function PRReviews() {
     [groupedPRs, reviewStatuses],
   );
 
+  const configPhase: LoadingPhase = {
+    label: "Configuration",
+    status: configQuery.isLoading ? "active"
+      : configQuery.isError ? "error"
+      : configQuery.isSuccess ? "done" : "pending",
+    detail: configQuery.error?.message,
+  };
+
+  const allPhases = [configPhase, ...data.phases];
+
   if (configQuery.isLoading) {
-    return <LoadingIndicator message="Loading configuration..." />;
+    return (
+      <div className="space-y-4">
+        <LoadingProgress phases={allPhases} />
+      </div>
+    );
   }
 
   if (configQuery.error) {
-    return <ErrorBanner message={`Config error: ${configQuery.error.message}`} />;
+    return (
+      <div className="space-y-4">
+        <LoadingProgress phases={allPhases} />
+        <ErrorBanner message={`Config error: ${configQuery.error.message}`} />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
+      <LoadingProgress phases={allPhases} />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           My PRs and Reviews
@@ -232,8 +253,6 @@ export default function PRReviews() {
       )}
 
       <ActionsPanel actions={actions} />
-
-      <LoadingProgress phases={data.phases} />
 
       {data.isGitHubLoading ? (
         <LoadingIndicator message="Fetching GitHub PRs..." />
