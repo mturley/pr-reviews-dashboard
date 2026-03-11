@@ -37,6 +37,14 @@ function correlatePRsWithJira(prs: PullRequest[], jiraIssues: JiraIssue[]): Pull
   });
 }
 
+export type PhaseStatus = "pending" | "active" | "done" | "error" | "skipped";
+
+export interface LoadingPhase {
+  label: string;
+  status: PhaseStatus;
+  detail?: string;
+}
+
 export interface ProgressiveDataResult {
   prs: PullRequest[];
   isGitHubLoading: boolean;
@@ -52,6 +60,7 @@ export interface ProgressiveDataResult {
   sprintName: string | null;
   sprintId: number | null;
   sprintUrl: string | null;
+  phases: LoadingPhase[];
 }
 
 export function useProgressiveData(
@@ -108,6 +117,51 @@ export function useProgressiveData(
     cascadeQuery.refetch();
   }, [teamPRsQuery, jiraQuery, cascadeQuery]);
 
+  const phases: LoadingPhase[] = useMemo(() => {
+    const githubPhase: LoadingPhase = {
+      label: "GitHub PRs",
+      status: teamPRsQuery.isLoading ? "active"
+        : teamPRsQuery.isError ? "error"
+        : teamPRsQuery.isSuccess ? "done" : "pending",
+      detail: teamPRsQuery.isSuccess
+        ? `${teamPRsQuery.data.prs.length} PRs found`
+        : teamPRsQuery.error?.message,
+    };
+
+    const jiraPhase: LoadingPhase = {
+      label: "Jira Sprint",
+      status: !teamPRsQuery.isSuccess ? "pending"
+        : jiraQuery.isLoading ? "active"
+        : jiraQuery.isError ? "error"
+        : jiraQuery.isSuccess ? "done" : "pending",
+      detail: jiraQuery.isSuccess
+        ? `${jiraQuery.data.issues.length} issues — ${jiraQuery.data.sprintName}`
+        : jiraQuery.error?.message,
+    };
+
+    const cascadePhase: LoadingPhase = {
+      label: "Linked PRs",
+      status: cascadePRUrls.length === 0 && jiraQuery.isSuccess ? "skipped"
+        : !jiraQuery.isSuccess ? "pending"
+        : cascadeQuery.isLoading ? "active"
+        : cascadeQuery.isSuccess ? "done" : "pending",
+      detail: cascadePRUrls.length === 0 && jiraQuery.isSuccess
+        ? "No additional PRs to fetch"
+        : cascadeQuery.isSuccess
+        ? `${cascadeQuery.data.prs.length} additional PRs`
+        : undefined,
+    };
+
+    return [githubPhase, jiraPhase, cascadePhase];
+  }, [
+    teamPRsQuery.isLoading, teamPRsQuery.isError, teamPRsQuery.isSuccess,
+    teamPRsQuery.data, teamPRsQuery.error,
+    jiraQuery.isLoading, jiraQuery.isError, jiraQuery.isSuccess,
+    jiraQuery.data, jiraQuery.error,
+    cascadePRUrls.length,
+    cascadeQuery.isLoading, cascadeQuery.isSuccess, cascadeQuery.data,
+  ]);
+
   return {
     prs,
     isGitHubLoading: teamPRsQuery.isLoading,
@@ -123,5 +177,6 @@ export function useProgressiveData(
     sprintName: jiraQuery.data?.sprintName ?? null,
     sprintId: jiraQuery.data?.sprintId ?? null,
     sprintUrl: jiraQuery.data?.sprintUrl ?? null,
+    phases,
   };
 }

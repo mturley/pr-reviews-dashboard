@@ -28,6 +28,7 @@ export const jiraRouter = router({
       let sprintName = "Current Sprint";
 
       if (teamName) {
+        console.log(`[progress] jira.getSprintIssues: discovering sprint for team "${teamName}"`);
         const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
         const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
         for (const raw of discoveryResponse.issues) {
@@ -38,19 +39,23 @@ export const jiraRouter = router({
             break;
           }
         }
+        console.log(`[progress] jira.getSprintIssues: found sprint "${sprintName}" (id: ${targetSprintId ?? "fallback"})`);
       }
 
       // Step 2: Fetch issues for the specific sprint (or all open sprints as fallback)
+      console.log("[progress] jira.getSprintIssues: fetching sprint issues");
       const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
       const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
 
       const issues = response.issues.map((raw) =>
         transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
       );
+      console.log(`[progress] jira.getSprintIssues: found ${issues.length} issues`);
 
       // Enrich issues with epic summaries
       const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
       if (epicKeys.length > 0) {
+        console.log(`[progress] jira.getSprintIssues: enriching ${epicKeys.length} epic summaries`);
         const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
         try {
           const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
@@ -67,6 +72,7 @@ export const jiraRouter = router({
           // Non-critical — proceed without epic summaries
         }
       }
+      console.log("[progress] jira.getSprintIssues: done");
 
       const sprintId = targetSprintId ?? issues.find((i) => i.sprintId)?.sprintId ?? 0;
       const sprintUrl = sprintId
@@ -107,6 +113,7 @@ export const jiraRouter = router({
       }
 
       try {
+        console.log(`[progress] jira.getEpicIssues: fetching issues for epic ${input.epicKey}`);
         const jql = buildEpicIssuesJQL(input.epicKey, input.includeClosedResolved);
         const fields = getRequiredFields(config.jiraFieldMapping);
         const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
@@ -119,6 +126,7 @@ export const jiraRouter = router({
           jiraHost, jiraToken, `/rest/api/2/issue/${input.epicKey}`,
           { fields: "summary" },
         );
+        console.log(`[progress] jira.getEpicIssues: done, ${issues.length} issues`);
 
         return {
           issues,
@@ -146,6 +154,7 @@ export const jiraRouter = router({
       const jql = `project = "${config.jiraProjectKey}" AND updated >= "${sinceStr}" AND (assignee = "${input.username}" OR reporter = "${input.username}")`;
 
       try {
+        console.log(`[progress] jira.getActivity: fetching activity for ${input.username} (${input.days} days)`);
         const response = await jiraSearch(jiraHost, jiraToken, jql, [
           "summary", "status", "issuetype", "updated", "created", "assignee", epicLinkField,
         ]);
@@ -204,6 +213,7 @@ export const jiraRouter = router({
         }
 
         events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        console.log(`[progress] jira.getActivity: done, ${events.length} events`);
         return { events, fetchedAt: new Date().toISOString() };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";

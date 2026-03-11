@@ -18,6 +18,7 @@ import { FilterBar } from "@/components/controls/FilterBar";
 import { PerspectiveSelector } from "@/components/controls/PerspectiveSelector";
 import { ColumnCustomizer, useColumnConfig } from "@/components/controls/ColumnCustomizer";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
+import { LoadingProgress } from "@/components/shared/LoadingProgress";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 
 export default function PRReviews() {
@@ -179,8 +180,6 @@ export default function PRReviews() {
             {data.rateLimitRemaining !== null && (
               <span>Rate limit: {data.rateLimitRemaining}</span>
             )}
-            {data.isJiraLoading && <span>Jira loading...</span>}
-            {data.isCascadeLoading && <span>Fetching linked PRs...</span>}
           </div>
           <RefreshControls
             autoRefresh={autoRefresh}
@@ -233,6 +232,8 @@ export default function PRReviews() {
       )}
 
       <ActionsPanel actions={actions} />
+
+      <LoadingProgress phases={data.phases} />
 
       {data.isGitHubLoading ? (
         <LoadingIndicator message="Fetching GitHub PRs..." />

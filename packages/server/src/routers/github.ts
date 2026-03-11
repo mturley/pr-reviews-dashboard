@@ -26,10 +26,12 @@ export const githubRouter = router({
     }
 
     try {
+      console.log(`[progress] github.getTeamPRs: fetching PRs for ${members.length} members across ${config.githubOrgs.length} orgs`);
       const query = buildTeamPRsQuery(members, config.githubOrgs);
       const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
       const prs = extractPRsFromTeamQuery(data);
       const rateLimit = getLastRateLimit();
+      console.log(`[progress] github.getTeamPRs: done, found ${prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
 
       return {
         prs,
@@ -82,9 +84,11 @@ export const githubRouter = router({
       }
 
       try {
+        console.log(`[progress] github.getPRsByUrls: fetching ${validPRs.length} linked PRs`);
         const query = buildPRsByUrlsQuery(validPRs);
         const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
         const result = extractPRsFromUrlsQuery(data);
+        console.log(`[progress] github.getPRsByUrls: done, found ${result.prs.length} PRs (${result.notFound.length} not found)`);
 
         return {
           prs: result.prs,
@@ -106,6 +110,7 @@ export const githubRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub token is not configured" });
       }
 
+      console.log(`[progress] github.getActivity: fetching activity for ${input.username} (${input.days} days)`);
       const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000).toISOString();
       const query = `
         query UserActivity($query: String!) {
@@ -181,6 +186,7 @@ export const githubRouter = router({
       const sinceMs = new Date(since).getTime();
       const filtered = events.filter((e) => new Date(e.timestamp).getTime() >= sinceMs);
       filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      console.log(`[progress] github.getActivity: done, ${filtered.length} events`);
 
       return { events: filtered, fetchedAt: new Date().toISOString() };
     }),
