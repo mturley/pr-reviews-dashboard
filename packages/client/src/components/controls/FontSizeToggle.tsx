@@ -7,6 +7,7 @@ interface FontSizeToggleProps {
 }
 
 const options: { value: FontSize; label: string; sizeClass: string }[] = [
+  { value: "xs", label: "Extra small", sizeClass: "text-xs" },
   { value: "small", label: "Small", sizeClass: "text-sm" },
   { value: "medium", label: "Medium", sizeClass: "text-base" },
   { value: "large", label: "Large", sizeClass: "text-lg" },

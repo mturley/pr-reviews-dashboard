@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 
-export type FontSize = "small" | "medium" | "large";
+export type FontSize = "xs" | "small" | "medium" | "large";
 
 const FONT_SIZE_PX: Record<FontSize, string> = {
+  xs: "16px",
   small: "18px",
   medium: "20px",
   large: "22px",
@@ -14,7 +15,7 @@ function applyFontSize(size: FontSize) {
 
 export function useFontSize() {
   const [fontSize, setFontSizeState] = useState<FontSize>(() => {
-    return (localStorage.getItem("fontSize") as FontSize) ?? "medium";
+    return (localStorage.getItem("fontSize") as FontSize) ?? "small";
   });
 
   const setFontSize = useCallback((newSize: FontSize) => {
