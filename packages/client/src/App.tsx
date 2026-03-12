@@ -15,6 +15,7 @@ import PRReviews from "./routes/pr-reviews";
 import ActivityTimeline from "./routes/activity-timeline";
 import SprintStatus from "./routes/sprint-status";
 import EpicStatus from "./routes/epic-status";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 function NavBar() {
   const { theme, setTheme } = useTheme();
@@ -30,7 +31,7 @@ function NavBar() {
     <nav aria-label="Main navigation" className="border-b border-border bg-card px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="text-lg font-semibold">GitHub + Jira Combined Sprint Dashboard</span>
+          <span className="text-lg font-semibold">GitHub + Jira Personal Sprint Dashboard</span>
           <div className="flex gap-1">
             {links.map((link) => (
               <NavLink
@@ -60,7 +61,14 @@ function NavBar() {
 }
 
 export default function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 2 * 60 * 1000, // 2 minutes
+        refetchOnWindowFocus: false,
+      },
+    },
+  }));
   const [trpcClient] = useState(() => createTRPCClient());
 
   return (
@@ -68,21 +76,21 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={0}>
           <AutoRefreshProvider>
-            <DetailModalProvider>
-              <BrowserRouter>
+            <BrowserRouter>
+              <DetailModalProvider>
                 <div className="min-h-screen bg-background">
                   <NavBar />
                   <main className="p-6">
                     <Routes>
-                      <Route path="/" element={<PRReviews />} />
-                      <Route path="/activity" element={<ActivityTimeline />} />
-                      <Route path="/sprint" element={<SprintStatus />} />
-                      <Route path="/epic" element={<EpicStatus />} />
+                      <Route path="/" element={<ErrorBoundary><PRReviews /></ErrorBoundary>} />
+                      <Route path="/activity" element={<ErrorBoundary><ActivityTimeline /></ErrorBoundary>} />
+                      <Route path="/sprint" element={<ErrorBoundary><SprintStatus /></ErrorBoundary>} />
+                      <Route path="/epic/:epicKey?" element={<ErrorBoundary><EpicStatus /></ErrorBoundary>} />
                     </Routes>
                   </main>
                 </div>
-              </BrowserRouter>
-            </DetailModalProvider>
+              </DetailModalProvider>
+            </BrowserRouter>
           </AutoRefreshProvider>
         </TooltipProvider>
       </QueryClientProvider>

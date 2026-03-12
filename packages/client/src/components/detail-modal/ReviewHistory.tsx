@@ -144,11 +144,7 @@ interface ReviewHistoryProps {
 export function ReviewHistory({ breakdown, pushDates, commits, repoOwner, repoName }: ReviewHistoryProps) {
   const submitted = breakdown.filter((e) => e.state !== "PENDING");
 
-  const pendingReviewers = breakdown
-    .filter((e) => e.state === "PENDING")
-    .map((e) => e.username);
-
-  if (submitted.length === 0 && pendingReviewers.length === 0) {
+  if (submitted.length === 0) {
     return <p className="text-xs text-muted-foreground">No review activity yet.</p>;
   }
 
@@ -219,18 +215,6 @@ export function ReviewHistory({ breakdown, pushDates, commits, repoOwner, repoNa
         );
       })}
 
-      {pendingReviewers.length > 0 && (
-        <div className="pt-2 border-t border-border mt-2">
-          <p className="text-[10px] font-semibold text-muted-foreground mb-1">Pending Review Requests</p>
-          <div className="flex flex-wrap gap-1">
-            {pendingReviewers.map((user) => (
-              <span key={user} className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
-                {formatUsername(user)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

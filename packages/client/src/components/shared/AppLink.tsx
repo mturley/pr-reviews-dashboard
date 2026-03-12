@@ -18,7 +18,7 @@ export const AppLink = forwardRef<HTMLAnchorElement, AppLinkProps>(
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       if (epicKey) {
         e.preventDefault();
-        navigate(`/epic?epic=${encodeURIComponent(epicKey)}`);
+        navigate(`/epic/${encodeURIComponent(epicKey)}`);
         return;
       }
       if (!detail) return;

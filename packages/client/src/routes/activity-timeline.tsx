@@ -8,7 +8,7 @@ import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { RefreshControls } from "@/components/controls/RefreshControls";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
-import { ChevronDown, ChevronRight, GitPullRequest, GitMerge, CircleDot, CircleDashed } from "lucide-react";
+import { ChevronDown, ChevronRight, GitPullRequest, GitMerge, GitCommit, CircleDot, CircleDashed, Eye, MessageSquare, ArrowRightLeft, Pencil, PlusCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,11 +25,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const actionTypeLabels: Record<string, string> = {
+  pr_pushed: "Commits pushed",
+};
+
 function formatActionType(actionType: string): string {
+  if (actionTypeLabels[actionType]) return actionTypeLabels[actionType];
   return actionType
     .replace(/_/g, " ")
     .replace(/\bpr\b/gi, "PR")
     .replace(/^(\w)/, (c) => c.toUpperCase());
+}
+
+function ActionIcon({ actionType }: { actionType: string }) {
+  switch (actionType) {
+    case "pr_opened":
+      return <GitPullRequest className="h-4 w-4 text-green-600 dark:text-green-400" />;
+    case "pr_merged":
+      return <GitMerge className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
+    case "pr_closed":
+      return <CircleDot className="h-4 w-4 text-red-600 dark:text-red-400" />;
+    case "pr_reviewed":
+      return <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+    case "pr_commented":
+    case "issue_commented":
+      return <MessageSquare className="h-4 w-4 text-muted-foreground" />;
+    case "pr_pushed":
+      return <GitCommit className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />;
+    case "issue_status_changed":
+      return <ArrowRightLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+    case "issue_field_changed":
+      return <Pencil className="h-4 w-4 text-muted-foreground" />;
+    case "issue_created":
+      return <PlusCircle className="h-4 w-4 text-green-600 dark:text-green-400" />;
+    default:
+      return null;
+  }
 }
 
 function getTargetLink(event: ActivityEvent): { label: string; url: string } | null {
@@ -140,7 +171,10 @@ function CollapsibleDayGroup({
               {new Date(event.timestamp).toLocaleTimeString()}
             </TableCell>
             <TableCell className="w-40 text-sm font-medium whitespace-nowrap">
-              {formatActionType(event.actionType)}
+              <span className="flex items-center gap-1.5">
+                <ActionIcon actionType={event.actionType} />
+                {formatActionType(event.actionType)}
+              </span>
             </TableCell>
             <TableCell className="w-32 text-xs text-muted-foreground whitespace-nowrap">
               {event.detail}

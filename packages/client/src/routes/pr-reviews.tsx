@@ -1,6 +1,6 @@
 // PR Reviews route — full integration
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "../trpc";
@@ -191,7 +191,7 @@ export default function PRReviews() {
       <LoadingProgress phases={allPhases} />
 
       {data.githubError && (
-        <ErrorBanner message={`GitHub error: ${data.githubError.message}`} />
+        <ErrorBanner message={`GitHub error: ${data.githubError.message}`} rateLimitResetAt={data.rateLimitResetAt} />
       )}
       {data.jiraError && (
         <ErrorBanner message={`Jira error: ${data.jiraError.message}`} />
@@ -510,14 +510,12 @@ function formatRelativeTime(isoString: string): string {
 }
 
 function LiveRelativeTime({ isoString }: { isoString: string }) {
-  const format = useCallback(() => formatRelativeTime(isoString), [isoString]);
-  const [text, setText] = useState(format);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    setText(format());
-    const id = setInterval(() => setText(format()), 60_000);
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
-  }, [format]);
+  }, []);
 
-  return <>{text}</>;
+  return <>{formatRelativeTime(isoString)}</>;
 }

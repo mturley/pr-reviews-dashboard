@@ -3,6 +3,7 @@ import {
   GitMerge,
   CircleDashed,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import type { JiraIssue } from "../../../../server/src/types/jira";
 import type { JiraIssueRef, PullRequestRef } from "../../../../server/src/types/pr";
@@ -17,10 +18,11 @@ function isFullIssue(issue: JiraData): issue is JiraIssue {
 interface JiraDetailContentProps {
   issue: JiraData;
   isPartial: boolean;
+  isLoading?: boolean;
   onNavigatePR: (url: string) => void;
 }
 
-export function JiraDetailContent({ issue, isPartial, onNavigatePR }: JiraDetailContentProps) {
+export function JiraDetailContent({ issue, isPartial, isLoading, onNavigatePR }: JiraDetailContentProps) {
   const full = isFullIssue(issue) ? issue : null;
 
   return (
@@ -132,8 +134,15 @@ export function JiraDetailContent({ issue, isPartial, onNavigatePR }: JiraDetail
       )}
 
       {isPartial && (
-        <p className="text-xs text-muted-foreground italic">
-          Showing partial data from PR linkage. Open in Jira for full details.
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
+          {isLoading ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Loading full details...
+            </>
+          ) : (
+            "Showing partial data from PR linkage. Open in Jira for full details."
+          )}
         </p>
       )}
     </div>

@@ -152,7 +152,7 @@ export function ReviewBreakdownTooltip({ breakdown, pushedAt, pushDates, childre
       </TooltipTrigger>
       <TooltipContent className="max-w-lg p-3 bg-popover text-popover-foreground border border-border shadow-lg">
         <div className="space-y-1">
-          <p className="text-xs font-semibold mb-2">Review history</p>
+          <p className="text-xs font-semibold mb-2">Review and change history</p>
           {items.map((item, i) => {
             if (item.type === "push") {
               return (

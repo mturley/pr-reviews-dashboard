@@ -6,6 +6,7 @@ import { router, publicProcedure } from "../trpc.js";
 import { githubGraphQL, getLastRateLimit } from "../services/github/client.js";
 import { buildTeamPRsQuery, buildPRsByUrlsQuery } from "../services/github/queries.js";
 import { extractPRsFromTeamQuery, extractPRsFromUrlsQuery } from "../services/github/transforms.js";
+import { cached } from "../services/cache.js";
 
 export const githubRouter = router({
   getTeamPRs: publicProcedure.query(async ({ ctx }) => {
@@ -28,20 +29,24 @@ export const githubRouter = router({
     }
 
     try {
-      console.log(`[progress] github.getTeamPRs: fetching PRs for ${members.length} members across ${config.githubOrgs.length} orgs`);
-      const query = buildTeamPRsQuery(members, config.githubOrgs);
-      const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
-      const prs = extractPRsFromTeamQuery(data);
-      const rateLimit = getLastRateLimit();
-      console.log(`[progress] github.getTeamPRs: done, found ${prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
+      const cacheKey = `teamPRs:${members.join(",")}:${config.githubOrgs.join(",")}`;
+      return await cached(cacheKey, 60_000, async () => {
+        console.log(`[progress] github.getTeamPRs: fetching PRs for ${members.length} members across ${config.githubOrgs.length} orgs`);
+        const query = buildTeamPRsQuery(members, config.githubOrgs);
+        const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
+        const result = extractPRsFromTeamQuery(data);
+        const headerRateLimit = getLastRateLimit();
+        const rateLimit = result.rateLimit ?? headerRateLimit;
+        console.log(`[progress] github.getTeamPRs: done, found ${result.prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
 
-      return {
-        prs,
-        rateLimitRemaining: rateLimit.remaining,
-        rateLimitLimit: rateLimit.limit,
-        rateLimitResetAt: rateLimit.resetAt,
-        fetchedAt: new Date().toISOString(),
-      };
+        return {
+          prs: result.prs,
+          rateLimitRemaining: rateLimit.remaining,
+          rateLimitLimit: headerRateLimit.limit,
+          rateLimitResetAt: rateLimit.resetAt,
+          fetchedAt: new Date().toISOString(),
+        };
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       const rateLimit = getLastRateLimit();
@@ -174,7 +179,7 @@ export const githubRouter = router({
       }
 
       console.log(`[progress] github.getActivity: fetching activity for ${input.username} (${input.days} days)`);
-      const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000).toISOString();
+      const since = new Date(new Date().setHours(0, 0, 0, 0) - (input.days - 1) * 24 * 60 * 60 * 1000).toISOString();
       const query = `
         query UserActivity($query: String!) {
           search(query: $query, type: ISSUE, first: 100) {
@@ -185,7 +190,7 @@ export const githubRouter = router({
                 repository { owner { login } name }
                 reviews(first: 10) { nodes { author { login } state submittedAt } }
                 comments(first: 10) { nodes { author { login } createdAt } }
-                commits(last: 5) { nodes { commit { pushedDate author { user { login } } } } }
+                commits(last: 10) { nodes { commit { oid pushedDate committedDate author { user { login } } } } }
               }
             }
           }
@@ -242,6 +247,23 @@ export const githubRouter = router({
             targetKey: url, targetTitle: title, detail: repoName,
             prState: "MERGED", prAuthor: author,
           });
+        }
+
+        const commits = pr.commits as { nodes: Array<{ commit: { oid: string; pushedDate: string | null; committedDate: string | null; author: { user: { login: string } | null } | null } }> } | undefined;
+        if (commits?.nodes) {
+          for (const { commit } of commits.nodes) {
+            const commitAuthor = commit.author?.user?.login;
+            const commitDate = commit.pushedDate ?? commit.committedDate;
+            if (commitAuthor === input.username && commitDate) {
+              events.push({
+                id: `${pr.id}-push-${commit.oid}`, source: "github", timestamp: commitDate,
+                actor: commitAuthor, actorDisplayName: commitAuthor,
+                actionType: "pr_pushed", targetType: "pr",
+                targetKey: url, targetTitle: title, detail: repoName,
+                prState, prAuthor: author,
+              });
+            }
+          }
         }
       }
 

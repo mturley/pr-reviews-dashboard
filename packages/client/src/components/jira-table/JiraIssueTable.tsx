@@ -42,9 +42,9 @@ const groupCardStyles = [
 
 // --- Types ---
 
-export type SortColumn = "type" | "priority" | "assignee" | "sp";
+export type SortColumn = "type" | "state" | "priority" | "assignee" | "sp";
 type SortDirection = "asc" | "desc";
-export type GroupBy = "state" | "assignee" | "priority";
+export type GroupBy = "state" | "assignee" | "priority" | "type";
 
 export interface LinkedPR {
   url: string;
@@ -93,6 +93,9 @@ function sortIssues(issues: JiraIssue[], column: SortColumn, direction: SortDire
       case "type":
         cmp = a.type.localeCompare(b.type);
         break;
+      case "state":
+        cmp = stateSortValue(a.state) - stateSortValue(b.state);
+        break;
       case "priority":
         cmp = prioritySortValue(a) - prioritySortValue(b);
         break;
@@ -107,7 +110,12 @@ function sortIssues(issues: JiraIssue[], column: SortColumn, direction: SortDire
   });
 }
 
-function groupIssues(issues: JiraIssue[], groupBy: GroupBy): [string, JiraIssue[]][] {
+function groupIssues(
+  issues: JiraIssue[],
+  groupBy: GroupBy,
+  sortColumn: SortColumn,
+  sortDirection: SortDirection,
+): [string, JiraIssue[]][] {
   const groups = new Map<string, JiraIssue[]>();
   for (const issue of issues) {
     let key: string;
@@ -121,20 +129,27 @@ function groupIssues(issues: JiraIssue[], groupBy: GroupBy): [string, JiraIssue[
       case "priority":
         key = issue.priority.name;
         break;
+      case "type":
+        key = issue.type;
+        break;
     }
     const list = groups.get(key) ?? [];
     list.push(issue);
     groups.set(key, list);
   }
+
+  // When sorting by the same dimension as group-by, use that sort direction for group order
+  const dir = sortColumn === groupBy && sortDirection === "desc" ? -1 : 1;
+
   if (groupBy === "priority") {
     return [...groups.entries()].sort(([a], [b]) =>
-      (JIRA_PRIORITY_ORDER[a.toLowerCase()] ?? 5) - (JIRA_PRIORITY_ORDER[b.toLowerCase()] ?? 5),
+      dir * ((JIRA_PRIORITY_ORDER[a.toLowerCase()] ?? 5) - (JIRA_PRIORITY_ORDER[b.toLowerCase()] ?? 5)),
     );
   }
   if (groupBy === "state") {
-    return [...groups.entries()].sort(([a], [b]) => stateSortValue(a) - stateSortValue(b));
+    return [...groups.entries()].sort(([a], [b]) => dir * (stateSortValue(a) - stateSortValue(b)));
   }
-  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+  return [...groups.entries()].sort(([a], [b]) => dir * a.localeCompare(b));
 }
 
 // --- Sub-components ---
@@ -227,6 +242,7 @@ function IssueCells({
             </span>
           )}
       </TableCell>
+      <TableCell rowSpan={rowSpan} className="text-xs">{issue.state}</TableCell>
     </>
   );
 }
@@ -319,7 +335,7 @@ function CollapsibleGroup({
   isPRsLoading: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const colCount = 8;
+  const colCount = 9;
 
   return (
     <TableBody className={groupCardStyles}>
@@ -432,7 +448,7 @@ export function JiraIssueTable({
   }, [issues, excludeSubtasks, showSubtaskToggle]);
 
   const grouped = useMemo(() => {
-    const groups = groupIssues(filteredIssues, groupBy);
+    const groups = groupIssues(filteredIssues, groupBy, sortColumn, sortDirection);
     return groups.map(([label, groupIssues]) =>
       [label, sortIssues(groupIssues, sortColumn, sortDirection)] as const,
     );
@@ -457,6 +473,7 @@ export function JiraIssueTable({
               { value: "state" as const, label: "Jira Status" },
               { value: "assignee" as const, label: "Assignee" },
               { value: "priority" as const, label: "Priority" },
+              { value: "type" as const, label: "Type" },
             ]).map((opt) => (
               <button
                 key={opt.value}
@@ -520,6 +537,14 @@ export function JiraIssueTable({
               >
                 <div className="flex items-center gap-1">
                   SP <SortIcon column="sp" sortColumn={sortColumn} sortDirection={sortDirection} />
+                </div>
+              </TableHead>
+              <TableHead
+                className="border-none cursor-pointer select-none hover:text-foreground"
+                onClick={() => handleSort("state")}
+              >
+                <div className="flex items-center gap-1">
+                  Status <SortIcon column="state" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </div>
               </TableHead>
               <TableHead className="border-none">Linked PRs</TableHead>

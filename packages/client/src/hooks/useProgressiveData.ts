@@ -77,9 +77,8 @@ export function useProgressiveData(
     refetchInterval: options.refetchInterval,
   });
 
-  // Phase 2: Jira data (after GitHub succeeds)
+  // Phase 2: Jira data (parallel with GitHub — independent data source)
   const jiraQuery = trpc.jira.getSprintIssues.useQuery(undefined, {
-    enabled: teamPRsQuery.isSuccess,
     refetchInterval: options.refetchInterval,
   });
 
@@ -136,8 +135,7 @@ export function useProgressiveData(
 
     const jiraPhase: LoadingPhase = {
       label: "Jira Sprint",
-      status: !teamPRsQuery.isSuccess ? "pending"
-        : jiraQuery.isFetching ? "active"
+      status: jiraQuery.isFetching ? "active"
         : jiraQuery.isError ? "error"
         : jiraQuery.isSuccess ? "done" : "pending",
       detail: jiraQuery.isSuccess
@@ -147,8 +145,8 @@ export function useProgressiveData(
 
     const cascadePhase: LoadingPhase = {
       label: "Linked PRs",
-      status: cascadePRUrls.length === 0 && jiraQuery.isSuccess ? "skipped"
-        : !jiraQuery.isSuccess ? "pending"
+      status: cascadePRUrls.length === 0 && teamPRsQuery.isSuccess && jiraQuery.isSuccess ? "skipped"
+        : !(teamPRsQuery.isSuccess && jiraQuery.isSuccess) ? "pending"
         : cascadeQuery.isFetching ? "active"
         : cascadeQuery.isSuccess ? "done" : "pending",
       detail: cascadePRUrls.length === 0 && jiraQuery.isSuccess

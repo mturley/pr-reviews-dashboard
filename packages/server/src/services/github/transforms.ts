@@ -21,36 +21,16 @@ function transformCheckStatus(commitNode: GraphQLNode): CheckStatus {
     return { state: null, totalCount: 0, successCount: 0, failureCount: 0, pendingCount: 0 };
   }
 
-  const contexts = rollup.contexts?.nodes ?? [];
-  let successCount = 0;
-  let failureCount = 0;
-  let pendingCount = 0;
+  const totalCount = rollup.contexts?.totalCount ?? 0;
+  const state = rollup.state as CheckStatus["state"];
 
-  for (const ctx of contexts) {
-    if (ctx.state) {
-      // StatusContext
-      if (ctx.state === "SUCCESS") successCount++;
-      else if (ctx.state === "FAILURE" || ctx.state === "ERROR") failureCount++;
-      else if (ctx.state === "PENDING") pendingCount++;
-    } else if (ctx.conclusion !== undefined) {
-      // CheckRun
-      if (ctx.conclusion === "SUCCESS" || ctx.conclusion === "NEUTRAL") successCount++;
-      else if (
-        ctx.conclusion === "FAILURE" ||
-        ctx.conclusion === "TIMED_OUT" ||
-        ctx.conclusion === "CANCELLED"
-      )
-        failureCount++;
-      else if (ctx.status === "IN_PROGRESS" || ctx.status === "QUEUED") pendingCount++;
-    }
-  }
-
+  // Derive approximate counts from the rollup state (individual contexts are not fetched)
   return {
-    state: rollup.state as CheckStatus["state"],
-    totalCount: rollup.contexts?.totalCount ?? contexts.length,
-    successCount,
-    failureCount,
-    pendingCount,
+    state,
+    totalCount,
+    successCount: state === "SUCCESS" ? totalCount : 0,
+    failureCount: state === "FAILURE" || state === "ERROR" ? totalCount : 0,
+    pendingCount: state === "PENDING" ? totalCount : 0,
   };
 }
 
@@ -132,9 +112,18 @@ export function transformPullRequest(node: GraphQLNode): PullRequest {
   };
 }
 
-export function extractPRsFromTeamQuery(data: Record<string, unknown>): PullRequest[] {
+export interface GraphQLRateLimit {
+  remaining: number;
+  resetAt: string;
+}
+
+export function extractPRsFromTeamQuery(data: Record<string, unknown>): {
+  prs: PullRequest[];
+  rateLimit: GraphQLRateLimit | null;
+} {
   const seen = new Set<string>();
   const prs: PullRequest[] = [];
+  const rateLimit = (data.rateLimit as GraphQLRateLimit) ?? null;
 
   for (const [key, value] of Object.entries(data)) {
     if (key === "rateLimit") continue;
@@ -147,7 +136,7 @@ export function extractPRsFromTeamQuery(data: Record<string, unknown>): PullRequ
     }
   }
 
-  return prs;
+  return { prs, rateLimit };
 }
 
 export function extractPRsFromUrlsQuery(data: Record<string, unknown>): {
