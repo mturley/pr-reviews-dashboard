@@ -160,7 +160,7 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
       return {
         status: "Approved" as AuthorStatus,
         priority: 1,
-        parenthetical: `${pr.checkStatus.failureCount} check${pr.checkStatus.failureCount !== 1 ? "s" : ""} failed`,
+        parenthetical: "CI failing",
         action: "Fix CI errors",
         reviewerBreakdown: breakdown,
       };

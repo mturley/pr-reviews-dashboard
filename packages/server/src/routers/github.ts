@@ -6,6 +6,7 @@ import { router, publicProcedure } from "../trpc.js";
 import { githubGraphQL, getLastRateLimit } from "../services/github/client.js";
 import { buildTeamPRsQuery, buildPRsByUrlsQuery } from "../services/github/queries.js";
 import { extractPRsFromTeamQuery, extractPRsFromUrlsQuery } from "../services/github/transforms.js";
+import { cached } from "../services/cache.js";
 
 export const githubRouter = router({
   getTeamPRs: publicProcedure.query(async ({ ctx }) => {
@@ -28,21 +29,24 @@ export const githubRouter = router({
     }
 
     try {
-      console.log(`[progress] github.getTeamPRs: fetching PRs for ${members.length} members across ${config.githubOrgs.length} orgs`);
-      const query = buildTeamPRsQuery(members, config.githubOrgs);
-      const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
-      const result = extractPRsFromTeamQuery(data);
-      const headerRateLimit = getLastRateLimit();
-      const rateLimit = result.rateLimit ?? headerRateLimit;
-      console.log(`[progress] github.getTeamPRs: done, found ${result.prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
+      const cacheKey = `teamPRs:${members.join(",")}:${config.githubOrgs.join(",")}`;
+      return await cached(cacheKey, 60_000, async () => {
+        console.log(`[progress] github.getTeamPRs: fetching PRs for ${members.length} members across ${config.githubOrgs.length} orgs`);
+        const query = buildTeamPRsQuery(members, config.githubOrgs);
+        const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
+        const result = extractPRsFromTeamQuery(data);
+        const headerRateLimit = getLastRateLimit();
+        const rateLimit = result.rateLimit ?? headerRateLimit;
+        console.log(`[progress] github.getTeamPRs: done, found ${result.prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
 
-      return {
-        prs: result.prs,
-        rateLimitRemaining: rateLimit.remaining,
-        rateLimitLimit: headerRateLimit.limit,
-        rateLimitResetAt: rateLimit.resetAt,
-        fetchedAt: new Date().toISOString(),
-      };
+        return {
+          prs: result.prs,
+          rateLimitRemaining: rateLimit.remaining,
+          rateLimitLimit: headerRateLimit.limit,
+          rateLimitResetAt: rateLimit.resetAt,
+          fetchedAt: new Date().toISOString(),
+        };
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       const rateLimit = getLastRateLimit();

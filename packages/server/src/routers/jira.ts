@@ -7,6 +7,7 @@ import { jiraSearch, jiraRequest } from "../services/jira/client.js";
 import { buildSprintDiscoveryJQL, buildSprintIssuesJQL, buildEpicIssuesJQL } from "../services/jira/queries.js";
 import { getRequiredFields } from "../services/jira/field-map.js";
 import { transformJiraIssue } from "../services/jira/transforms.js";
+import { cached } from "../services/cache.js";
 
 export const jiraRouter = router({
   getSprintIssues: publicProcedure.query(async ({ ctx }) => {
@@ -20,74 +21,77 @@ export const jiraRouter = router({
     }
 
     try {
-      const fields = getRequiredFields(config.jiraFieldMapping);
-      const teamName = config.teamName;
+      const cacheKey = `sprintIssues:${config.jiraProjectKey}:${config.jiraComponentName ?? ""}:${config.teamName ?? ""}`;
+      return await cached(cacheKey, 60_000, async () => {
+        const fields = getRequiredFields(config.jiraFieldMapping);
+        const teamName = config.teamName;
 
-      // Step 1: Discover the team's sprint ID from open sprints
-      let targetSprintId: number | undefined;
-      let sprintName = "Current Sprint";
+        // Step 1: Discover the team's sprint ID from open sprints
+        let targetSprintId: number | undefined;
+        let sprintName = "Current Sprint";
 
-      if (teamName) {
-        console.log(`[progress] jira.getSprintIssues: discovering sprint for team "${teamName}"`);
-        const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
-        const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
-        for (const raw of discoveryResponse.issues) {
-          const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
-          if (issue.sprintName?.toLowerCase().includes(teamName.toLowerCase())) {
-            targetSprintId = issue.sprintId ?? undefined;
-            sprintName = issue.sprintName;
-            break;
-          }
-        }
-        console.log(`[progress] jira.getSprintIssues: found sprint "${sprintName}" (id: ${targetSprintId ?? "fallback"})`);
-      }
-
-      // Step 2: Fetch issues for the specific sprint (or all open sprints as fallback)
-      console.log("[progress] jira.getSprintIssues: fetching sprint issues");
-      const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
-      const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
-
-      const issues = response.issues.map((raw) =>
-        transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
-      );
-      console.log(`[progress] jira.getSprintIssues: found ${issues.length} issues`);
-
-      // Enrich issues with epic summaries
-      const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
-      if (epicKeys.length > 0) {
-        console.log(`[progress] jira.getSprintIssues: enriching ${epicKeys.length} epic summaries`);
-        const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
-        try {
-          const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
-          const epicMap = new Map<string, string>();
-          for (const raw of epicResponse.issues) {
-            epicMap.set(raw.key, raw.fields?.summary ?? "");
-          }
-          for (const issue of issues) {
-            if (issue.epicKey) {
-              issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+        if (teamName) {
+          console.log(`[progress] jira.getSprintIssues: discovering sprint for team "${teamName}"`);
+          const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
+          const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
+          for (const raw of discoveryResponse.issues) {
+            const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
+            if (issue.sprintName?.toLowerCase().includes(teamName.toLowerCase())) {
+              targetSprintId = issue.sprintId ?? undefined;
+              sprintName = issue.sprintName;
+              break;
             }
           }
-        } catch {
-          // Non-critical — proceed without epic summaries
+          console.log(`[progress] jira.getSprintIssues: found sprint "${sprintName}" (id: ${targetSprintId ?? "fallback"})`);
         }
-      }
-      console.log("[progress] jira.getSprintIssues: done");
 
-      const sprintId = targetSprintId ?? issues.find((i) => i.sprintId)?.sprintId ?? 0;
-      const sprintUrl = sprintId
-        ? config.jiraRapidViewId
-          ? `https://${jiraHost}/secure/RapidBoard.jspa?rapidView=${config.jiraRapidViewId}&sprint=${sprintId}`
-          : `https://${jiraHost}/issues/?jql=${encodeURIComponent(`sprint = ${sprintId}`)}`
-        : null;
+        // Step 2: Fetch issues for the specific sprint (or all open sprints as fallback)
+        console.log("[progress] jira.getSprintIssues: fetching sprint issues");
+        const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
+        const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
 
-      return {
-        issues,
-        sprintName,
-        sprintId,
-        sprintUrl,
-        fetchedAt: new Date().toISOString(),
-      };
+        const issues = response.issues.map((raw) =>
+          transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
+        );
+        console.log(`[progress] jira.getSprintIssues: found ${issues.length} issues`);
+
+        // Enrich issues with epic summaries
+        const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
+        if (epicKeys.length > 0) {
+          console.log(`[progress] jira.getSprintIssues: enriching ${epicKeys.length} epic summaries`);
+          const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
+          try {
+            const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
+            const epicMap = new Map<string, string>();
+            for (const raw of epicResponse.issues) {
+              epicMap.set(raw.key, raw.fields?.summary ?? "");
+            }
+            for (const issue of issues) {
+              if (issue.epicKey) {
+                issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+              }
+            }
+          } catch {
+            // Non-critical — proceed without epic summaries
+          }
+        }
+        console.log("[progress] jira.getSprintIssues: done");
+
+        const sprintId = targetSprintId ?? issues.find((i) => i.sprintId)?.sprintId ?? 0;
+        const sprintUrl = sprintId
+          ? config.jiraRapidViewId
+            ? `https://${jiraHost}/secure/RapidBoard.jspa?rapidView=${config.jiraRapidViewId}&sprint=${sprintId}`
+            : `https://${jiraHost}/issues/?jql=${encodeURIComponent(`sprint = ${sprintId}`)}`
+          : null;
+
+        return {
+          issues,
+          sprintName,
+          sprintId,
+          sprintUrl,
+          fetchedAt: new Date().toISOString(),
+        };
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       if (message.includes("rate limit")) {

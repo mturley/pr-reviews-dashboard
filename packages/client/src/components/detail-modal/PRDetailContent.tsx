@@ -37,9 +37,10 @@ function CheckStatusSummary({ pr }: { pr: PullRequest }) {
     <div className="flex items-center gap-1.5 text-sm">
       {icon}
       <span>
-        {checkStatus.successCount}/{checkStatus.totalCount} passing
-        {checkStatus.failureCount > 0 && `, ${checkStatus.failureCount} failing`}
-        {checkStatus.pendingCount > 0 && `, ${checkStatus.pendingCount} pending`}
+        {checkStatus.totalCount} check{checkStatus.totalCount !== 1 ? "s" : ""}
+        {checkStatus.state === "SUCCESS" && " passing"}
+        {(checkStatus.state === "FAILURE" || checkStatus.state === "ERROR") && " — some failing"}
+        {checkStatus.state === "PENDING" && " — in progress"}
       </span>
     </div>
   );

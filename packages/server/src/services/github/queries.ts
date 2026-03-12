@@ -28,7 +28,7 @@ const PR_FRAGMENT = `
         }
       }
     }
-    reviews(first: 50) {
+    reviews(first: 20) {
       nodes {
         author { login }
         state
@@ -37,14 +37,14 @@ const PR_FRAGMENT = `
         comments { totalCount }
       }
     }
-    comments(first: 100) {
+    comments(first: 50) {
       nodes {
         author { login }
         createdAt
         body
       }
     }
-    commits(last: 50) {
+    commits(last: 10) {
       nodes {
         commit {
           oid
@@ -61,17 +61,8 @@ const PR_FRAGMENT = `
           committedDate
           statusCheckRollup {
             state
-            contexts(first: 100) {
+            contexts(first: 1) {
               totalCount
-              nodes {
-                ... on StatusContext {
-                  state
-                }
-                ... on CheckRun {
-                  conclusion
-                  status
-                }
-              }
             }
           }
         }
