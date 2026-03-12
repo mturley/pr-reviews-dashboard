@@ -179,7 +179,7 @@ export const githubRouter = router({
       }
 
       console.log(`[progress] github.getActivity: fetching activity for ${input.username} (${input.days} days)`);
-      const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000).toISOString();
+      const since = new Date(new Date().setHours(0, 0, 0, 0) - (input.days - 1) * 24 * 60 * 60 * 1000).toISOString();
       const query = `
         query UserActivity($query: String!) {
           search(query: $query, type: ISSUE, first: 100) {

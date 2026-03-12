@@ -195,7 +195,7 @@ export const jiraRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
       }
 
-      const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+      const since = new Date(new Date().setHours(0, 0, 0, 0) - (input.days - 1) * 24 * 60 * 60 * 1000);
       const sinceStr = since.toISOString().split("T")[0];
       const epicLinkField = config.jiraFieldMapping.epicLink;
       const jql = `project = "${config.jiraProjectKey}" AND updated >= "${sinceStr}" AND (assignee = "${input.username}" OR reporter = "${input.username}")`;
