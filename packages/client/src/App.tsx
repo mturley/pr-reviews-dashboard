@@ -10,6 +10,7 @@ import { FontSizeToggle } from "@/components/controls/FontSizeToggle";
 import { useTheme } from "@/hooks/useTheme";
 import { useFontSize } from "@/hooks/useFontSize";
 import { AutoRefreshProvider } from "@/hooks/useAutoRefreshContext";
+import { DetailModalProvider } from "@/components/detail-modal/DetailModalProvider";
 import PRReviews from "./routes/pr-reviews";
 import ActivityTimeline from "./routes/activity-timeline";
 import SprintStatus from "./routes/sprint-status";
@@ -67,19 +68,21 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={0}>
           <AutoRefreshProvider>
-            <BrowserRouter>
-              <div className="min-h-screen bg-background">
-                <NavBar />
-                <main className="p-6">
-                  <Routes>
-                    <Route path="/" element={<PRReviews />} />
-                    <Route path="/activity" element={<ActivityTimeline />} />
-                    <Route path="/sprint" element={<SprintStatus />} />
-                    <Route path="/epic" element={<EpicStatus />} />
-                  </Routes>
-                </main>
-              </div>
-            </BrowserRouter>
+            <DetailModalProvider>
+              <BrowserRouter>
+                <div className="min-h-screen bg-background">
+                  <NavBar />
+                  <main className="p-6">
+                    <Routes>
+                      <Route path="/" element={<PRReviews />} />
+                      <Route path="/activity" element={<ActivityTimeline />} />
+                      <Route path="/sprint" element={<SprintStatus />} />
+                      <Route path="/epic" element={<EpicStatus />} />
+                    </Routes>
+                  </main>
+                </div>
+              </BrowserRouter>
+            </DetailModalProvider>
           </AutoRefreshProvider>
         </TooltipProvider>
       </QueryClientProvider>

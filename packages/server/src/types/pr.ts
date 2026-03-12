@@ -25,6 +25,12 @@ export interface CheckStatus {
   pendingCount: number;
 }
 
+export interface CommitInfo {
+  oid: string;
+  message: string;
+  pushedDate: string;
+}
+
 export interface PullRequest {
   id: string;
   number: number;
@@ -40,6 +46,7 @@ export interface PullRequest {
   updatedAt: string;
   pushedAt: string;
   pushDates: string[];
+  commits: CommitInfo[];
   headRefOid: string;
   labels: string[];
   reviews: Review[];

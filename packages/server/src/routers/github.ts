@@ -44,17 +44,18 @@ export const githubRouter = router({
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
+      const rateLimit = getLastRateLimit();
       if (message.includes("rate limit")) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message,
-          cause: error,
+          cause: { originalError: error, rateLimit },
         });
       }
       if (message.includes("invalid") || message.includes("expired")) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message, cause: error });
+        throw new TRPCError({ code: "UNAUTHORIZED", message, cause: { originalError: error, rateLimit } });
       }
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: { originalError: error, rateLimit } });
     }
   }),
 
@@ -102,6 +103,65 @@ export const githubRouter = router({
         const message = error instanceof Error ? error.message : "Unknown error";
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
       }
+    }),
+
+  // Fetch PR changed files with diffs
+  getPRFiles: publicProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const { githubToken } = ctx;
+      if (!githubToken) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub token is not configured" });
+      }
+
+      const { owner, repo, pullNumber } = input;
+      console.log(`[progress] github.getPRFiles: fetching files for ${owner}/${repo}#${pullNumber}`);
+
+      const response = await fetch(
+        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${pullNumber}/files?per_page=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${githubToken}`,
+            Accept: "application/vnd.github+json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const msg = await response.text().catch(() => "Unknown error");
+        throw new TRPCError({
+          code: response.status === 404 ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR",
+          message: `GitHub API error ${response.status}: ${msg}`,
+        });
+      }
+
+      const files = (await response.json()) as Array<{
+        filename: string;
+        status: string;
+        additions: number;
+        deletions: number;
+        changes: number;
+        patch?: string;
+        previous_filename?: string;
+      }>;
+
+      console.log(`[progress] github.getPRFiles: done, ${files.length} files`);
+
+      return {
+        files: files.map((f) => ({
+          filename: f.filename,
+          status: f.status,
+          additions: f.additions,
+          deletions: f.deletions,
+          patch: f.patch ?? null,
+          previousFilename: f.previous_filename ?? null,
+        })),
+        fetchedAt: new Date().toISOString(),
+      };
     }),
 
   // T061: GitHub activity events

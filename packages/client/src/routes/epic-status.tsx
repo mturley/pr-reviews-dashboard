@@ -1,12 +1,14 @@
 // Epic Status route — uses shared JiraIssueTable
 
-import { useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import { trpc } from "../trpc";
 import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { RefreshControls } from "@/components/controls/RefreshControls";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
+import { useDetailModal } from "@/components/detail-modal/DetailModalProvider";
 import {
   Select,
   SelectContent,
@@ -25,6 +27,7 @@ export default function EpicStatus() {
   const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
     useAutoRefreshContext();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedEpic, setSelectedEpic] = useState("");
   const [customEpicKey, setCustomEpicKey] = useState("");
   const [submittedCustomKey, setSubmittedCustomKey] = useState("");
@@ -47,8 +50,11 @@ export default function EpicStatus() {
       .sort((a, b) => a.key.localeCompare(b.key));
   }, [sprintQuery.data]);
 
+  // URL search param (e.g. ?epic=RHOAIENG-123) overrides dropdown selection
+  const epicFromUrl = searchParams.get("epic")?.toUpperCase() || null;
+
   const isCustom = selectedEpic === "__other__";
-  const activeEpicKey = isCustom ? submittedCustomKey : selectedEpic;
+  const activeEpicKey = epicFromUrl ?? (isCustom ? submittedCustomKey : selectedEpic);
 
   const epicQuery = trpc.jira.getEpicIssues.useQuery(
     { epicKey: activeEpicKey, includeClosedResolved: true },
@@ -75,6 +81,15 @@ export default function EpicStatus() {
     epicQuery.refetch();
     linkedPRsQuery.refetch();
   }, [sprintQuery, epicQuery, linkedPRsQuery]);
+
+  // Register data with detail modal
+  const { registerPRs, registerJiraIssues } = useDetailModal();
+  useEffect(() => {
+    if (epicQuery.data) registerJiraIssues(epicQuery.data.issues);
+  }, [epicQuery.data, registerJiraIssues]);
+  useEffect(() => {
+    if (linkedPRsQuery.data) registerPRs(linkedPRsQuery.data.prs);
+  }, [linkedPRsQuery.data, registerPRs]);
 
   const epicUrl = activeEpicKey && jiraHost
     ? `https://${jiraHost}/browse/${activeEpicKey}`
@@ -131,6 +146,7 @@ export default function EpicStatus() {
           <Select
             value={selectedEpic}
             onValueChange={(v) => {
+              if (epicFromUrl) setSearchParams({}, { replace: true });
               setSelectedEpic(v);
               if (v !== "__other__") {
                 setSubmittedCustomKey("");
@@ -165,6 +181,7 @@ export default function EpicStatus() {
             className="flex items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
+              if (epicFromUrl) setSearchParams({}, { replace: true });
               setSubmittedCustomKey(customEpicKey.trim().toUpperCase());
             }}
           >

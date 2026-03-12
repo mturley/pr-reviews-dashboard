@@ -1,6 +1,7 @@
 // T063: Activity Timeline route view
 
 import { useState, useMemo, useCallback, Fragment } from "react";
+import { AppLink } from "@/components/shared/AppLink";
 import { trpc } from "../trpc";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
@@ -176,15 +177,14 @@ function CollapsibleDayGroup({
                   <span className="shrink-0 text-xs text-muted-foreground flex items-center gap-0.5">
                     ·
                     <span className="text-green-600 dark:text-green-400">⚡</span>
-                    <a
+                    <AppLink
                       href={event.epicUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      epicKey={event.epicKey}
                       className="text-blue-600 hover:underline dark:text-blue-400"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {event.epicKey}
-                    </a>
+                    </AppLink>
                     {event.epicSummary && (
                       <span className="ml-1">{event.epicSummary}</span>
                     )}
