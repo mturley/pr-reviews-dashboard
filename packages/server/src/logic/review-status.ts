@@ -369,6 +369,8 @@ export function computeReviewStatus(
       parenthetical: "",
       action: null,
       reviewerBreakdown: breakdown,
+      pushedAt: pr.pushedAt,
+      pushDates: pr.pushDates,
     };
   }
   const result = pr.author === viewerGithubUsername
