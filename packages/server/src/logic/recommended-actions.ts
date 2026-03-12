@@ -43,6 +43,8 @@ export function deriveRecommendedActions(
       epicKey: jiraIssue?.epicKey ?? null,
       epicSummary: jiraIssue?.epicSummary ?? null,
       reviewerBreakdown: status.reviewerBreakdown,
+      pushedAt: status.pushedAt,
+      pushDates: status.pushDates,
     });
   }
 

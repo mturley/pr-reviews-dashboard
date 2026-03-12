@@ -6,7 +6,7 @@ import { computeReviewStatus } from "../../../server/src/logic/review-status";
 import { groupPRs } from "../../../server/src/logic/grouping";
 import { deriveRecommendedActions } from "../../../server/src/logic/recommended-actions";
 import type { PullRequest, ReviewStatusResult, PRGroup } from "../../../server/src/types/pr";
-import { useProgressiveData } from "@/hooks/useProgressiveData";
+import { useProgressiveData, type LoadingPhase } from "@/hooks/useProgressiveData";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 import { useViewState } from "@/hooks/useViewState";
 import { PRTable } from "@/components/pr-table/PRTable";
@@ -18,6 +18,7 @@ import { FilterBar } from "@/components/controls/FilterBar";
 import { PerspectiveSelector } from "@/components/controls/PerspectiveSelector";
 import { ColumnCustomizer, useColumnConfig } from "@/components/controls/ColumnCustomizer";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
+import { LoadingProgress } from "@/components/shared/LoadingProgress";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 
 export default function PRReviews() {
@@ -122,32 +123,62 @@ export default function PRReviews() {
     });
   }, [displayPRs, viewer, teamMemberUsernames, data.sprintName, viewState.groupBy, isTeamView, reviewStatuses]);
 
+  // When "Action needed only" filter is active, override empty messages to reflect filtering
+  const displayGroups = useMemo(() => {
+    if (!viewState.filterActionNeeded) return groups;
+    return groups.map((group) => ({
+      ...group,
+      emptyMessage: "No action needed",
+    }));
+  }, [groups, viewState.filterActionNeeded]);
+
   // Only include PRs that appear in the table groups
   const groupedPRs = useMemo(() => {
     const ids = new Set<string>();
-    for (const group of groups) {
+    for (const group of displayGroups) {
       for (const pr of group.prs) {
         ids.add(pr.id);
       }
     }
     return displayPRs.filter((pr) => ids.has(pr.id));
-  }, [groups, displayPRs]);
+  }, [displayGroups, displayPRs]);
 
   const actions = useMemo(
     () => deriveRecommendedActions(groupedPRs, reviewStatuses),
     [groupedPRs, reviewStatuses],
   );
 
+  const configPhase: LoadingPhase = {
+    label: "Configuration",
+    status: configQuery.isLoading ? "active"
+      : configQuery.isError ? "error"
+      : configQuery.isSuccess ? "done" : "pending",
+    detail: configQuery.error?.message,
+  };
+
+  const allPhases = [configPhase, ...data.phases];
+
   if (configQuery.isLoading) {
-    return <LoadingIndicator message="Loading configuration..." />;
+    return (
+      <div className="space-y-4">
+        <LoadingProgress phases={allPhases} />
+      </div>
+    );
   }
 
   if (configQuery.error) {
-    return <ErrorBanner message={`Config error: ${configQuery.error.message}`} />;
+    return (
+      <div className="space-y-4">
+        <LoadingProgress phases={allPhases} />
+        <ErrorBanner message={`Config error: ${configQuery.error.message}`} />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
+      <LoadingProgress phases={allPhases} />
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           My PRs and Reviews
@@ -177,10 +208,11 @@ export default function PRReviews() {
               <span>Jira: {new Date(data.jiraFetchedAt).toLocaleTimeString()}</span>
             )}
             {data.rateLimitRemaining !== null && (
-              <span>Rate limit: {data.rateLimitRemaining}</span>
+              <span title={data.rateLimitResetAt ? `Resets at ${new Date(data.rateLimitResetAt).toLocaleTimeString()}` : undefined}>
+                GitHub rate limit: {data.rateLimitRemaining}{data.rateLimitLimit ? ` / ${data.rateLimitLimit}` : ""}
+                {data.rateLimitResetAt && ` (resets ${new Date(data.rateLimitResetAt).toLocaleTimeString()})`}
+              </span>
             )}
-            {data.isJiraLoading && <span>Jira loading...</span>}
-            {data.isCascadeLoading && <span>Fetching linked PRs...</span>}
           </div>
           <RefreshControls
             autoRefresh={autoRefresh}
@@ -244,7 +276,7 @@ export default function PRReviews() {
         </p>
       ) : (
         <PRTable
-          groups={groups}
+          groups={displayGroups}
           reviewStatuses={reviewStatuses}
           isJiraLoading={data.isJiraLoading}
           visibleColumnIds={visibleColumnIds}

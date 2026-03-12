@@ -39,6 +39,7 @@ export interface PullRequest {
   createdAt: string;
   updatedAt: string;
   pushedAt: string;
+  pushDates: string[];
   headRefOid: string;
   labels: string[];
   reviews: Review[];
@@ -77,7 +78,8 @@ export type AuthorStatus =
   | "Approved"
   | "Has LGTM"
   | "Awaiting Review"
-  | "WIP";
+  | "WIP"
+  | "Merged";
 
 export type ReviewerStatus =
   | "My Re-review Needed"
@@ -89,7 +91,8 @@ export type ReviewerStatus =
   | "My Changes Requested"
   | "Has LGTM"
   | "Approved"
-  | "WIP";
+  | "WIP"
+  | "Merged";
 
 export type CommentAction = "LGTM" | "APPROVE" | "COMMENT";
 
@@ -108,6 +111,8 @@ export interface ReviewStatusResult {
   parenthetical: string;
   action: string | null;
   reviewerBreakdown: ReviewerBreakdownEntry[];
+  pushedAt?: string;
+  pushDates?: string[];
 }
 
 export interface RecommendedAction {
@@ -131,6 +136,8 @@ export interface RecommendedAction {
   epicKey: string | null;
   epicSummary: string | null;
   reviewerBreakdown: ReviewerBreakdownEntry[];
+  pushedAt?: string;
+  pushDates?: string[];
 }
 
 export interface PRGroup {

@@ -8,8 +8,10 @@ import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownToolt
 import type { RecommendedAction, AuthorStatus, ReviewerStatus } from "../../../../server/src/types/pr";
 import { formatUsername } from "@/lib/bot-users";
 
-function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" {
+function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" | "purple" {
   switch (status) {
+    case "Merged":
+      return "purple";
     case "Approved":
       return "success";
     case "WIP":
@@ -48,7 +50,7 @@ interface ActionsPanelProps {
   actions: RecommendedAction[];
 }
 
-const MAX_COLLAPSED = 3;
+const MAX_COLLAPSED = 1;
 
 export function ActionsPanel({ actions }: ActionsPanelProps) {
   const [expanded, setExpanded] = useState(true);
@@ -81,7 +83,7 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   <span className="shrink-0 text-xs font-medium text-foreground">
                     {action.action}
                   </span>
-                  <ReviewBreakdownTooltip breakdown={action.reviewerBreakdown}>
+                  <ReviewBreakdownTooltip breakdown={action.reviewerBreakdown} pushedAt={action.pushedAt} pushDates={action.pushDates}>
                     <div className="flex items-center gap-2">
                       <StatusBadge
                         label={action.status}
