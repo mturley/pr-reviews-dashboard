@@ -15,6 +15,7 @@ import PRReviews from "./routes/pr-reviews";
 import ActivityTimeline from "./routes/activity-timeline";
 import SprintStatus from "./routes/sprint-status";
 import EpicStatus from "./routes/epic-status";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 function NavBar() {
   const { theme, setTheme } = useTheme();
@@ -81,10 +82,10 @@ export default function App() {
                   <NavBar />
                   <main className="p-6">
                     <Routes>
-                      <Route path="/" element={<PRReviews />} />
-                      <Route path="/activity" element={<ActivityTimeline />} />
-                      <Route path="/sprint" element={<SprintStatus />} />
-                      <Route path="/epic/:epicKey?" element={<EpicStatus />} />
+                      <Route path="/" element={<ErrorBoundary><PRReviews /></ErrorBoundary>} />
+                      <Route path="/activity" element={<ErrorBoundary><ActivityTimeline /></ErrorBoundary>} />
+                      <Route path="/sprint" element={<ErrorBoundary><SprintStatus /></ErrorBoundary>} />
+                      <Route path="/epic/:epicKey?" element={<ErrorBoundary><EpicStatus /></ErrorBoundary>} />
                     </Routes>
                   </main>
                 </div>

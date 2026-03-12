@@ -29,7 +29,7 @@ export default function EpicStatus() {
 
   const { epicKey: epicKeyParam } = useParams<{ epicKey: string }>();
   const navigate = useNavigate();
-  const [customEpicKey, setCustomEpicKey] = useState("");
+  const [customEpicKey, setCustomEpicKey] = useState(epicKeyParam?.toUpperCase() ?? "");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
   // Fetch sprint issues to discover epics
@@ -57,10 +57,6 @@ export default function EpicStatus() {
   // The select value: match a sprint epic, show "other" for custom keys, or empty
   const selectValue = isKnownSprintEpic ? activeEpicKey : (isCustom || showCustomInput) ? "__other__" : "";
 
-  // Pre-fill the custom input when arriving via URL with a non-sprint epic key
-  useEffect(() => {
-    if (isCustom) setCustomEpicKey(activeEpicKey);
-  }, [isCustom, activeEpicKey]);
 
   const epicQuery = trpc.jira.getEpicIssues.useQuery(
     { epicKey: activeEpicKey, includeClosedResolved: true },
