@@ -307,7 +307,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 <Button variant="outline" size="sm" asChild className="shrink-0 ml-auto mr-2">
                   <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="gap-1.5">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    {target?.type === "pr" ? "Open in GitHub" : "Open in Jira"}
+                    {target?.type === "pr" ? "Open on GitHub" : "Open on Jira"}
                   </a>
                 </Button>
               )}
@@ -374,7 +374,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                     className="gap-1.5"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
-                    {activeTab.type === "jira-detail" ? "Open in Jira" : "Open in GitHub"}
+                    {activeTab.type === "jira-detail" ? "Open on Jira" : "Open on GitHub"}
                   </a>
                 </Button>
               </div>

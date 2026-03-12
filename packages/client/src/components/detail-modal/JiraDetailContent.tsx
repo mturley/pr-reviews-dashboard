@@ -202,7 +202,7 @@ export function JiraDetailContent({ issue, isPartial, isLoading, resolvedPRs, on
               Loading full details...
             </>
           ) : (
-            "Showing partial data from PR linkage. Open in Jira for full details."
+            "Showing partial data from PR linkage. Open on Jira for full details."
           )}
         </p>
       )}
