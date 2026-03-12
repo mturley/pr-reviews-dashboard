@@ -15,6 +15,7 @@ export interface JiraFieldMapping {
   epicLink: string;
   blocked: string;
   blockedReason: string;
+  activityType: string;
 }
 
 export interface DashboardConfig {

@@ -24,5 +24,8 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "prettier": "^3.8.1",
     "typescript-eslint": "^8.57.0"
+  },
+  "dependencies": {
+    "jira2md": "^3.0.1"
   }
 }

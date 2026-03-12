@@ -11,10 +11,15 @@ export function getFieldId(mapping: JiraFieldMapping, name: SemanticFieldName): 
 export function getRequiredFields(mapping: JiraFieldMapping): string[] {
   return [
     "summary",
+    "description",
     "issuetype",
     "priority",
     "status",
     "assignee",
+    "reporter",
+    "labels",
+    "created",
+    "updated",
     mapping.gitPullRequest,
     mapping.sprint,
     mapping.storyPoints,
@@ -22,5 +27,6 @@ export function getRequiredFields(mapping: JiraFieldMapping): string[] {
     mapping.epicLink,
     mapping.blocked,
     mapping.blockedReason,
+    mapping.activityType,
   ];
 }

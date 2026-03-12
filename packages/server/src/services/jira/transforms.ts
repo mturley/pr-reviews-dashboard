@@ -18,6 +18,15 @@ function parsePRUrls(rawValue: unknown): string[] {
   return [];
 }
 
+function parseActivityType(rawValue: unknown): string | null {
+  if (!rawValue) return null;
+  if (typeof rawValue === "object" && rawValue !== null && "value" in rawValue) {
+    const val = (rawValue as { value: string }).value;
+    return val === "None" ? null : val;
+  }
+  return null;
+}
+
 function parseBlocked(rawValue: unknown): boolean {
   if (!rawValue) return false;
   if (typeof rawValue === "object" && rawValue !== null && "value" in rawValue) {
@@ -92,6 +101,12 @@ export function transformJiraIssue(
     originalStoryPoints: fields[fieldMapping.originalStoryPoints] ?? null,
     blocked: parseBlocked(fields[fieldMapping.blocked]),
     blockedReason: fields[fieldMapping.blockedReason] ?? null,
+    labels: Array.isArray(fields.labels) ? fields.labels : [],
+    activityType: parseActivityType(fields[fieldMapping.activityType]),
+    reporter: fields.reporter?.displayName ?? null,
+    createdAt: fields.created ?? null,
+    updatedAt: fields.updated ?? null,
+    description: fields.description ?? null,
     linkedPRUrls: parsePRUrls(fields[fieldMapping.gitPullRequest]),
     linkedPRs: [],
   };

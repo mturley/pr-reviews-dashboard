@@ -186,6 +186,45 @@ export const jiraRouter = router({
       }
     }),
 
+  getIssueComments: publicProcedure
+    .input(z.object({ key: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { jiraToken, jiraHost } = ctx;
+      if (!jiraToken || !jiraHost) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
+      }
+
+      try {
+        const cacheKey = `jiraComments:${input.key}`;
+        return await cached(cacheKey, 60_000, async () => {
+          console.log(`[progress] jira.getIssueComments: fetching for ${input.key}`);
+          const data = await jiraRequest<{
+            comments: Array<{
+              id: string;
+              author: { name: string; displayName: string };
+              body: string;
+              created: string;
+              updated: string;
+            }>;
+          }>(jiraHost, jiraToken, `/rest/api/2/issue/${input.key}/comment`);
+
+          const comments = (data.comments ?? []).map((c) => ({
+            id: c.id,
+            author: c.author?.name ?? "unknown",
+            authorDisplayName: c.author?.displayName ?? "Unknown",
+            body: c.body ?? "",
+            created: c.created,
+            updated: c.updated,
+          }));
+          console.log(`[progress] jira.getIssueComments: done, ${comments.length} comments`);
+          return { comments };
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
+      }
+    }),
+
   // T062: Jira activity events
   getActivity: publicProcedure
     .input(z.object({ username: z.string(), days: z.number().min(1).max(30).default(7) }))

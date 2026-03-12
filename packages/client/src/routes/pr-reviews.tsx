@@ -7,6 +7,7 @@ import { trpc } from "../trpc";
 import { computeReviewStatus } from "../../../server/src/logic/review-status";
 import { groupPRs } from "../../../server/src/logic/grouping";
 import { deriveRecommendedActions } from "../../../server/src/logic/recommended-actions";
+import { isBot } from "@/lib/bot-users";
 import type { PullRequest, ReviewStatusResult, PRGroup } from "../../../server/src/types/pr";
 import type { ViewState } from "@/lib/url-state";
 import type { TeamMember } from "../../../server/src/types/config";
@@ -76,8 +77,12 @@ export default function PRReviews() {
       prs = prs.filter((pr) => !pr.isDraft);
     }
 
+    if (viewState.ignoreBots) {
+      prs = prs.filter((pr) => !isBot(pr.author));
+    }
+
     return prs;
-  }, [data.prs, viewState.ignoreOtherTeams, teamMemberUsernames, viewState.filterRepo, viewState.filterDraft]);
+  }, [data.prs, viewState.ignoreOtherTeams, teamMemberUsernames, viewState.filterRepo, viewState.filterDraft, viewState.ignoreBots]);
 
   // Available repos for filter
   const availableRepos = useMemo(() => {
@@ -227,7 +232,7 @@ export default function PRReviews() {
             )}
             {data.rateLimitRemaining !== null && (
               <span title={data.rateLimitResetAt ? `Resets at ${new Date(data.rateLimitResetAt).toLocaleTimeString()}` : undefined}>
-                GitHub rate limit: {data.rateLimitRemaining}{data.rateLimitLimit ? ` / ${data.rateLimitLimit}` : ""}
+                GitHub API: {data.rateLimitRemaining} requests remaining
                 {data.rateLimitResetAt && <> (resets in <LiveRelativeTime isoString={data.rateLimitResetAt} />)</>}
               </span>
             )}
@@ -316,12 +321,17 @@ function ViewOptionsBar({
       ? "Whole Team"
       : allTeamMembers.find((m) => m.githubUsername === perspective)?.displayName ?? perspective;
 
+  const hiddenColumnCount = columnConfig.filter((c) => !c.visible).length;
+
   const filters: string[] = [];
   if (viewState.filterActionNeeded) filters.push("Action needed only");
   if (!viewState.filterDraft) filters.push("Ignore drafts");
   if (viewState.ignoreOtherTeams) filters.push("Ignore PRs from other scrums");
+  if (viewState.ignoreBots) filters.push("Ignore PRs from bots");
   if (viewState.filterRepo.length > 0)
     filters.push(`${viewState.filterRepo.length} repo${viewState.filterRepo.length > 1 ? "s" : ""}`);
+  if (hiddenColumnCount > 0)
+    filters.push(`${hiddenColumnCount} column${hiddenColumnCount > 1 ? "s" : ""} hidden`);
 
   return (
     <div className="space-y-2">
@@ -366,6 +376,8 @@ function ViewOptionsBar({
             onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
             ignoreOtherTeams={viewState.ignoreOtherTeams}
             onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
+            ignoreBots={viewState.ignoreBots}
+            onIgnoreBotsChange={(v) => updateViewState({ ignoreBots: v })}
             repos={availableRepos}
             selectedRepos={viewState.filterRepo}
             onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}

@@ -196,8 +196,8 @@ export function DiffViewer({ pr, splitView, onSplitViewChange, hideWhitespace, o
   const collapseAll = () => setExpandedFiles(new Set());
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3">
+      <div className="sticky -top-4 z-10 flex items-center justify-between bg-background pb-3 border-b border-border -mx-6 px-6 -mt-4 pt-4">
         <div className="flex items-center gap-2">
           <div className="text-sm text-muted-foreground">
             {files.length} file{files.length !== 1 ? "s" : ""} changed

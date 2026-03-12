@@ -25,6 +25,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
     epicLink: "customfield_12311140",
     blocked: "customfield_12316543",
     blockedReason: "customfield_12316544",
+    activityType: "customfield_12320040",
   },
   jiraRapidViewId: null,
   autoRefreshIntervalMs: 300_000,

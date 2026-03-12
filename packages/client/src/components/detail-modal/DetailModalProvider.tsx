@@ -66,6 +66,7 @@ interface JiraTab {
   label: string;
   issue: JiraIssue | JiraIssueRef;
   isPartial: boolean;
+  resolvedPRs?: PullRequest[];
 }
 
 type Tab = PRTab | PRDiffTab | JiraTab;
@@ -103,20 +104,37 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
   const prMapRef = useRef(new Map<string, PullRequest>());
   const jiraMapRef = useRef(new Map<string, JiraIssue>());
   const openKeyRef = useRef<string | null>(null);
+  const isOpenRef = useRef(false);
+  const targetRef = useRef<DetailTarget | null>(null);
 
   const utils = trpc.useUtils();
 
-  const registerPRs = useCallback((prs: PullRequest[]) => {
-    for (const pr of prs) {
-      prMapRef.current.set(pr.url.replace(/\/$/, ""), pr);
-    }
+  // Re-resolve the current modal target using latest data from refs
+  const reResolve = useCallback(() => {
+    if (!isOpenRef.current || !targetRef.current) return;
+    setResolved(resolveTarget(targetRef.current, prMapRef.current, jiraMapRef.current));
   }, []);
 
+  const registerPRs = useCallback((prs: PullRequest[]) => {
+    let changed = false;
+    for (const pr of prs) {
+      const key = pr.url.replace(/\/$/, "");
+      const existing = prMapRef.current.get(key);
+      if (!existing || existing.updatedAt !== pr.updatedAt) changed = true;
+      prMapRef.current.set(key, pr);
+    }
+    if (changed) reResolve();
+  }, [reResolve]);
+
   const registerJiraIssues = useCallback((issues: JiraIssue[]) => {
+    let changed = false;
     for (const issue of issues) {
+      const existing = jiraMapRef.current.get(issue.key);
+      if (!existing || existing.updatedAt !== issue.updatedAt) changed = true;
       jiraMapRef.current.set(issue.key, issue);
     }
-  }, []);
+    if (changed) reResolve();
+  }, [reResolve]);
 
   const fetchAndResolveJira = useCallback(async (key: string) => {
     setLoadingJira(true);
@@ -162,7 +180,12 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
           const jTab = tab as JiraTab;
           const fullIssue = jiraMapRef.current.get(jTab.label);
           if (fullIssue && jTab.isPartial) {
-            return { ...jTab, issue: fullIssue, isPartial: false };
+            const resolvedPRs: PullRequest[] = [];
+            for (const prUrl of fullIssue.linkedPRUrls) {
+              const fullPR = prMapRef.current.get(prUrl.replace(/\/$/, ""));
+              if (fullPR) resolvedPRs.push(fullPR);
+            }
+            return { ...jTab, issue: fullIssue, isPartial: false, resolvedPRs };
           }
           return tab;
         });
@@ -171,10 +194,55 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
     }
   }, [utils]);
 
+  // Fetch PR data not yet in the map — for linked PRs from Jira issues or for the target PR itself
+  const fetchMissingPRs = useCallback(async (data: ResolvedModalData, targetKey: string | null) => {
+    const missingUrls: string[] = [];
+
+    // Check if the target PR itself is missing
+    for (const tab of data.tabs) {
+      if (tab.type === "pr-detail") {
+        const url = (tab as PRTab).pr.url;
+        if (!prMapRef.current.has(url.replace(/\/$/, ""))) missingUrls.push(url);
+      }
+    }
+
+    // Check linked PR URLs from Jira issues in the resolved data
+    for (const tab of data.tabs) {
+      if (tab.type !== "jira-detail") continue;
+      const jTab = tab as JiraTab;
+      const fullIssue = jTab.issue;
+      if ("linkedPRUrls" in fullIssue) {
+        for (const url of fullIssue.linkedPRUrls) {
+          const normalized = url.replace(/\/$/, "");
+          if (!prMapRef.current.has(normalized) && !missingUrls.includes(url)) {
+            missingUrls.push(url);
+          }
+        }
+      }
+    }
+
+    if (missingUrls.length === 0) return;
+
+    try {
+      const result = await utils.github.getPRsByUrls.fetch({ prUrls: missingUrls });
+      if (openKeyRef.current !== targetKey) return;
+      for (const pr of result.prs) {
+        prMapRef.current.set(pr.url.replace(/\/$/, ""), pr);
+      }
+      if (result.prs.length > 0) {
+        reResolve();
+      }
+    } catch {
+      // Silently ignore — PR data is supplementary
+    }
+  }, [utils, reResolve]);
+
   // Resolve data at open time — snapshot refs into state for rendering
   const open = useCallback((t: DetailTarget) => {
     const data = resolveTarget(t, prMapRef.current, jiraMapRef.current);
     openKeyRef.current = t.type === "jira" ? t.key : t.type === "pr" ? t.url : null;
+    targetRef.current = t;
+    isOpenRef.current = true;
     setTarget(t);
     setResolved(data);
     setActiveTabIndex(0);
@@ -189,15 +257,25 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
       // Upgrade partial Jira tabs in background
       upgradePartialJiraTabs(data);
     }
-  }, [fetchAndResolveJira, upgradePartialJiraTabs]);
+
+    // Fetch any missing PR data in the background
+    fetchMissingPRs(data, openKeyRef.current);
+  }, [fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs]);
 
   const close = useCallback(() => {
+    isOpenRef.current = false;
     setIsOpen(false);
   }, []);
 
   const { tabs, title, subtitle, headerIcon, externalUrl } = resolved;
   const activeTab = tabs[activeTabIndex] ?? tabs[0];
   const activeJiraTab = activeTab?.type === "jira-detail" ? (activeTab as JiraTab) : null;
+
+  // Find the index where related tabs begin
+  const relatedStartIndex = tabs.findIndex((tab, i) =>
+    (tab.type === "jira-detail" && target?.type === "pr") ||
+    (tab.type === "pr-detail" && tab.label !== "Details" && target?.type === "jira" && i > 0),
+  );
 
   const contextValue = useMemo(
     () => ({ open, close, registerPRs, registerJiraIssues }),
@@ -210,7 +288,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
       <Dialog open={isOpen} onOpenChange={(v) => !v && close()}>
         <DialogContent className={cn(
           "max-h-[90vh] flex flex-col gap-0 p-0 transition-[max-width] duration-300",
-          activeTab?.type === "pr-diff" && splitView ? "max-w-[95vw]" : "max-w-5xl",
+          activeTab?.type === "pr-diff" && splitView ? "max-w-[95vw]" : "max-w-6xl",
         )}>
           <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
             <div className="flex items-center gap-2 pr-8">
@@ -229,7 +307,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 <Button variant="outline" size="sm" asChild className="shrink-0 ml-auto mr-2">
                   <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="gap-1.5">
                     <ExternalLink className="h-3.5 w-3.5" />
-                    {target?.type === "pr" ? "Open in GitHub" : "Open in Jira"}
+                    {target?.type === "pr" ? "Open on GitHub" : "Open on Jira"}
                   </a>
                 </Button>
               )}
@@ -244,22 +322,63 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
           {tabs.length > 1 && (
             <div className="flex items-center gap-0 px-6 border-b border-border bg-muted/30">
               {tabs.map((tab, i) => (
-                <button
-                  key={`${tab.type}-${tab.label}`}
-                  onClick={() => setActiveTabIndex(i)}
-                  className={`cursor-pointer px-3 py-2 text-xs font-medium transition-colors border-b-2 ${
-                    i === activeTabIndex
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {tab.label}
-                </button>
+                <span key={`${tab.type}-${tab.label}`} className="flex items-center">
+                  {i === relatedStartIndex && (
+                    <span className="ml-4 px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold select-none">
+                      {tabs[relatedStartIndex]?.type === "jira-detail" ? "Linked Jira:" : "Linked PRs:"}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setActiveTabIndex(i)}
+                    className={`cursor-pointer px-3 py-2 text-xs font-medium transition-colors border-b-2 flex items-center gap-1.5 max-w-[320px] ${
+                      i === activeTabIndex
+                        ? "border-primary text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <TabLabel tab={tab} />
+                  </button>
+                </span>
               ))}
             </div>
           )}
 
           <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+            {relatedStartIndex >= 0 && activeTabIndex >= relatedStartIndex && activeTab && (
+              <div className="flex items-center gap-3 mb-3">
+                <a
+                  href={activeTab.type === "jira-detail"
+                    ? (activeTab as JiraTab).issue.url ?? `https://issues.redhat.com/browse/${activeTab.label}`
+                    : activeTab.type === "pr-detail"
+                      ? activeTab.pr.url
+                      : "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold truncate flex-1 hover:underline"
+                >
+                  {activeTab.type === "jira-detail"
+                    ? `${activeTab.label}: ${(activeTab as JiraTab).issue.summary}`
+                    : activeTab.type === "pr-detail"
+                      ? `#${activeTab.pr.number}: ${activeTab.pr.title}`
+                      : activeTab.label}
+                </a>
+                <Button variant="outline" size="sm" asChild className="shrink-0">
+                  <a
+                    href={activeTab.type === "jira-detail"
+                      ? (activeTab as JiraTab).issue.url ?? `https://issues.redhat.com/browse/${activeTab.label}`
+                      : activeTab.type === "pr-detail"
+                        ? activeTab.pr.url
+                        : "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {activeTab.type === "jira-detail" ? "Open on Jira" : "Open on GitHub"}
+                  </a>
+                </Button>
+              </div>
+            )}
             {activeTab?.type === "pr-detail" && (
               <PRDetailContent
                 pr={activeTab.pr}
@@ -267,7 +386,11 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                   const idx = tabs.findIndex(
                     (tab) => tab.type === "jira-detail" && tab.label === t.key,
                   );
-                  if (idx >= 0) setActiveTabIndex(idx);
+                  if (idx >= 0) {
+                    setActiveTabIndex(idx);
+                  } else {
+                    window.open(`https://issues.redhat.com/browse/${t.key}`, "_blank", "noopener,noreferrer");
+                  }
                 }}
               />
             )}
@@ -285,11 +408,16 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 issue={activeTab.issue}
                 isPartial={activeTab.isPartial}
                 isLoading={activeJiraTab?.isPartial && loadingJira}
+                resolvedPRs={activeJiraTab?.resolvedPRs}
                 onNavigatePR={(url) => {
                   const idx = tabs.findIndex(
                     (tab) => tab.type === "pr-detail" && (tab as PRTab).pr.url === url,
                   );
-                  if (idx >= 0) setActiveTabIndex(idx);
+                  if (idx >= 0) {
+                    setActiveTabIndex(idx);
+                  } else {
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }
                 }}
               />
             )}
@@ -341,11 +469,20 @@ function resolvePR(
 
   for (const jiraRef of pr.linkedJiraIssues) {
     const fullIssue = jiraMap.get(jiraRef.key);
+    // Resolve linked PRs for full Jira issues
+    const resolvedPRs: PullRequest[] = [];
+    if (fullIssue) {
+      for (const prUrl of fullIssue.linkedPRUrls) {
+        const fullPR = prMap.get(prUrl.replace(/\/$/, ""));
+        if (fullPR) resolvedPRs.push(fullPR);
+      }
+    }
     tabs.push({
       type: "jira-detail",
       label: jiraRef.key,
       issue: fullIssue ?? jiraRef,
       isPartial: !fullIssue,
+      resolvedPRs,
     });
   }
 
@@ -368,15 +505,19 @@ function resolveJira(
     return { tabs: [], title: key, subtitle: "", headerIcon: null, externalUrl: `https://issues.redhat.com/browse/${key}` };
   }
 
+  // Resolve full PullRequest objects for linked PR URLs
+  const resolvedPRs: PullRequest[] = [];
+  for (const url of issue.linkedPRUrls) {
+    const fullPR = prMap.get(url.replace(/\/$/, ""));
+    if (fullPR) resolvedPRs.push(fullPR);
+  }
+
   const tabs: Tab[] = [
-    { type: "jira-detail", label: "Details", issue, isPartial: false },
+    { type: "jira-detail", label: "Details", issue, isPartial: false, resolvedPRs },
   ];
 
-  for (const prRef of issue.linkedPRs ?? []) {
-    const fullPR = prMap.get(prRef.url.replace(/\/$/, ""));
-    if (fullPR) {
-      tabs.push({ type: "pr-detail", label: `#${fullPR.number}`, pr: fullPR });
-    }
+  for (const pr of resolvedPRs) {
+    tabs.push({ type: "pr-detail", label: `#${pr.number}`, pr });
   }
 
   return {
@@ -399,9 +540,35 @@ function resolveTarget(
   return resolveJira(target.key, prMap, jiraMap);
 }
 
-function PRStateIcon({ state, isDraft }: { state: string; isDraft: boolean }) {
-  if (state === "MERGED") return <GitMerge className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0" />;
-  if (state === "CLOSED") return <CircleDot className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />;
-  if (isDraft) return <CircleDashed className="h-5 w-5 text-muted-foreground shrink-0" />;
-  return <GitPullRequest className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />;
+function PRStateIcon({ state, isDraft, size = "h-5 w-5" }: { state: string; isDraft: boolean; size?: string }) {
+  if (state === "MERGED") return <GitMerge className={`${size} text-purple-600 dark:text-purple-400 shrink-0`} />;
+  if (state === "CLOSED") return <CircleDot className={`${size} text-red-600 dark:text-red-400 shrink-0`} />;
+  if (isDraft) return <CircleDashed className={`${size} text-muted-foreground shrink-0`} />;
+  return <GitPullRequest className={`${size} text-green-600 dark:text-green-400 shrink-0`} />;
+}
+
+function TabLabel({ tab }: { tab: Tab }) {
+  if (tab.type === "jira-detail" && tab.label !== "Details") {
+    const jTab = tab as JiraTab;
+    return (
+      <>
+        {jTab.issue.typeIconUrl && (
+          <img src={jTab.issue.typeIconUrl} alt={jTab.issue.type} className="h-3.5 w-3.5 shrink-0" />
+        )}
+        <span className="shrink-0">{jTab.label}</span>
+        <span className="truncate text-muted-foreground font-normal">{jTab.issue.summary}</span>
+      </>
+    );
+  }
+  if (tab.type === "pr-detail" && tab.label !== "Details") {
+    return (
+      <>
+        <PRStateIcon state={tab.pr.state} isDraft={tab.pr.isDraft} size="h-3.5 w-3.5" />
+        <span className="shrink-0">{tab.label}</span>
+        <span className="shrink-0 text-muted-foreground font-normal">{tab.pr.repoName}</span>
+        <span className="truncate text-muted-foreground font-normal">{tab.pr.title}</span>
+      </>
+    );
+  }
+  return <>{tab.label}</>;
 }

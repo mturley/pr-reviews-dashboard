@@ -223,7 +223,8 @@ export function HowItWorksPanel() {
               Recommended actions are sorted by three criteria in order: (1) action priority —
               address feedback, fix CI, re-review, review, complete draft, merge; (2) Jira priority
               of the linked issue (Blocker &gt; Critical &gt; Major &gt; Normal &gt; Minor); (3) PR
-              age, with older PRs first.
+              age, with older PRs first. PRs without a linked Jira issue are treated as Normal
+              priority.
             </p>
           </section>
         </div>

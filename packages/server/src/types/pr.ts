@@ -160,6 +160,10 @@ export interface PullRequestRef {
   title: string;
   repoFullName: string;
   author: string;
+  state: "OPEN" | "CLOSED" | "MERGED";
+  isDraft: boolean;
+  createdAt: string;
+  updatedAt: string;
   reviewStatus: ReviewStatusResult;
   checkStatus: CheckStatus;
 }
