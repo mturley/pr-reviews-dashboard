@@ -180,11 +180,10 @@ function PRLinkCell({ pr }: { pr: LinkedPR }) {
         <AppLink
           href={pr.url}
           detail={{ type: "pr", url: pr.url }}
-          className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+          className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[200px]"
         >
-          #{pr.number}
+          #{pr.number} {pr.title}
         </AppLink>
-        <span className="text-xs truncate max-w-[200px]">{pr.title}</span>
       </div>
       <span className="text-xs text-muted-foreground">{pr.repoOwner}/{pr.repoName}</span>
     </div>

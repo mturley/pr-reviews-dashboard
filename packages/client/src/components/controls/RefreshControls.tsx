@@ -26,6 +26,8 @@ const INTERVAL_OPTIONS = [
   { value: 120_000, label: "2 min" },
   { value: 300_000, label: "5 min" },
   { value: 600_000, label: "10 min" },
+  { value: 1_800_000, label: "30 min" },
+  { value: 3_600_000, label: "1 hour" },
 ];
 
 export function RefreshControls({

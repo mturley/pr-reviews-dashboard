@@ -1,6 +1,7 @@
 // PR Reviews route — full integration
 
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "../trpc";
@@ -206,20 +207,12 @@ export default function PRReviews() {
         <h1 className="text-2xl font-bold">
           My PRs and Reviews
           {data.sprintName && (
-            data.sprintUrl ? (
-              <a
-                href={data.sprintUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {data.sprintName}
-              </a>
-            ) : (
-              <span className="ml-2 text-base font-normal text-muted-foreground">
-                {data.sprintName}
-              </span>
-            )
+            <Link
+              to="/sprint"
+              className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {data.sprintName}
+            </Link>
           )}
         </h1>
         <div className="flex items-center gap-4">

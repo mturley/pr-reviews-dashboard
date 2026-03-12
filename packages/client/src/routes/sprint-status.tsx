@@ -1,7 +1,9 @@
 // Sprint Status route — uses shared JiraIssueTable
 
 import { useEffect, useMemo, useCallback } from "react";
+import { ExternalLink } from "lucide-react";
 import { trpc } from "../trpc";
+import { Button } from "@/components/ui/button";
 import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -52,25 +54,24 @@ export default function SprintStatus() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          Sprint Status
-          {jiraQuery.data && (
-            jiraQuery.data.sprintUrl ? (
-              <a
-                href={jiraQuery.data.sprintUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-2 text-base font-normal text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {jiraQuery.data.sprintName}
-              </a>
-            ) : (
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">
+            Sprint Status
+            {jiraQuery.data?.sprintName && (
               <span className="ml-2 text-base font-normal text-muted-foreground">
                 {jiraQuery.data.sprintName}
               </span>
-            )
+            )}
+          </h1>
+          {jiraQuery.data?.sprintUrl && (
+            <a href={jiraQuery.data.sprintUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                Open on Jira
+                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </a>
           )}
-        </h1>
+        </div>
         <div className="flex items-center gap-4">
           {jiraQuery.data && (
             <span className="text-xs text-muted-foreground">
