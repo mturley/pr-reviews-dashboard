@@ -311,7 +311,7 @@ function computeReviewerStatus(
     return {
       status: "Team Re-review Needed" as ReviewerStatus,
       priority: 3,
-      parenthetical: `${othersWithNewCommits.length} reviewer${othersWithNewCommits.length > 1 ? "s" : ""} need re-review`,
+      parenthetical: `${othersWithNewCommits.length} reviewer${othersWithNewCommits.length > 1 ? "s need" : " needs"} re-review`,
       action: "Review PR",
       reviewerBreakdown: breakdown,
     };

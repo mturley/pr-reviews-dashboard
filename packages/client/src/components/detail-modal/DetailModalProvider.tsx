@@ -386,7 +386,11 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                   const idx = tabs.findIndex(
                     (tab) => tab.type === "jira-detail" && tab.label === t.key,
                   );
-                  if (idx >= 0) setActiveTabIndex(idx);
+                  if (idx >= 0) {
+                    setActiveTabIndex(idx);
+                  } else {
+                    window.open(`https://issues.redhat.com/browse/${t.key}`, "_blank", "noopener,noreferrer");
+                  }
                 }}
               />
             )}
@@ -409,7 +413,11 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                   const idx = tabs.findIndex(
                     (tab) => tab.type === "pr-detail" && (tab as PRTab).pr.url === url,
                   );
-                  if (idx >= 0) setActiveTabIndex(idx);
+                  if (idx >= 0) {
+                    setActiveTabIndex(idx);
+                  } else {
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }
                 }}
               />
             )}

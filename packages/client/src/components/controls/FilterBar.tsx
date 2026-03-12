@@ -11,6 +11,8 @@ interface FilterBarProps {
   onShowDraftChange: (value: boolean) => void;
   ignoreOtherTeams: boolean;
   onIgnoreOtherTeamsChange: (value: boolean) => void;
+  ignoreBots: boolean;
+  onIgnoreBotsChange: (value: boolean) => void;
   repos: string[];
   selectedRepos: string[];
   onRepoFilterChange: (repos: string[]) => void;
@@ -24,6 +26,8 @@ export function FilterBar({
   onShowDraftChange,
   ignoreOtherTeams,
   onIgnoreOtherTeamsChange,
+  ignoreBots,
+  onIgnoreBotsChange,
   repos,
   selectedRepos,
   onRepoFilterChange,
@@ -56,6 +60,15 @@ export function FilterBar({
           aria-label="Ignore PRs from other scrums"
         />
         <span className="text-xs">Ignore PRs from other scrums</span>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <Switch
+          checked={ignoreBots}
+          onCheckedChange={onIgnoreBotsChange}
+          aria-label="Ignore PRs from bots"
+        />
+        <span className="text-xs">Ignore PRs from bots</span>
       </div>
 
       {children}

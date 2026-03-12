@@ -11,6 +11,7 @@ export interface ViewState {
   filterActionNeeded: boolean;
   filterDraft: boolean;
   ignoreOtherTeams: boolean;
+  ignoreBots: boolean;
 }
 
 const DEFAULTS: ViewState = {
@@ -21,6 +22,7 @@ const DEFAULTS: ViewState = {
   filterActionNeeded: false,
   filterDraft: true,
   ignoreOtherTeams: true,
+  ignoreBots: true,
 };
 
 export function parseViewState(params: URLSearchParams): ViewState {
@@ -32,6 +34,7 @@ export function parseViewState(params: URLSearchParams): ViewState {
     filterActionNeeded: params.get("action") === "1",
     filterDraft: params.get("noDraft") !== "1",
     ignoreOtherTeams: params.get("teamOnly") !== "0",
+    ignoreBots: params.get("noBots") !== "0",
   };
 }
 
@@ -65,6 +68,10 @@ export function serializeViewState(state: Partial<ViewState>, current: URLSearch
   if (state.ignoreOtherTeams !== undefined) {
     if (!state.ignoreOtherTeams) next.set("teamOnly", "0");
     else next.delete("teamOnly");
+  }
+  if (state.ignoreBots !== undefined) {
+    if (!state.ignoreBots) next.set("noBots", "0");
+    else next.delete("noBots");
   }
   return next;
 }

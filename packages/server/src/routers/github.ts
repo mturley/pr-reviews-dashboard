@@ -169,6 +169,84 @@ export const githubRouter = router({
       };
     }),
 
+  // Fetch PR description and comments for detail modal (lazy loaded)
+  getPRExtras: publicProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const { githubToken } = ctx;
+      if (!githubToken) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub token is not configured" });
+      }
+
+      const { owner, repo, pullNumber } = input;
+      console.log(`[progress] github.getPRExtras: fetching extras for ${owner}/${repo}#${pullNumber}`);
+
+      const query = `
+        query PRExtras($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              body
+              comments(first: 100) {
+                nodes {
+                  id
+                  author { login }
+                  createdAt
+                  updatedAt
+                  body
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      type PRExtrasResponse = {
+        repository: {
+          pullRequest: {
+            body: string | null;
+            comments: {
+              nodes: Array<{
+                id: string;
+                author: { login: string } | null;
+                createdAt: string;
+                updatedAt: string;
+                body: string;
+              }>;
+            };
+          } | null;
+        } | null;
+      };
+
+      const data = await githubGraphQL<PRExtrasResponse>(
+        githubToken,
+        query,
+        { owner, repo, number: pullNumber },
+      );
+
+      const pr = data.repository?.pullRequest;
+      if (!pr) {
+        throw new TRPCError({ code: "NOT_FOUND", message: `PR ${owner}/${repo}#${pullNumber} not found` });
+      }
+
+      console.log(`[progress] github.getPRExtras: done, ${pr.comments.nodes.length} comments`);
+
+      return {
+        body: pr.body || null,
+        comments: pr.comments.nodes.map((c) => ({
+          id: c.id,
+          author: c.author?.login ?? "ghost",
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+          body: c.body,
+        })),
+        fetchedAt: new Date().toISOString(),
+      };
+    }),
+
   // T061: GitHub activity events
   getActivity: publicProcedure
     .input(z.object({ username: z.string(), days: z.number().min(1).max(30).default(7) }))

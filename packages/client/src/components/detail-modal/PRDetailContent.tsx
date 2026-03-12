@@ -10,6 +10,7 @@ import { computeReviewStatus } from "../../../../server/src/logic/review-status"
 import { formatUsername } from "@/lib/bot-users";
 import { trpc } from "@/trpc";
 import { ReviewHistory } from "./ReviewHistory";
+import { PRExtras } from "./PRExtras";
 
 function formatAge(dateStr: string): string {
   const now = Date.now();
@@ -82,6 +83,7 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
   const reviewStatus = computeReviewStatus(pr, viewer);
 
   return (
+    <div className="space-y-6">
     <div className="grid grid-cols-[1fr_auto] gap-6">
       {/* Left column: CI, labels, jira */}
       <div className="space-y-5 min-w-0">
@@ -188,6 +190,8 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
           repoName={pr.repoName}
         />
       </div>
+    </div>
+    <PRExtras owner={pr.repoOwner} repo={pr.repoName} pullNumber={pr.number} />
     </div>
   );
 }

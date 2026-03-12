@@ -56,8 +56,9 @@ export function deriveRecommendedActions(
     if (aPrio !== bPrio) return aPrio - bPrio;
 
     // Jira priority
-    const aJira = a.jiraPriority ? (JIRA_PRIORITY_ORDER[a.jiraPriority.name] ?? 99) : 99;
-    const bJira = b.jiraPriority ? (JIRA_PRIORITY_ORDER[b.jiraPriority.name] ?? 99) : 99;
+    const NO_JIRA_DEFAULT = JIRA_PRIORITY_ORDER.Normal;
+    const aJira = a.jiraPriority ? (JIRA_PRIORITY_ORDER[a.jiraPriority.name] ?? NO_JIRA_DEFAULT) : NO_JIRA_DEFAULT;
+    const bJira = b.jiraPriority ? (JIRA_PRIORITY_ORDER[b.jiraPriority.name] ?? NO_JIRA_DEFAULT) : NO_JIRA_DEFAULT;
     if (aJira !== bJira) return aJira - bJira;
 
     // PR age (oldest first = largest age first)
