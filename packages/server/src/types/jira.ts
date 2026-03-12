@@ -22,6 +22,12 @@ export interface JiraIssue {
   originalStoryPoints: number | null;
   blocked: boolean;
   blockedReason: string | null;
+  labels: string[];
+  activityType: string | null;
+  reporter: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  description: string | null;
   linkedPRUrls: string[];
   linkedPRs: PullRequestRef[];
 }

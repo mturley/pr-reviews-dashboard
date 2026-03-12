@@ -53,6 +53,24 @@ function PRStateLabel({ pr }: { pr: PullRequest }) {
   return <StatusBadge label="Open" variant="success" />;
 }
 
+type StatusVariant = "success" | "warning" | "danger" | "info" | "neutral" | "purple";
+
+function getStatusVariant(status: string, hasAction?: boolean): StatusVariant {
+  switch (status) {
+    case "Merged": return "purple";
+    case "Approved": case "Has LGTM": return "success";
+    case "WIP": return hasAction ? "warning" : "neutral";
+    case "Team Re-review Needed": case "Needs Additional Review": return "warning";
+    case "New Feedback": case "Needs First Review": case "I'm mentioned": case "My Re-review Needed": return "danger";
+    case "Awaiting Changes": case "Awaiting Review": return "info";
+    default: return "neutral";
+  }
+}
+
+function ReviewStatusBadge({ status, action }: { status: string; action: string | null }) {
+  return <StatusBadge label={status} variant={getStatusVariant(status, action != null)} />;
+}
+
 interface PRDetailContentProps {
   pr: PullRequest;
   onNavigate: (jiraRef: { key: string }) => void;
@@ -154,7 +172,13 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
       </div>
 
       {/* Right column: Review and change history */}
-      <div className="w-[340px] border-l border-border pl-5">
+      <div className="w-[400px] border-l border-border pl-5">
+        <div className="flex items-center gap-2 mb-3">
+          <ReviewStatusBadge status={reviewStatus.status} action={reviewStatus.action} />
+          {reviewStatus.parenthetical && (
+            <span className="text-xs text-muted-foreground">{reviewStatus.parenthetical}</span>
+          )}
+        </div>
         <h3 className="text-xs font-semibold text-muted-foreground mb-2">Review and change history</h3>
         <ReviewHistory
           breakdown={reviewStatus.reviewerBreakdown}

@@ -80,9 +80,10 @@ function buildReviewerBreakdown(
     }
   }
 
-  // Add non-review comments (exclude PR author's own comments)
+  // Add non-review comments (exclude PR author's own comments and bots)
   for (const comment of pr.comments) {
     if (comment.author === pr.author) continue;
+    if (isBot(comment.author)) continue;
     const action = detectCommentAction(comment.body);
     entries.push({
       username: comment.author,
@@ -186,16 +187,29 @@ function computeAuthorStatus(pr: PullRequest): ReviewStatusResult {
   }
 
   const requestedCount = pr.reviewRequests.length;
-  const reviewedCount = humanReviews.size;
+  const freshReviews = [...humanReviews.values()].filter(
+    (r) => r.commitOid === pr.headRefOid,
+  );
+  const staleReviews = [...humanReviews.values()].filter(
+    (r) => r.commitOid !== pr.headRefOid,
+  );
+  const pendingRequests = pr.reviewRequests.filter((r) => !humanReviews.has(r));
+
+  let parenthetical: string;
+  if (staleReviews.length > 0 && freshReviews.length === 0) {
+    parenthetical = `${staleReviews.length} review${staleReviews.length > 1 ? "s" : ""} before latest push`;
+  } else if (freshReviews.length > 0 && pendingRequests.length > 0) {
+    parenthetical = `${freshReviews.length} of ${freshReviews.length + pendingRequests.length} reviewers responded`;
+  } else if (requestedCount > 0) {
+    parenthetical = `${requestedCount} reviewer${requestedCount > 1 ? "s" : ""} requested`;
+  } else {
+    parenthetical = "No reviewers assigned";
+  }
+
   return {
     status: "Awaiting Review" as AuthorStatus,
     priority: null,
-    parenthetical:
-      reviewedCount > 0
-        ? `${reviewedCount} reviewed`
-        : requestedCount > 0
-          ? `${requestedCount} reviewer${requestedCount > 1 ? "s" : ""} requested`
-          : "No reviewers assigned",
+    parenthetical,
     action: null,
     reviewerBreakdown: breakdown,
   };
@@ -319,10 +333,14 @@ function computeReviewerStatus(
 
   // P3: Others reviewed (no viewer review), no new commits, no change requests
   if (othersReviewed.length > 0 && !viewerReview) {
+    const pendingRequests = pr.reviewRequests.filter((r) => !humanReviews.has(r));
+    const summary = pendingRequests.length > 0
+      ? `${othersReviewed.length} of ${othersReviewed.length + pendingRequests.length} reviewers responded`
+      : `${othersReviewed.length} review${othersReviewed.length > 1 ? "s" : ""}, yours pending`;
     return {
       status: "Needs Additional Review" as ReviewerStatus,
       priority: 3,
-      parenthetical: `${othersReviewed.length} review${othersReviewed.length > 1 ? "s" : ""} so far`,
+      parenthetical: summary,
       action: "Review PR",
       reviewerBreakdown: breakdown,
     };
@@ -343,12 +361,14 @@ export function computeReviewStatus(
   viewerGithubUsername: string,
 ): ReviewStatusResult {
   if (pr.state === "MERGED") {
+    const latestReviews = getLatestReviewPerUser(pr.reviews);
+    const breakdown = buildReviewerBreakdown(pr, latestReviews);
     return {
       status: "Merged",
       priority: null,
       parenthetical: "",
       action: null,
-      reviewerBreakdown: [],
+      reviewerBreakdown: breakdown,
     };
   }
   const result = pr.author === viewerGithubUsername

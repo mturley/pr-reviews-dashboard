@@ -316,12 +316,16 @@ function ViewOptionsBar({
       ? "Whole Team"
       : allTeamMembers.find((m) => m.githubUsername === perspective)?.displayName ?? perspective;
 
+  const hiddenColumnCount = columnConfig.filter((c) => !c.visible).length;
+
   const filters: string[] = [];
   if (viewState.filterActionNeeded) filters.push("Action needed only");
   if (!viewState.filterDraft) filters.push("Ignore drafts");
   if (viewState.ignoreOtherTeams) filters.push("Ignore PRs from other scrums");
   if (viewState.filterRepo.length > 0)
     filters.push(`${viewState.filterRepo.length} repo${viewState.filterRepo.length > 1 ? "s" : ""}`);
+  if (hiddenColumnCount > 0)
+    filters.push(`${hiddenColumnCount} column${hiddenColumnCount > 1 ? "s" : ""} hidden`);
 
   return (
     <div className="space-y-2">

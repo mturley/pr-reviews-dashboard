@@ -34,10 +34,22 @@ function transformCheckStatus(commitNode: GraphQLNode): CheckStatus {
   };
 }
 
+/** A comment is slash-command-only if every non-empty line starts with `/` (e.g. /retest, /cherry-pick).
+ *  Comments containing /lgtm or /approve are kept since they signal review intent. */
+function isSlashCommandOnly(body: string): boolean {
+  const lines = body.split("\n").filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return false;
+  const allSlashCommands = lines.every((l) => l.trim().startsWith("/"));
+  if (!allSlashCommands) return false;
+  const lower = body.toLowerCase();
+  return !lower.includes("/lgtm") && !lower.includes("/approve");
+}
+
 function extractMentionedUsers(commentNodes: GraphQLNode[]): string[] {
   const mentions = new Set<string>();
   for (const node of commentNodes) {
     const body: string = node.body ?? "";
+    if (isSlashCommandOnly(body)) continue;
     const matches = body.matchAll(/@([a-zA-Z0-9-]+)/g);
     for (const match of matches) {
       mentions.add(match[1]);
@@ -49,6 +61,7 @@ function extractMentionedUsers(commentNodes: GraphQLNode[]): string[] {
 function transformComments(commentNodes: GraphQLNode[]): PRComment[] {
   return commentNodes
     .filter((n: GraphQLNode) => n.author?.login)
+    .filter((n: GraphQLNode) => !isSlashCommandOnly(n.body ?? ""))
     .map((n: GraphQLNode) => ({
       author: n.author.login,
       createdAt: n.createdAt ?? "",

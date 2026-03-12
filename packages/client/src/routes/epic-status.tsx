@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
 
 export default function EpicStatus() {
   const configQuery = trpc.config.get.useQuery();
@@ -100,26 +101,7 @@ export default function EpicStatus() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          Epic Status
-          {epicQuery.data && activeEpicKey && (
-            <span className="ml-2 text-base font-normal text-muted-foreground">
-              {epicUrl ? (
-                <a
-                  href={epicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {activeEpicKey}
-                </a>
-              ) : (
-                activeEpicKey
-              )}
-              : {epicQuery.data.epicSummary}
-            </span>
-          )}
-        </h1>
+        <h1 className="text-2xl font-bold">Epic Status</h1>
         <div className="flex items-center gap-4">
           {epicQuery.data && (
             <span className="text-xs text-muted-foreground">
@@ -159,7 +141,7 @@ export default function EpicStatus() {
               }
             }}
           >
-            <SelectTrigger className="h-8 w-auto min-w-[200px] text-sm" aria-label="Select epic">
+            <SelectTrigger className="h-9 w-auto min-w-[240px] text-base" aria-label="Select epic">
               <SelectValue placeholder="Select an epic..." />
             </SelectTrigger>
             <SelectContent>
@@ -179,6 +161,14 @@ export default function EpicStatus() {
               </SelectItem>
             </SelectContent>
           </Select>
+          {epicUrl && (
+            <a href={epicUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                Open on Jira
+                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </a>
+          )}
         </div>
 
         {(isCustom || showCustomInput) && (
