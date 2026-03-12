@@ -11,6 +11,15 @@ const JIRA_PRIORITY_ORDER: Record<string, number> = {
   Trivial: 5,
 };
 
+// Sub-priority within the same action priority level (lower = higher priority).
+// "Needs First Review" ranks above "Team Re-review Needed" when all else is equal.
+const STATUS_SUB_PRIORITY: Record<string, number> = {
+  "Needs First Review": 0,
+  "I'm mentioned": 1,
+  "Team Re-review Needed": 2,
+  "Needs Additional Review": 3,
+};
+
 export function deriveRecommendedActions(
   prs: PullRequest[],
   reviewStatuses: Map<string, ReviewStatusResult>,
@@ -48,12 +57,17 @@ export function deriveRecommendedActions(
     });
   }
 
-  // Sort by: action priority (P1-P5), then Jira priority, then PR age (oldest first)
+  // Sort by: action priority (P1-P5), then status sub-priority, then Jira priority, then PR age (oldest first)
   actions.sort((a, b) => {
     // Action priority (lower is higher priority)
     const aPrio = a.priority ?? 99;
     const bPrio = b.priority ?? 99;
     if (aPrio !== bPrio) return aPrio - bPrio;
+
+    // Sub-priority within the same action priority level
+    const aSubPrio = STATUS_SUB_PRIORITY[a.status] ?? 99;
+    const bSubPrio = STATUS_SUB_PRIORITY[b.status] ?? 99;
+    if (aSubPrio !== bSubPrio) return aSubPrio - bSubPrio;
 
     // Jira priority
     const NO_JIRA_DEFAULT = JIRA_PRIORITY_ORDER.Normal;

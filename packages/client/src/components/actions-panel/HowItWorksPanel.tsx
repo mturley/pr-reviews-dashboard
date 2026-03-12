@@ -220,11 +220,12 @@ export function HowItWorksPanel() {
           <section>
             <h3 className="font-semibold text-foreground mb-1">Priority Ordering</h3>
             <p>
-              Recommended actions are sorted by three criteria in order: (1) action priority —
-              address feedback, fix CI, re-review, review, complete draft, merge; (2) Jira priority
-              of the linked issue (Blocker &gt; Critical &gt; Major &gt; Normal &gt; Minor); (3) PR
-              age, with older PRs first. PRs without a linked Jira issue are treated as Normal
-              priority.
+              Recommended actions are sorted by four criteria in order: (1) action priority —
+              address feedback, fix CI, re-review, review, complete draft, merge; (2) status
+              sub-priority within the same action level — e.g. "Needs First Review" ranks above
+              "Team Re-review Needed"; (3) Jira priority of the linked issue
+              (Blocker &gt; Critical &gt; Major &gt; Normal &gt; Minor); (4) PR age, with older PRs
+              first. PRs without a linked Jira issue are treated as Normal priority.
             </p>
           </section>
         </div>
