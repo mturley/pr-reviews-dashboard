@@ -190,7 +190,7 @@ export const githubRouter = router({
                 repository { owner { login } name }
                 reviews(first: 10) { nodes { author { login } state submittedAt } }
                 comments(first: 10) { nodes { author { login } createdAt } }
-                commits(last: 5) { nodes { commit { pushedDate author { user { login } } } } }
+                commits(last: 10) { nodes { commit { oid pushedDate committedDate author { user { login } } } } }
               }
             }
           }
@@ -247,6 +247,23 @@ export const githubRouter = router({
             targetKey: url, targetTitle: title, detail: repoName,
             prState: "MERGED", prAuthor: author,
           });
+        }
+
+        const commits = pr.commits as { nodes: Array<{ commit: { oid: string; pushedDate: string | null; committedDate: string | null; author: { user: { login: string } | null } | null } }> } | undefined;
+        if (commits?.nodes) {
+          for (const { commit } of commits.nodes) {
+            const commitAuthor = commit.author?.user?.login;
+            const commitDate = commit.pushedDate ?? commit.committedDate;
+            if (commitAuthor === input.username && commitDate) {
+              events.push({
+                id: `${pr.id}-push-${commit.oid}`, source: "github", timestamp: commitDate,
+                actor: commitAuthor, actorDisplayName: commitAuthor,
+                actionType: "pr_pushed", targetType: "pr",
+                targetKey: url, targetTitle: title, detail: repoName,
+                prState, prAuthor: author,
+              });
+            }
+          }
         }
       }
 

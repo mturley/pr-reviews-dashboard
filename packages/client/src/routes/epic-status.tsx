@@ -1,7 +1,7 @@
 // Epic Status route — uses shared JiraIssueTable
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useSearchParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { trpc } from "../trpc";
 import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
@@ -27,10 +27,10 @@ export default function EpicStatus() {
   const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
     useAutoRefreshContext();
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedEpic, setSelectedEpic] = useState("");
+  const { epicKey: epicKeyParam } = useParams<{ epicKey: string }>();
+  const navigate = useNavigate();
   const [customEpicKey, setCustomEpicKey] = useState("");
-  const [submittedCustomKey, setSubmittedCustomKey] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   // Fetch sprint issues to discover epics
   const sprintQuery = trpc.jira.getSprintIssues.useQuery(undefined, {
@@ -50,11 +50,17 @@ export default function EpicStatus() {
       .sort((a, b) => a.key.localeCompare(b.key));
   }, [sprintQuery.data]);
 
-  // URL search param (e.g. ?epic=RHOAIENG-123) overrides dropdown selection
-  const epicFromUrl = searchParams.get("epic")?.toUpperCase() || null;
+  const activeEpicKey = epicKeyParam?.toUpperCase() || "";
+  // Determine if the current route param matches a sprint epic or is a custom key
+  const isKnownSprintEpic = sprintEpics.some((e) => e.key === activeEpicKey);
+  const isCustom = !!activeEpicKey && !isKnownSprintEpic;
+  // The select value: match a sprint epic, show "other" for custom keys, or empty
+  const selectValue = isKnownSprintEpic ? activeEpicKey : (isCustom || showCustomInput) ? "__other__" : "";
 
-  const isCustom = selectedEpic === "__other__";
-  const activeEpicKey = epicFromUrl ?? (isCustom ? submittedCustomKey : selectedEpic);
+  // Pre-fill the custom input when arriving via URL with a non-sprint epic key
+  useEffect(() => {
+    if (isCustom) setCustomEpicKey(activeEpicKey);
+  }, [isCustom, activeEpicKey]);
 
   const epicQuery = trpc.jira.getEpicIssues.useQuery(
     { epicKey: activeEpicKey, includeClosedResolved: true },
@@ -144,13 +150,16 @@ export default function EpicStatus() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Epic:</span>
           <Select
-            value={selectedEpic}
+            value={selectValue}
             onValueChange={(v) => {
-              if (epicFromUrl) setSearchParams({}, { replace: true });
-              setSelectedEpic(v);
-              if (v !== "__other__") {
-                setSubmittedCustomKey("");
+              if (v === "__other__") {
                 setCustomEpicKey("");
+                setShowCustomInput(true);
+                navigate("/epic", { replace: true });
+              } else {
+                setCustomEpicKey("");
+                setShowCustomInput(false);
+                navigate(`/epic/${encodeURIComponent(v)}`, { replace: true });
               }
             }}
           >
@@ -176,13 +185,13 @@ export default function EpicStatus() {
           </Select>
         </div>
 
-        {isCustom && (
+        {(isCustom || showCustomInput) && (
           <form
             className="flex items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              if (epicFromUrl) setSearchParams({}, { replace: true });
-              setSubmittedCustomKey(customEpicKey.trim().toUpperCase());
+              const key = customEpicKey.trim().toUpperCase();
+              if (key) navigate(`/epic/${encodeURIComponent(key)}`, { replace: true });
             }}
           >
             <input

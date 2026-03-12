@@ -5,7 +5,9 @@ import {
   CircleDot,
   CircleDashed,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
+import { trpc } from "@/trpc";
 import {
   Dialog,
   DialogContent,
@@ -94,10 +96,15 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
   const [splitView, setSplitView] = useState(false);
   const [hideWhitespace, setHideWhitespace] = useState(false);
+  const [loadingJira, setLoadingJira] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Use refs for data registry — mutations are synchronous, no re-render on registration
   const prMapRef = useRef(new Map<string, PullRequest>());
   const jiraMapRef = useRef(new Map<string, JiraIssue>());
+  const openKeyRef = useRef<string | null>(null);
+
+  const utils = trpc.useUtils();
 
   const registerPRs = useCallback((prs: PullRequest[]) => {
     for (const pr of prs) {
@@ -111,14 +118,78 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const fetchAndResolveJira = useCallback(async (key: string) => {
+    setLoadingJira(true);
+    setLoadError(null);
+    try {
+      const issue = await utils.jira.getIssue.fetch({ key });
+      // Guard against stale response if modal was reopened for a different target
+      if (openKeyRef.current !== key) return;
+      jiraMapRef.current.set(issue.key, issue);
+      setResolved(resolveJira(key, prMapRef.current, jiraMapRef.current));
+    } catch (err) {
+      if (openKeyRef.current !== key) return;
+      setLoadError(err instanceof Error ? err.message : "Failed to load Jira issue");
+    } finally {
+      if (openKeyRef.current === key) setLoadingJira(false);
+    }
+  }, [utils]);
+
+  const upgradePartialJiraTabs = useCallback(async (data: ResolvedModalData) => {
+    const partialTabs = data.tabs.filter(
+      (tab): tab is JiraTab => tab.type === "jira-detail" && (tab as JiraTab).isPartial,
+    );
+    if (partialTabs.length === 0) return;
+
+    const results = await Promise.allSettled(
+      partialTabs.map((tab) => utils.jira.getIssue.fetch({ key: tab.label })),
+    );
+
+    let anyUpgraded = false;
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === "fulfilled") {
+        jiraMapRef.current.set(result.value.key, result.value);
+        anyUpgraded = true;
+      }
+    }
+
+    if (anyUpgraded) {
+      // Re-resolve to pick up upgraded data
+      setResolved((prev) => {
+        const updatedTabs = prev.tabs.map((tab) => {
+          if (tab.type !== "jira-detail") return tab;
+          const jTab = tab as JiraTab;
+          const fullIssue = jiraMapRef.current.get(jTab.label);
+          if (fullIssue && jTab.isPartial) {
+            return { ...jTab, issue: fullIssue, isPartial: false };
+          }
+          return tab;
+        });
+        return { ...prev, tabs: updatedTabs };
+      });
+    }
+  }, [utils]);
+
   // Resolve data at open time — snapshot refs into state for rendering
   const open = useCallback((t: DetailTarget) => {
     const data = resolveTarget(t, prMapRef.current, jiraMapRef.current);
+    openKeyRef.current = t.type === "jira" ? t.key : t.type === "pr" ? t.url : null;
     setTarget(t);
     setResolved(data);
     setActiveTabIndex(0);
+    setLoadingJira(false);
+    setLoadError(null);
     setIsOpen(true);
-  }, []);
+
+    if (t.type === "jira" && data.tabs.length === 0) {
+      // Jira issue not in map — lazy-load it
+      fetchAndResolveJira(t.key);
+    } else if (data.tabs.some((tab) => tab.type === "jira-detail" && (tab as JiraTab).isPartial)) {
+      // Upgrade partial Jira tabs in background
+      upgradePartialJiraTabs(data);
+    }
+  }, [fetchAndResolveJira, upgradePartialJiraTabs]);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -126,6 +197,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
   const { tabs, title, subtitle, headerIcon, externalUrl } = resolved;
   const activeTab = tabs[activeTabIndex] ?? tabs[0];
+  const activeJiraTab = activeTab?.type === "jira-detail" ? (activeTab as JiraTab) : null;
 
   const contextValue = useMemo(
     () => ({ open, close, registerPRs, registerJiraIssues }),
@@ -212,6 +284,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
               <JiraDetailContent
                 issue={activeTab.issue}
                 isPartial={activeTab.isPartial}
+                isLoading={activeJiraTab?.isPartial && loadingJira}
                 onNavigatePR={(url) => {
                   const idx = tabs.findIndex(
                     (tab) => tab.type === "pr-detail" && (tab as PRTab).pr.url === url,
@@ -220,7 +293,25 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 }}
               />
             )}
-            {!activeTab && target && (
+            {!activeTab && target && loadingJira && (
+              <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Loading Jira issue...</span>
+              </div>
+            )}
+            {!activeTab && target && loadError && (
+              <div className="text-center py-8 text-muted-foreground space-y-3">
+                <p>Failed to load Jira issue: {loadError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => target.type === "jira" && fetchAndResolveJira(target.key)}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!activeTab && target && !loadingJira && !loadError && (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No details available for this item.</p>
               </div>

@@ -124,6 +124,22 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
           </div>
         )}
 
+        {/* Pending review requests */}
+        {reviewStatus.reviewerBreakdown.filter((e) => e.state === "PENDING").length > 0 && (
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-1.5">Pending Review Requests</h3>
+            <div className="flex flex-wrap gap-1">
+              {reviewStatus.reviewerBreakdown
+                .filter((e) => e.state === "PENDING")
+                .map((e) => (
+                  <span key={e.username} className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
+                    {formatUsername(e.username)}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Linked Jira issues */}
         {pr.linkedJiraIssues.length > 0 && (
           <div>
@@ -137,9 +153,9 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
         )}
       </div>
 
-      {/* Right column: Review history */}
+      {/* Right column: Review and change history */}
       <div className="w-[340px] border-l border-border pl-5">
-        <h3 className="text-xs font-semibold text-muted-foreground mb-2">Review history</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2">Review and change history</h3>
         <ReviewHistory
           breakdown={reviewStatus.reviewerBreakdown}
           pushDates={pr.pushDates}

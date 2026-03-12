@@ -30,7 +30,7 @@ function NavBar() {
     <nav aria-label="Main navigation" className="border-b border-border bg-card px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="text-lg font-semibold">GitHub + Jira Combined Sprint Dashboard</span>
+          <span className="text-lg font-semibold">GitHub + Jira Personal Sprint Dashboard</span>
           <div className="flex gap-1">
             {links.map((link) => (
               <NavLink
@@ -75,8 +75,8 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={0}>
           <AutoRefreshProvider>
-            <DetailModalProvider>
-              <BrowserRouter>
+            <BrowserRouter>
+              <DetailModalProvider>
                 <div className="min-h-screen bg-background">
                   <NavBar />
                   <main className="p-6">
@@ -84,12 +84,12 @@ export default function App() {
                       <Route path="/" element={<PRReviews />} />
                       <Route path="/activity" element={<ActivityTimeline />} />
                       <Route path="/sprint" element={<SprintStatus />} />
-                      <Route path="/epic" element={<EpicStatus />} />
+                      <Route path="/epic/:epicKey?" element={<EpicStatus />} />
                     </Routes>
                   </main>
                 </div>
-              </BrowserRouter>
-            </DetailModalProvider>
+              </DetailModalProvider>
+            </BrowserRouter>
           </AutoRefreshProvider>
         </TooltipProvider>
       </QueryClientProvider>

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "../trpc.js";
-import { jiraSearch, jiraRequest } from "../services/jira/client.js";
+import { jiraSearch, jiraRequest, type JiraRawIssue } from "../services/jira/client.js";
 import { buildSprintDiscoveryJQL, buildSprintIssuesJQL, buildEpicIssuesJQL } from "../services/jira/queries.js";
 import { getRequiredFields } from "../services/jira/field-map.js";
 import { transformJiraIssue } from "../services/jira/transforms.js";
@@ -139,6 +139,49 @@ export const jiraRouter = router({
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
+      }
+    }),
+
+  getIssue: publicProcedure
+    .input(z.object({ key: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { config, jiraToken, jiraHost } = ctx;
+      if (!jiraToken || !jiraHost) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
+      }
+
+      try {
+        const cacheKey = `jiraIssue:${input.key}`;
+        return await cached(cacheKey, 60_000, async () => {
+          console.log(`[progress] jira.getIssue: fetching ${input.key}`);
+          const fields = getRequiredFields(config.jiraFieldMapping);
+          const raw = await jiraRequest<JiraRawIssue>(
+            jiraHost, jiraToken,
+            `/rest/api/2/issue/${input.key}`,
+            { fields: fields.join(",") },
+          );
+          const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
+
+          if (issue.epicKey) {
+            try {
+              const epicData = await jiraRequest<{ fields: { summary: string } }>(
+                jiraHost, jiraToken,
+                `/rest/api/2/issue/${issue.epicKey}`,
+                { fields: "summary" },
+              );
+              issue.epicSummary = epicData.fields.summary;
+            } catch { /* non-critical */ }
+          }
+
+          console.log(`[progress] jira.getIssue: done`);
+          return issue;
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        if (message.includes("rate limit")) {
+          throw new TRPCError({ code: "FORBIDDEN", message, cause: error });
+        }
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
       }
     }),
