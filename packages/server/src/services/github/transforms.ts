@@ -132,9 +132,18 @@ export function transformPullRequest(node: GraphQLNode): PullRequest {
   };
 }
 
-export function extractPRsFromTeamQuery(data: Record<string, unknown>): PullRequest[] {
+export interface GraphQLRateLimit {
+  remaining: number;
+  resetAt: string;
+}
+
+export function extractPRsFromTeamQuery(data: Record<string, unknown>): {
+  prs: PullRequest[];
+  rateLimit: GraphQLRateLimit | null;
+} {
   const seen = new Set<string>();
   const prs: PullRequest[] = [];
+  const rateLimit = (data.rateLimit as GraphQLRateLimit) ?? null;
 
   for (const [key, value] of Object.entries(data)) {
     if (key === "rateLimit") continue;
@@ -147,7 +156,7 @@ export function extractPRsFromTeamQuery(data: Record<string, unknown>): PullRequ
     }
   }
 
-  return prs;
+  return { prs, rateLimit };
 }
 
 export function extractPRsFromUrlsQuery(data: Record<string, unknown>): {

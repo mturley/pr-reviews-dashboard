@@ -191,7 +191,7 @@ export default function PRReviews() {
       <LoadingProgress phases={allPhases} />
 
       {data.githubError && (
-        <ErrorBanner message={`GitHub error: ${data.githubError.message}`} />
+        <ErrorBanner message={`GitHub error: ${data.githubError.message}`} rateLimitResetAt={data.rateLimitResetAt} />
       )}
       {data.jiraError && (
         <ErrorBanner message={`Jira error: ${data.jiraError.message}`} />

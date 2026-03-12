@@ -45,7 +45,7 @@ export async function githubGraphQL<T>(
   }
 
   const json = (await response.json()) as {
-    data?: T;
+    data?: T & { rateLimit?: { remaining: number; limit?: number; resetAt?: string } };
     errors?: Array<{ message: string }>;
   };
 
@@ -57,7 +57,17 @@ export async function githubGraphQL<T>(
     lastRateLimit = {
       limit: limit ? parseInt(limit, 10) : lastRateLimit.limit,
       remaining: parseInt(remaining, 10),
-      resetAt: resetAt ? new Date(parseInt(resetAt, 10) * 1000).toISOString() : "",
+      resetAt: resetAt ? new Date(parseInt(resetAt, 10) * 1000).toISOString() : lastRateLimit.resetAt,
+    };
+  }
+
+  // Also update from GraphQL response body (more reliable for resetAt)
+  const bodyRateLimit = json.data?.rateLimit;
+  if (bodyRateLimit) {
+    lastRateLimit = {
+      limit: bodyRateLimit.limit ?? lastRateLimit.limit,
+      remaining: bodyRateLimit.remaining,
+      resetAt: bodyRateLimit.resetAt ?? lastRateLimit.resetAt,
     };
   }
 

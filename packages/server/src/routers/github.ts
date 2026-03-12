@@ -31,14 +31,15 @@ export const githubRouter = router({
       console.log(`[progress] github.getTeamPRs: fetching PRs for ${members.length} members across ${config.githubOrgs.length} orgs`);
       const query = buildTeamPRsQuery(members, config.githubOrgs);
       const data = await githubGraphQL<Record<string, unknown>>(githubToken, query);
-      const prs = extractPRsFromTeamQuery(data);
-      const rateLimit = getLastRateLimit();
-      console.log(`[progress] github.getTeamPRs: done, found ${prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
+      const result = extractPRsFromTeamQuery(data);
+      const headerRateLimit = getLastRateLimit();
+      const rateLimit = result.rateLimit ?? headerRateLimit;
+      console.log(`[progress] github.getTeamPRs: done, found ${result.prs.length} PRs (rate limit: ${rateLimit.remaining} remaining)`);
 
       return {
-        prs,
+        prs: result.prs,
         rateLimitRemaining: rateLimit.remaining,
-        rateLimitLimit: rateLimit.limit,
+        rateLimitLimit: headerRateLimit.limit,
         rateLimitResetAt: rateLimit.resetAt,
         fetchedAt: new Date().toISOString(),
       };

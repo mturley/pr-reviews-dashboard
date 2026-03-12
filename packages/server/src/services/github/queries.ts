@@ -112,6 +112,7 @@ export function buildTeamPRsQuery(members: string[], orgs: string[]): string {
       ${aliases.join("\n")}
       ${reviewAliases.join("\n")}
       rateLimit {
+        limit
         remaining
         resetAt
       }
@@ -123,7 +124,7 @@ export function buildPRsByUrlsQuery(
   prs: Array<{ owner: string; repo: string; number: number }>,
 ): string {
   if (prs.length === 0) {
-    return `query EmptyPRs { rateLimit { remaining resetAt } }`;
+    return `query EmptyPRs { rateLimit { limit remaining resetAt } }`;
   }
 
   const aliases = prs.map(
@@ -141,6 +142,7 @@ export function buildPRsByUrlsQuery(
     query PRsByUrls {
       ${aliases.join("\n")}
       rateLimit {
+        limit
         remaining
         resetAt
       }
