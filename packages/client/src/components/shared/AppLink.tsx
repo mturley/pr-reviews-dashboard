@@ -9,7 +9,7 @@ interface AppLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 
 export const AppLink = forwardRef<HTMLAnchorElement, AppLinkProps>(
   function AppLink({ detail, epicKey, onClick, ...props }, ref) {
-    const { open } = useDetailModal();
+    const { open, close } = useDetailModal();
     const navigate = useNavigate();
 
     function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -18,6 +18,7 @@ export const AppLink = forwardRef<HTMLAnchorElement, AppLinkProps>(
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       if (epicKey) {
         e.preventDefault();
+        close();
         navigate(`/epic/${encodeURIComponent(epicKey)}`);
         return;
       }
