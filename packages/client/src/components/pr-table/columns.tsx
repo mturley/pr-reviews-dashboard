@@ -76,7 +76,7 @@ export const columns = [
       const action = info.row.original.reviewStatus.action;
       if (!action) return <span className="text-xs text-muted-foreground">-</span>;
       return (
-        <span className="flex items-center gap-1 text-xs font-medium whitespace-nowrap">
+        <span className="flex items-start gap-1 text-xs font-medium">
           <ActionIcon action={action} />
           {action}
         </span>
