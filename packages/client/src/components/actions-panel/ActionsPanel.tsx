@@ -1,7 +1,7 @@
 // T046: ActionsPanel collapsible component
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquareWarning, CircleX, Eye, GitMerge, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownTooltip";
@@ -23,9 +23,8 @@ function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "w
     case "I'm mentioned":
     case "My Re-review Needed":
       return "danger";
-    case "Changes Requested (by others)":
-    case "My Changes Requested":
-      return "neutral";
+    case "Awaiting Changes":
+      return "info";
     default:
       return "neutral";
   }
@@ -46,6 +45,25 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays} days ago`;
 }
 
+function ActionIcon({ action }: { action: string }) {
+  const cls = "h-3.5 w-3.5 shrink-0";
+  switch (action) {
+    case "Address feedback":
+      return <MessageSquareWarning className={`${cls} text-orange-500`} />;
+    case "Fix CI errors":
+      return <CircleX className={`${cls} text-red-500`} />;
+    case "Re-review PR":
+    case "Review PR":
+      return <Eye className={`${cls} text-blue-500`} />;
+    case "Merge PR":
+      return <GitMerge className={`${cls} text-purple-500`} />;
+    case "Complete work":
+      return <PenLine className={`${cls} text-muted-foreground`} />;
+    default:
+      return null;
+  }
+}
+
 interface ActionsPanelProps {
   actions: RecommendedAction[];
 }
@@ -53,13 +71,12 @@ interface ActionsPanelProps {
 const MAX_COLLAPSED = 1;
 
 export function ActionsPanel({ actions }: ActionsPanelProps) {
-  const [expanded, setExpanded] = useState(true);
-  const [showAll, setShowAll] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   if (actions.length === 0) return null;
 
-  const visibleActions = showAll ? actions : actions.slice(0, MAX_COLLAPSED);
-  const hiddenCount = actions.length - MAX_COLLAPSED;
+  const hasMore = actions.length > MAX_COLLAPSED;
+  const visibleActions = expanded ? actions : actions.slice(0, MAX_COLLAPSED);
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -74,13 +91,13 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
           {actions.length}
         </span>
       </Button>
-      {expanded && (
-        <div className="border-t border-border px-4 py-2">
-          <ul className="space-y-2">
-            {visibleActions.map((action) => (
+      <div className="border-t border-border px-4 py-2">
+        <ul className="space-y-2">
+          {visibleActions.map((action) => (
               <li key={action.prUrl} className="py-1">
                 <div className="flex items-center gap-3">
-                  <span className="shrink-0 text-xs font-medium text-foreground">
+                  <span className="shrink-0 flex items-center gap-1 text-xs font-medium text-foreground">
+                    <ActionIcon action={action.action} />
                     {action.action}
                   </span>
                   <ReviewBreakdownTooltip breakdown={action.reviewerBreakdown} pushedAt={action.pushedAt} pushDates={action.pushDates}>
@@ -174,18 +191,17 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
               </li>
             ))}
           </ul>
-          {hiddenCount > 0 && (
+          {!expanded && hasMore && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowAll(!showAll)}
+              onClick={() => setExpanded(true)}
               className="mt-1 h-7 text-xs text-muted-foreground"
             >
-              {showAll ? "Show less" : `Show ${hiddenCount} more`}
+              Show {actions.length - MAX_COLLAPSED} more
             </Button>
           )}
         </div>
-      )}
     </div>
   );
 }

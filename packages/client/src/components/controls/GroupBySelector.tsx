@@ -4,8 +4,8 @@ import type { GroupByOption } from "@/lib/url-state";
 
 const OPTIONS: { value: GroupByOption; label: string }[] = [
   { value: "default", label: "My Stuff" },
-  { value: "repository", label: "Repository" },
   { value: "action", label: "Action Needed" },
+  { value: "repository", label: "Repository" },
   { value: "epic", label: "Epic" },
   { value: "jiraPriority", label: "Jira Priority" },
   { value: "flat", label: "Flat" },

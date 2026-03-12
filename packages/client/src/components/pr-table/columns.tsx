@@ -1,7 +1,7 @@
 // T029: PR table column definitions with TanStack Table columnHelper
 
 import { createColumnHelper } from "@tanstack/react-table";
-import { GitPullRequest, GitMerge, CircleDot, CircleDashed } from "lucide-react";
+import { GitPullRequest, GitMerge, CircleDot, CircleDashed, MessageSquareWarning, CircleX, Eye, PenLine } from "lucide-react";
 import type { PullRequest } from "../../../../server/src/types/pr.js";
 import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
 import { ReviewStatusCell } from "./ReviewStatusCell";
@@ -46,6 +46,25 @@ function reviewStatusSortValue(row: PRRow): number {
   return row.reviewStatus.priority ?? 999;
 }
 
+function ActionIcon({ action }: { action: string }) {
+  const cls = "h-3.5 w-3.5 shrink-0";
+  switch (action) {
+    case "Address feedback":
+      return <MessageSquareWarning className={`${cls} text-orange-500`} />;
+    case "Fix CI errors":
+      return <CircleX className={`${cls} text-red-500`} />;
+    case "Re-review PR":
+    case "Review PR":
+      return <Eye className={`${cls} text-blue-500`} />;
+    case "Merge PR":
+      return <GitMerge className={`${cls} text-purple-500`} />;
+    case "Complete work":
+      return <PenLine className={`${cls} text-muted-foreground`} />;
+    default:
+      return null;
+  }
+}
+
 export const SORTABLE_COLUMNS = new Set(["action", "age", "updated", "reviewStatus", "jiraPriority", "jiraState"]);
 
 export const columns = [
@@ -56,7 +75,12 @@ export const columns = [
     cell: (info) => {
       const action = info.row.original.reviewStatus.action;
       if (!action) return <span className="text-xs text-muted-foreground">-</span>;
-      return <span className="text-xs font-medium">{action}</span>;
+      return (
+        <span className="flex items-center gap-1 text-xs font-medium whitespace-nowrap">
+          <ActionIcon action={action} />
+          {action}
+        </span>
+      );
     },
   }),
 

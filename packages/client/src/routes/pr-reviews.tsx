@@ -1,11 +1,15 @@
 // PR Reviews route — full integration
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { trpc } from "../trpc";
 import { computeReviewStatus } from "../../../server/src/logic/review-status";
 import { groupPRs } from "../../../server/src/logic/grouping";
 import { deriveRecommendedActions } from "../../../server/src/logic/recommended-actions";
 import type { PullRequest, ReviewStatusResult, PRGroup } from "../../../server/src/types/pr";
+import type { ViewState } from "@/lib/url-state";
+import type { TeamMember } from "../../../server/src/types/config";
 import { useProgressiveData, type LoadingPhase } from "@/hooks/useProgressiveData";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 import { useViewState } from "@/hooks/useViewState";
@@ -16,7 +20,7 @@ import { RefreshControls } from "@/components/controls/RefreshControls";
 import { GroupBySelector } from "@/components/controls/GroupBySelector";
 import { FilterBar } from "@/components/controls/FilterBar";
 import { PerspectiveSelector } from "@/components/controls/PerspectiveSelector";
-import { ColumnCustomizer, useColumnConfig } from "@/components/controls/ColumnCustomizer";
+import { ColumnCustomizer, useColumnConfig, type ColumnConfig } from "@/components/controls/ColumnCustomizer";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { LoadingProgress } from "@/components/shared/LoadingProgress";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -230,32 +234,16 @@ export default function PRReviews() {
         Open pull requests from your team's GitHub repos, enriched with Jira sprint data and review status. Filter, group, and prioritize PRs that need your attention.
       </p>
 
-      <HowItWorksPanel />
-
-      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
-        <PerspectiveSelector
-          value={perspective}
-          onChange={(v) => updateViewState({ perspective: v })}
-          teamMembers={allTeamMembers}
-          currentUser={config?.githubIdentity ?? ""}
-        />
-        <GroupBySelector
-          value={viewState.groupBy}
-          onChange={(v) => updateViewState({ groupBy: v })}
-        />
-        <ColumnCustomizer columns={columnConfig} onColumnsChange={setColumnConfig} />
-        <FilterBar
-          actionNeeded={viewState.filterActionNeeded}
-          onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
-          showDraft={viewState.filterDraft}
-          onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
-          ignoreOtherTeams={viewState.ignoreOtherTeams}
-          onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
-          repos={availableRepos}
-          selectedRepos={viewState.filterRepo}
-          onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
-        />
-      </div>
+      <ViewOptionsBar
+        perspective={perspective}
+        viewState={viewState}
+        updateViewState={updateViewState}
+        allTeamMembers={allTeamMembers}
+        currentUser={config?.githubIdentity ?? ""}
+        columnConfig={columnConfig}
+        setColumnConfig={setColumnConfig}
+        availableRepos={availableRepos}
+      />
 
       {data.githubError && (
         <ErrorBanner message={`GitHub error: ${data.githubError.message}`} />
@@ -281,6 +269,102 @@ export default function PRReviews() {
           isJiraLoading={data.isJiraLoading}
           visibleColumnIds={visibleColumnIds}
         />
+      )}
+    </div>
+  );
+}
+
+const GROUP_BY_LABELS: Record<string, string> = {
+  default: "My Stuff",
+  action: "Action Needed",
+  repository: "Repository",
+  epic: "Epic",
+  jiraPriority: "Jira Priority",
+  flat: "Flat",
+};
+
+function ViewOptionsBar({
+  perspective,
+  viewState,
+  updateViewState,
+  allTeamMembers,
+  currentUser,
+  columnConfig,
+  setColumnConfig,
+  availableRepos,
+}: {
+  perspective: string;
+  viewState: ViewState;
+  updateViewState: (patch: Partial<ViewState>) => void;
+  allTeamMembers: TeamMember[];
+  currentUser: string;
+  columnConfig: ColumnConfig[];
+  setColumnConfig: (columns: ColumnConfig[]) => void;
+  availableRepos: string[];
+}) {
+  const [showOptions, setShowOptions] = useState(false);
+
+  const perspectiveName =
+    perspective === "team"
+      ? "Whole Team"
+      : allTeamMembers.find((m) => m.githubUsername === perspective)?.displayName ?? perspective;
+
+  const filters: string[] = [];
+  if (viewState.filterActionNeeded) filters.push("action needed only");
+  if (!viewState.filterDraft) filters.push("no drafts");
+  if (viewState.ignoreOtherTeams) filters.push("team only");
+  if (viewState.filterRepo.length > 0)
+    filters.push(`${viewState.filterRepo.length} repo${viewState.filterRepo.length > 1 ? "s" : ""}`);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <HowItWorksPanel />
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setShowOptions(!showOptions)}
+        >
+          <Settings className="h-4 w-4" />
+          {showOptions ? "Hide view options" : "Show view options"}
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Viewing as <span className="font-medium text-foreground">{perspectiveName}</span>
+          {" · "}grouped by <span className="font-medium text-foreground">{GROUP_BY_LABELS[viewState.groupBy] ?? viewState.groupBy}</span>
+          {filters.length > 0 && (
+            <>
+              {" · "}
+              {filters.join(", ")}
+            </>
+          )}
+        </span>
+      </div>
+      {showOptions && (
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
+          <PerspectiveSelector
+            value={perspective}
+            onChange={(v) => updateViewState({ perspective: v })}
+            teamMembers={allTeamMembers}
+            currentUser={currentUser}
+          />
+          <GroupBySelector
+            value={viewState.groupBy}
+            onChange={(v) => updateViewState({ groupBy: v })}
+          />
+          <ColumnCustomizer columns={columnConfig} onColumnsChange={setColumnConfig} />
+          <FilterBar
+            actionNeeded={viewState.filterActionNeeded}
+            onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
+            showDraft={viewState.filterDraft}
+            onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
+            ignoreOtherTeams={viewState.ignoreOtherTeams}
+            onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
+            repos={availableRepos}
+            selectedRepos={viewState.filterRepo}
+            onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
+          />
+        </div>
       )}
     </div>
   );

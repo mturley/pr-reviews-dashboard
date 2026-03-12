@@ -159,7 +159,7 @@ export function ReviewBreakdownTooltip({ breakdown, pushedAt, pushDates, childre
                 <div key={`push-${i}`} className="flex items-center gap-2 py-1">
                   <div className="flex-1 border-t border-dashed border-yellow-500/50" />
                   <span className="text-[10px] text-yellow-500 font-medium whitespace-nowrap">
-                    Commits pushed{item.count > 1 ? ` ${item.count}\u00d7` : ""} ({formatReviewDate(item.date)})
+                    Commits pushed{item.count > 1 ? ` \u00d7${item.count}` : ""} ({formatReviewDate(item.date)})
                   </span>
                   <div className="flex-1 border-t border-dashed border-yellow-500/50" />
                 </div>

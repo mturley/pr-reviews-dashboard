@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { HelpCircle, MessageSquareWarning, CircleX, Eye, GitMerge, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import type { StatusVariant } from "@/components/shared/StatusBadge";
 
@@ -11,20 +17,19 @@ const B = ({ label, variant }: BadgeInfo) => (
 );
 
 export function HowItWorksPanel() {
-  const [expanded, setExpanded] = useState(false);
-
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <Button
-        variant="ghost"
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-start gap-2 px-4 py-3 text-left"
-      >
-        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        <span className="font-semibold">How It Works</span>
-      </Button>
-      {expanded && (
-        <div className="border-t border-border px-4 py-3 text-sm text-muted-foreground space-y-4">
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <HelpCircle className="h-4 w-4" />
+          How does this work?
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[80vw] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>How It Works</DialogTitle>
+        </DialogHeader>
+        <div className="text-sm text-muted-foreground space-y-4">
           <section>
             <h3 className="font-semibold text-foreground mb-1">Which PRs are included?</h3>
             <p className="mb-1">
@@ -34,7 +39,7 @@ export function HowItWorksPanel() {
               Dependabot) are shown. PRs are then filtered into four groups — only PRs that fall
               into at least one group appear in the tables and recommended actions:
             </p>
-            <ol className="list-decimal list-inside space-y-1 ml-2">
+            <ol className="list-decimal list-outside space-y-1 ml-6">
               <li>
                 <span className="font-medium text-foreground">My PRs</span> — PRs you authored.
               </li>
@@ -57,7 +62,7 @@ export function HowItWorksPanel() {
           <section>
             <h3 className="font-semibold text-foreground mb-1">Review Status (for your PRs)</h3>
             <p className="mb-1">When you are the author of a PR, ordered by priority:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
+            <ul className="list-disc list-outside space-y-1 ml-6">
               <li>
                 <B label="New Feedback" variant="danger" /> — Reviewers have
                 submitted reviews or comments since your last push. Address their feedback.
@@ -88,7 +93,7 @@ export function HowItWorksPanel() {
           <section>
             <h3 className="font-semibold text-foreground mb-1">Review Status (for others' PRs)</h3>
             <p className="mb-1">When you are reviewing someone else's PR, ordered by priority:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
+            <ul className="list-disc list-outside space-y-1 ml-6">
               <li>
                 <B label="My Re-review Needed" variant="danger" /> — You
                 previously reviewed, but the author has pushed new commits since and you haven't
@@ -119,12 +124,8 @@ export function HowItWorksPanel() {
                 <B label="Has LGTM" variant="success" /> — Awaiting approval.
               </li>
               <li>
-                <B label="My Changes Requested" variant="neutral" /> — You
-                requested changes and no new commits have been pushed yet. Waiting on the author.
-              </li>
-              <li>
-                <B label="Changes Requested (by others)" variant="neutral" />{" "}
-                — Other reviewers requested changes (no new commits since). Waiting on the author.
+                <B label="Awaiting Changes" variant="info" /> — You or other
+                reviewers requested changes and no new commits have been pushed yet. Waiting on the author.
               </li>
               <li>
                 <B label="WIP" variant="neutral" /> — PR is marked as a draft or
@@ -176,34 +177,40 @@ export function HowItWorksPanel() {
             <p className="mb-1">
               Actions are derived from the review status and sorted by priority. Not every PR has an
               action — statuses like <B label="Awaiting Review" variant="info" /> or{" "}
-              <B label="My Changes Requested" variant="neutral" /> mean no action is needed from you.
+              <B label="Awaiting Changes" variant="info" /> mean no action is needed from you.
             </p>
             <p className="mb-1 font-medium text-foreground">In priority order:</p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
+            <ul className="list-disc list-outside space-y-1 ml-6">
               <li>
+                <MessageSquareWarning className="inline h-3.5 w-3.5 text-orange-500" />{" "}
                 <span className="font-medium text-foreground">Address feedback</span> (your PR) — Reviewers
                 left <B label="New Feedback" variant="danger" /> since your last push.
               </li>
               <li>
+                <CircleX className="inline h-3.5 w-3.5 text-red-500" />{" "}
                 <span className="font-medium text-foreground">Fix CI errors</span> (your PR) — Your PR is{" "}
                 <B label="Approved" variant="success" /> but{" "}
                 <B label="CI Failed" variant="danger" />.
               </li>
               <li>
+                <Eye className="inline h-3.5 w-3.5 text-blue-500" />{" "}
                 <span className="font-medium text-foreground">Re-review PR</span> (others' PR) — Author pushed
                 new commits since your last review (<B label="My Re-review Needed" variant="danger" />).
               </li>
               <li>
+                <Eye className="inline h-3.5 w-3.5 text-blue-500" />{" "}
                 <span className="font-medium text-foreground">Review PR</span> (others' PR) — A PR{" "}
                 <B label="Needs First Review" variant="danger" />,{" "}
                 <B label="Team Re-review Needed" variant="warning" />, or{" "}
                 <B label="Needs Additional Review" variant="warning" />.
               </li>
               <li>
+                <PenLine className="inline h-3.5 w-3.5 text-muted-foreground" />{" "}
                 <span className="font-medium text-foreground">Complete work</span> (your PR) — Your PR is{" "}
                 <B label="WIP" variant="warning" />. Finish and mark ready for review.
               </li>
               <li>
+                <GitMerge className="inline h-3.5 w-3.5 text-purple-500" />{" "}
                 <span className="font-medium text-foreground">Merge PR</span> (any PR) — PR is{" "}
                 <B label="Approved" variant="success" /> and CI is passing.
               </li>
@@ -220,7 +227,7 @@ export function HowItWorksPanel() {
             </p>
           </section>
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

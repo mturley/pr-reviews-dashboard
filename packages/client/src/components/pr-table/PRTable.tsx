@@ -104,7 +104,7 @@ function CollapsibleGroup({
           table.getRowModel().rows.map((row) => (
             <TableRow key={row.id}>
               {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
+                <TableCell key={cell.id} className={cell.column.id !== "title" ? "whitespace-nowrap" : undefined}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
               ))}
@@ -181,7 +181,7 @@ export function PRTable({
                 return (
                   <TableHead
                     key={header.id}
-                    className={`border-none ${isSortable ? "cursor-pointer select-none hover:text-foreground" : ""}`}
+                    className={`border-none ${header.id !== "title" ? "whitespace-nowrap" : ""} ${isSortable ? "cursor-pointer select-none hover:text-foreground" : ""}`}
                     onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
                   >
                     <div className="flex items-center gap-1">

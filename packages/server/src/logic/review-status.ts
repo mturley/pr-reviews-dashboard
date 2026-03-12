@@ -256,7 +256,7 @@ function computeReviewerStatus(
   // Viewer requested changes and no new push since
   if (viewerReview?.state === "CHANGES_REQUESTED" && viewerReview.commitOid === pr.headRefOid) {
     return {
-      status: "My Changes Requested" as ReviewerStatus,
+      status: "Awaiting Changes" as ReviewerStatus,
       priority: null,
       parenthetical: "Waiting for author to address",
       action: null,
@@ -309,7 +309,7 @@ function computeReviewerStatus(
   );
   if (othersRequestedChanges.length > 0) {
     return {
-      status: "Changes Requested (by others)" as ReviewerStatus,
+      status: "Awaiting Changes" as ReviewerStatus,
       priority: null,
       parenthetical: `${othersRequestedChanges.length} change request${othersRequestedChanges.length > 1 ? "s" : ""}`,
       action: null,

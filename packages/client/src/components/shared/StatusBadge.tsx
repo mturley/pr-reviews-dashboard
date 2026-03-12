@@ -22,7 +22,7 @@ const variantClasses: Record<StatusVariant, string> = {
 
 export function StatusBadge({ label, variant = "neutral", className }: StatusBadgeProps) {
   return (
-    <Badge variant="outline" className={cn(variantClasses[variant], className)}>
+    <Badge variant="outline" className={cn("whitespace-nowrap w-fit", variantClasses[variant], className)}>
       {label}
     </Badge>
   );

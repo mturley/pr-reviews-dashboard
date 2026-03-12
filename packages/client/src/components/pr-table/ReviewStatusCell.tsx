@@ -24,9 +24,7 @@ function getStatusVariant(status: AuthorStatus | ReviewerStatus, hasAction?: boo
     case "I'm mentioned":
     case "My Re-review Needed":
       return "danger";
-    case "Changes Requested (by others)":
-    case "My Changes Requested":
-      return "neutral";
+    case "Awaiting Changes":
     case "Awaiting Review":
       return "info";
     default:
@@ -41,7 +39,7 @@ interface ReviewStatusCellProps {
 
 export function ReviewStatusCell({ result, hasCIFailure }: ReviewStatusCellProps) {
   const content = (
-    <div className="flex flex-col items-start gap-0.5">
+    <div className="flex flex-col items-start gap-1">
       <StatusBadge label={result.status} variant={getStatusVariant(result.status, result.action != null)} />
       {hasCIFailure && (
         <StatusBadge label="CI Failed" variant="danger" />
