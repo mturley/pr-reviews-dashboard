@@ -8,6 +8,7 @@ import { ReviewStatusCell } from "./ReviewStatusCell";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { formatUsername } from "@/lib/bot-users";
+import { AppLink } from "@/components/shared/AppLink";
 
 function PRStateIcon({ pr }: { pr: PullRequest }) {
   if (pr.state === "MERGED") return <GitMerge className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />;
@@ -94,14 +95,13 @@ export const columns = [
         <div>
           <div className="flex items-center gap-1">
             <PRStateIcon pr={pr} />
-            <a
+            <AppLink
               href={pr.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              detail={{ type: "pr", url: pr.url }}
               className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               #{pr.number}: {pr.title}
-            </a>
+            </AppLink>
           </div>
           <div className="text-xs text-muted-foreground ml-5">
             {pr.repoOwner}/{pr.repoName}
@@ -167,27 +167,28 @@ export const columns = [
             <StatusBadge label="Blocked" variant="danger" className="mb-0.5" />
           )}
           {issues.map((issue) => (
-            <div key={issue.key}>
-              <a
-                href={issue.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {issue.typeIconUrl && (
-                  <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
-                )}
-                {issue.key}
-              </a>
+            <Tooltip key={issue.key}>
+              <TooltipTrigger asChild>
+                <div>
+                  <AppLink
+                    href={issue.url}
+                    detail={{ type: "jira", key: issue.key }}
+                    className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {issue.typeIconUrl && (
+                      <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
+                    )}
+                    {issue.key}
+                  </AppLink>
+                  {issue.summary && (
+                    <span className="text-xs text-muted-foreground truncate block max-w-[200px]">{issue.summary}</span>
+                  )}
+                </div>
+              </TooltipTrigger>
               {issue.summary && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-xs text-muted-foreground truncate block max-w-[200px] cursor-default">{issue.summary}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>{issue.summary}</TooltipContent>
-                </Tooltip>
+                <TooltipContent side="bottom">{issue.summary}</TooltipContent>
               )}
-            </div>
+            </Tooltip>
           ))}
         </div>
       );
@@ -246,25 +247,26 @@ export const columns = [
       const epicSummary = issues[0].epicSummary;
       if (!epicKey) return <span className="text-xs text-muted-foreground">-</span>;
       return (
-        <div>
-          <a
-            href={`https://issues.redhat.com/browse/${epicKey}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            <span className="text-green-600 dark:text-green-400">⚡</span>
-            {epicKey}
-          </a>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <AppLink
+                href={`https://issues.redhat.com/browse/${epicKey}`}
+                epicKey={epicKey}
+                className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <span className="text-green-600 dark:text-green-400">⚡</span>
+                {epicKey}
+              </AppLink>
+              {epicSummary && (
+                <span className="text-xs text-muted-foreground truncate block max-w-[200px]">{epicSummary}</span>
+              )}
+            </div>
+          </TooltipTrigger>
           {epicSummary && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-xs text-muted-foreground truncate block max-w-[200px] cursor-default">{epicSummary}</span>
-              </TooltipTrigger>
-              <TooltipContent>{epicSummary}</TooltipContent>
-            </Tooltip>
+            <TooltipContent side="bottom">{epicSummary}</TooltipContent>
           )}
-        </div>
+        </Tooltip>
       );
     },
   }),

@@ -1,5 +1,6 @@
 // T054: FilterBar component
 
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
@@ -13,6 +14,7 @@ interface FilterBarProps {
   repos: string[];
   selectedRepos: string[];
   onRepoFilterChange: (repos: string[]) => void;
+  children?: ReactNode;
 }
 
 export function FilterBar({
@@ -25,6 +27,7 @@ export function FilterBar({
   repos,
   selectedRepos,
   onRepoFilterChange,
+  children,
 }: FilterBarProps) {
   return (
     <>
@@ -54,6 +57,8 @@ export function FilterBar({
         />
         <span className="text-xs">Ignore PRs from other scrums</span>
       </div>
+
+      {children}
 
       {repos.length > 0 && (
         <div className="flex flex-wrap items-center gap-1">

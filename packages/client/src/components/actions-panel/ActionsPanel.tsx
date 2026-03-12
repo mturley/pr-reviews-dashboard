@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownTooltip";
 import type { RecommendedAction, AuthorStatus, ReviewerStatus } from "../../../../server/src/types/pr";
 import { formatUsername } from "@/lib/bot-users";
+import { AppLink } from "@/components/shared/AppLink";
 
 function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" | "purple" {
   switch (status) {
@@ -117,14 +118,13 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                   </ReviewBreakdownTooltip>
                 </div>
                 <div className="flex items-center gap-3 ml-12 mt-0.5">
-                  <a
+                  <AppLink
                     href={action.prUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    detail={{ type: "pr", url: action.prUrl }}
                     className="min-w-0 truncate text-sm text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     #{action.prUrl.match(/\/pull\/(\d+)$/)?.[1] ?? ""}: {action.prTitle}
-                  </a>
+                  </AppLink>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {action.repoName}
                   </span>
@@ -150,17 +150,16 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                             {action.jiraPriority.name}
                           </span>
                         )}
-                        <a
+                        <AppLink
                           href={action.jiraUrl!}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          detail={action.jiraKey ? { type: "jira", key: action.jiraKey } : undefined}
                           className="shrink-0 flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           {action.jiraTypeIconUrl && (
                             <img src={action.jiraTypeIconUrl} alt="" className="h-4 w-4" />
                           )}
                           {action.jiraKey}
-                        </a>
+                        </AppLink>
                         {action.jiraSummary && (
                           <span className="text-xs text-muted-foreground">
                             {action.jiraSummary}
@@ -170,15 +169,14 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                     )}
                     {action.epicKey && (
                       <>
-                        <a
+                        <AppLink
                           href={`https://issues.redhat.com/browse/${action.epicKey}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          epicKey={action.epicKey}
                           className="shrink-0 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           <span className="text-green-600 dark:text-green-400">⚡</span>
                           {action.epicKey}
-                        </a>
+                        </AppLink>
                         {action.epicSummary && (
                           <span className="text-xs text-muted-foreground">
                             {action.epicSummary}

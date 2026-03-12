@@ -5,6 +5,10 @@ import { trpc } from "../trpc";
 import type { PullRequest, JiraIssueRef } from "../../../server/src/types/pr";
 import type { JiraIssue } from "../../../server/src/types/jira";
 
+interface ErrorWithRateLimit {
+  data?: { rateLimit?: { remaining: number; limit: number; resetAt: string } };
+}
+
 function correlatePRsWithJira(prs: PullRequest[], jiraIssues: JiraIssue[]): PullRequest[] {
   // Match by PR URL in Jira's Git Pull Request field
   const urlToJiraRefs = new Map<string, JiraIssueRef[]>();
@@ -122,7 +126,7 @@ export function useProgressiveData(
   const phases: LoadingPhase[] = useMemo(() => {
     const githubPhase: LoadingPhase = {
       label: "GitHub PRs",
-      status: teamPRsQuery.isLoading ? "active"
+      status: teamPRsQuery.isFetching ? "active"
         : teamPRsQuery.isError ? "error"
         : teamPRsQuery.isSuccess ? "done" : "pending",
       detail: teamPRsQuery.isSuccess
@@ -133,7 +137,7 @@ export function useProgressiveData(
     const jiraPhase: LoadingPhase = {
       label: "Jira Sprint",
       status: !teamPRsQuery.isSuccess ? "pending"
-        : jiraQuery.isLoading ? "active"
+        : jiraQuery.isFetching ? "active"
         : jiraQuery.isError ? "error"
         : jiraQuery.isSuccess ? "done" : "pending",
       detail: jiraQuery.isSuccess
@@ -145,7 +149,7 @@ export function useProgressiveData(
       label: "Linked PRs",
       status: cascadePRUrls.length === 0 && jiraQuery.isSuccess ? "skipped"
         : !jiraQuery.isSuccess ? "pending"
-        : cascadeQuery.isLoading ? "active"
+        : cascadeQuery.isFetching ? "active"
         : cascadeQuery.isSuccess ? "done" : "pending",
       detail: cascadePRUrls.length === 0 && jiraQuery.isSuccess
         ? "No additional PRs to fetch"
@@ -156,12 +160,12 @@ export function useProgressiveData(
 
     return [githubPhase, jiraPhase, cascadePhase];
   }, [
-    teamPRsQuery.isLoading, teamPRsQuery.isError, teamPRsQuery.isSuccess,
+    teamPRsQuery.isFetching, teamPRsQuery.isError, teamPRsQuery.isSuccess,
     teamPRsQuery.data, teamPRsQuery.error,
-    jiraQuery.isLoading, jiraQuery.isError, jiraQuery.isSuccess,
+    jiraQuery.isFetching, jiraQuery.isError, jiraQuery.isSuccess,
     jiraQuery.data, jiraQuery.error,
     cascadePRUrls.length,
-    cascadeQuery.isLoading, cascadeQuery.isSuccess, cascadeQuery.data,
+    cascadeQuery.isFetching, cascadeQuery.isSuccess, cascadeQuery.data,
   ]);
 
   return {
@@ -175,9 +179,15 @@ export function useProgressiveData(
     jiraError: jiraQuery.error as Error | null,
     githubFetchedAt: teamPRsQuery.data?.fetchedAt ?? null,
     jiraFetchedAt: jiraQuery.data?.fetchedAt ?? null,
-    rateLimitRemaining: teamPRsQuery.data?.rateLimitRemaining ?? null,
-    rateLimitLimit: teamPRsQuery.data?.rateLimitLimit ?? null,
-    rateLimitResetAt: teamPRsQuery.data?.rateLimitResetAt ?? null,
+    rateLimitRemaining: teamPRsQuery.data?.rateLimitRemaining
+      ?? (teamPRsQuery.error as ErrorWithRateLimit | null)?.data?.rateLimit?.remaining
+      ?? null,
+    rateLimitLimit: teamPRsQuery.data?.rateLimitLimit
+      ?? (teamPRsQuery.error as ErrorWithRateLimit | null)?.data?.rateLimit?.limit
+      ?? null,
+    rateLimitResetAt: teamPRsQuery.data?.rateLimitResetAt
+      ?? (teamPRsQuery.error as ErrorWithRateLimit | null)?.data?.rateLimit?.resetAt
+      ?? null,
     sprintName: jiraQuery.data?.sprintName ?? null,
     sprintId: jiraQuery.data?.sprintId ?? null,
     sprintUrl: jiraQuery.data?.sprintUrl ?? null,

@@ -7,7 +7,12 @@
       "Bash(pnpm --filter client add -D @types/node)",
       "Bash(pnpm dev)",
       "Bash(pnpm typecheck)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(pnpm test)",
+      "Bash(pnpm --filter client lint)",
+      "Bash(pnpm --filter client test)",
+      "Bash(pnpm --filter client exec tsc --noEmit)",
+      "Bash(git status -u)"
     ]
   }
 }

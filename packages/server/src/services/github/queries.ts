@@ -47,6 +47,8 @@ const PR_FRAGMENT = `
     commits(last: 50) {
       nodes {
         commit {
+          oid
+          messageHeadline
           pushedDate
           committedDate
         }

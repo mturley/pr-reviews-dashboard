@@ -21,7 +21,15 @@ export async function createContext(): Promise<TRPCContext> {
   };
 }
 
-const t = initTRPC.context<TRPCContext>().create();
+const t = initTRPC.context<TRPCContext>().create({
+  errorFormatter({ shape, error }) {
+    const cause = error.cause as Record<string, unknown> | undefined;
+    const rateLimit = cause && typeof cause === "object" && "rateLimit" in cause
+      ? (cause.rateLimit as { remaining: number; limit: number; resetAt: string })
+      : null;
+    return { ...shape, data: { ...shape.data, rateLimit } };
+  },
+});
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

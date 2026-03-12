@@ -1,12 +1,13 @@
 // Sprint Status route — uses shared JiraIssueTable
 
-import { useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { trpc } from "../trpc";
 import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { RefreshControls } from "@/components/controls/RefreshControls";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
+import { useDetailModal } from "@/components/detail-modal/DetailModalProvider";
 
 export default function SprintStatus() {
   const configQuery = trpc.config.get.useQuery();
@@ -38,6 +39,15 @@ export default function SprintStatus() {
     jiraQuery.refetch();
     linkedPRsQuery.refetch();
   }, [jiraQuery, linkedPRsQuery]);
+
+  // Register data with detail modal
+  const { registerPRs, registerJiraIssues } = useDetailModal();
+  useEffect(() => {
+    if (jiraQuery.data) registerJiraIssues(jiraQuery.data.issues);
+  }, [jiraQuery.data, registerJiraIssues]);
+  useEffect(() => {
+    if (linkedPRsQuery.data) registerPRs(linkedPRsQuery.data.prs);
+  }, [linkedPRsQuery.data, registerPRs]);
 
   return (
     <div className="space-y-4">

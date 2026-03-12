@@ -27,6 +27,7 @@ import {
 // Select UI no longer needed for group-by (uses toggle buttons)
 import type { JiraIssue } from "../../../../server/src/types/jira";
 import type { PullRequest, ReviewStatusResult } from "../../../../server/src/types/pr";
+import { AppLink } from "@/components/shared/AppLink";
 
 // Cell-based card styling per group tbody (matches PRTable)
 const groupCardStyles = [
@@ -161,14 +162,13 @@ function PRLinkCell({ pr }: { pr: LinkedPR }) {
     <div>
       <div className="flex items-center gap-1">
         <PRStateIcon pr={pr} />
-        <a
+        <AppLink
           href={pr.url}
-          target="_blank"
-          rel="noopener noreferrer"
+          detail={{ type: "pr", url: pr.url }}
           className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
         >
           #{pr.number}
-        </a>
+        </AppLink>
         <span className="text-xs truncate max-w-[200px]">{pr.title}</span>
       </div>
       <span className="text-xs text-muted-foreground">{pr.repoOwner}/{pr.repoName}</span>
@@ -194,14 +194,13 @@ function IssueCells({
         </div>
       </TableCell>
       <TableCell rowSpan={rowSpan}>
-        <a
+        <AppLink
           href={issue.url}
-          target="_blank"
-          rel="noopener noreferrer"
+          detail={{ type: "jira", key: issue.key }}
           className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
         >
           {issue.key}
-        </a>
+        </AppLink>
       </TableCell>
       <TableCell rowSpan={rowSpan} className="max-w-md truncate text-sm">
         {issue.blocked && (
@@ -257,15 +256,13 @@ function NoPRCells({ issue, isPRsLoading }: { issue: JiraIssue; isPRsLoading: bo
         ) : (
           <div className="space-y-0.5">
             {issue.linkedPRUrls.map((url) => (
-              <a
+              <AppLink
                 key={url}
                 href={url}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
               >
                 {url.split("/").pop()}
-              </a>
+              </AppLink>
             ))}
             {isPRsLoading && (
               <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>

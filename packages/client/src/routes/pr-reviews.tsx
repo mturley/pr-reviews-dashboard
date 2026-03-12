@@ -1,6 +1,6 @@
 // PR Reviews route — full integration
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "../trpc";
@@ -24,6 +24,7 @@ import { ColumnCustomizer, useColumnConfig, type ColumnConfig } from "@/componen
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { LoadingProgress } from "@/components/shared/LoadingProgress";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { useDetailModal } from "@/components/detail-modal/DetailModalProvider";
 
 export default function PRReviews() {
   const configQuery = trpc.config.get.useQuery();
@@ -46,6 +47,12 @@ export default function PRReviews() {
     useAutoRefreshContext();
 
   const data = useProgressiveData({ refetchInterval });
+
+  // Register PR data with detail modal
+  const { registerPRs } = useDetailModal();
+  useEffect(() => {
+    if (data.prs.length > 0) registerPRs(data.prs);
+  }, [data.prs, registerPRs]);
 
   // Filtering
   const filteredPRs = useMemo(() => {
@@ -183,6 +190,13 @@ export default function PRReviews() {
     <div className="space-y-4">
       <LoadingProgress phases={allPhases} />
 
+      {data.githubError && (
+        <ErrorBanner message={`GitHub error: ${data.githubError.message}`} />
+      )}
+      {data.jiraError && (
+        <ErrorBanner message={`Jira error: ${data.jiraError.message}`} />
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           My PRs and Reviews
@@ -214,7 +228,7 @@ export default function PRReviews() {
             {data.rateLimitRemaining !== null && (
               <span title={data.rateLimitResetAt ? `Resets at ${new Date(data.rateLimitResetAt).toLocaleTimeString()}` : undefined}>
                 GitHub rate limit: {data.rateLimitRemaining}{data.rateLimitLimit ? ` / ${data.rateLimitLimit}` : ""}
-                {data.rateLimitResetAt && ` (resets ${new Date(data.rateLimitResetAt).toLocaleTimeString()})`}
+                {data.rateLimitResetAt && <> (resets in <LiveRelativeTime isoString={data.rateLimitResetAt} />)</>}
               </span>
             )}
           </div>
@@ -224,7 +238,7 @@ export default function PRReviews() {
             intervalMs={intervalMs}
             onIntervalChange={setIntervalMs}
             onManualRefresh={data.refetch}
-            lastRefreshedAt={data.githubFetchedAt}
+
             isFetching={data.isFetching}
           />
         </div>
@@ -244,13 +258,6 @@ export default function PRReviews() {
         setColumnConfig={setColumnConfig}
         availableRepos={availableRepos}
       />
-
-      {data.githubError && (
-        <ErrorBanner message={`GitHub error: ${data.githubError.message}`} />
-      )}
-      {data.jiraError && (
-        <ErrorBanner message={`Jira error: ${data.jiraError.message}`} />
-      )}
 
       <ActionsPanel actions={actions} />
 
@@ -310,9 +317,9 @@ function ViewOptionsBar({
       : allTeamMembers.find((m) => m.githubUsername === perspective)?.displayName ?? perspective;
 
   const filters: string[] = [];
-  if (viewState.filterActionNeeded) filters.push("action needed only");
-  if (!viewState.filterDraft) filters.push("no drafts");
-  if (viewState.ignoreOtherTeams) filters.push("team only");
+  if (viewState.filterActionNeeded) filters.push("Action needed only");
+  if (!viewState.filterDraft) filters.push("Ignore drafts");
+  if (viewState.ignoreOtherTeams) filters.push("Ignore PRs from other scrums");
   if (viewState.filterRepo.length > 0)
     filters.push(`${viewState.filterRepo.length} repo${viewState.filterRepo.length > 1 ? "s" : ""}`);
 
@@ -331,7 +338,7 @@ function ViewOptionsBar({
         </Button>
         <span className="text-xs text-muted-foreground">
           Viewing as <span className="font-medium text-foreground">{perspectiveName}</span>
-          {" · "}grouped by <span className="font-medium text-foreground">{GROUP_BY_LABELS[viewState.groupBy] ?? viewState.groupBy}</span>
+          {" · "}Grouped by <span className="font-medium text-foreground">{GROUP_BY_LABELS[viewState.groupBy] ?? viewState.groupBy}</span>
           {filters.length > 0 && (
             <>
               {" · "}
@@ -352,7 +359,6 @@ function ViewOptionsBar({
             value={viewState.groupBy}
             onChange={(v) => updateViewState({ groupBy: v })}
           />
-          <ColumnCustomizer columns={columnConfig} onColumnsChange={setColumnConfig} />
           <FilterBar
             actionNeeded={viewState.filterActionNeeded}
             onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
@@ -363,7 +369,9 @@ function ViewOptionsBar({
             repos={availableRepos}
             selectedRepos={viewState.filterRepo}
             onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}
-          />
+          >
+            <ColumnCustomizer columns={columnConfig} onColumnsChange={setColumnConfig} />
+          </FilterBar>
         </div>
       )}
     </div>
@@ -489,4 +497,27 @@ function groupByAction(prs: PullRequest[], reviewStatuses: Map<string, ReviewSta
     groups.push({ id: "no-action", label: "No Action Needed", prs: noAction, emptyMessage: "No PRs without actions" });
   }
   return groups;
+}
+
+function formatRelativeTime(isoString: string): string {
+  const diffMs = new Date(isoString).getTime() - Date.now();
+  if (diffMs <= 0) return "now";
+  const mins = Math.ceil(diffMs / 60_000);
+  if (mins < 60) return `${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  return remainMins > 0 ? `${hrs}h ${remainMins}m` : `${hrs}h`;
+}
+
+function LiveRelativeTime({ isoString }: { isoString: string }) {
+  const format = useCallback(() => formatRelativeTime(isoString), [isoString]);
+  const [text, setText] = useState(format);
+
+  useEffect(() => {
+    setText(format());
+    const id = setInterval(() => setText(format()), 60_000);
+    return () => clearInterval(id);
+  }, [format]);
+
+  return <>{text}</>;
 }

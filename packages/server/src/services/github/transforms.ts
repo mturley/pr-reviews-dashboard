@@ -1,6 +1,6 @@
 // T025: GitHub GraphQL response to typed PullRequest transforms
 
-import type { PullRequest, PRComment, Review, CheckStatus, ReviewState } from "../../types/pr.js";
+import type { PullRequest, PRComment, Review, CheckStatus, ReviewState, CommitInfo } from "../../types/pr.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GraphQLNode = any;
@@ -85,6 +85,16 @@ function extractPushDates(commitNodes: GraphQLNode[]): string[] {
   return [...dates].sort();
 }
 
+function extractCommits(commitNodes: GraphQLNode[]): CommitInfo[] {
+  return commitNodes
+    .filter((n: GraphQLNode) => n?.commit?.oid)
+    .map((n: GraphQLNode) => ({
+      oid: n.commit.oid,
+      message: n.commit.messageHeadline ?? "",
+      pushedDate: n.commit.pushedDate ?? n.commit.committedDate ?? "",
+    }));
+}
+
 export function transformPullRequest(node: GraphQLNode): PullRequest {
   // lastCommit uses the aliased field (with statusCheckRollup), falling back to commits
   const lastCommit = node.lastCommit?.nodes?.[0] ?? node.commits?.nodes?.[(node.commits?.nodes?.length ?? 1) - 1];
@@ -106,6 +116,7 @@ export function transformPullRequest(node: GraphQLNode): PullRequest {
     updatedAt: node.updatedAt,
     pushedAt: lastCommit?.commit?.pushedDate ?? lastCommit?.commit?.committedDate ?? node.updatedAt,
     pushDates: extractPushDates(allCommitNodes),
+    commits: extractCommits(allCommitNodes),
     headRefOid: node.headRefOid,
     labels: (node.labels?.nodes ?? []).map((l: GraphQLNode) => l.name),
     reviews: (node.reviews?.nodes ?? [])
