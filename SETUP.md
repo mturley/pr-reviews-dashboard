@@ -9,6 +9,28 @@ Detailed setup guide for the PR Reviews Dashboard. For an overview of features, 
 - GitHub Personal Access Token (no scopes needed for public repos; add `repo` scope for private repo access)
 - Jira Personal Access Token with read access to your project
 
+## Creating Access Tokens
+
+### GitHub Personal Access Token
+
+1. Go to [github.com/settings/tokens](https://github.com/settings/tokens) (Settings > Developer settings > Personal access tokens)
+2. Click **Generate new token** and choose **Fine-grained token** (recommended) or **Classic token**
+   - **Fine-grained token**: Select the organizations/repos you want to monitor. No additional permissions are needed for public repos. For private repos, grant **Repository access** > **Contents: Read-only**.
+   - **Classic token**: No scopes are needed for public repos. Check the `repo` scope for private repo access.
+3. Give the token a descriptive name (e.g. `pr-reviews-dashboard`) and set an expiration
+4. Copy the generated token — you won't be able to see it again
+
+### Jira Personal Access Token
+
+1. Log in to your Jira instance (e.g. [issues.redhat.com](https://issues.redhat.com))
+2. Click your profile avatar in the top-right corner and select **Profile**
+3. Click **Personal Access Tokens** in the left sidebar
+4. Click **Create token**
+5. Give it a name (e.g. `pr-reviews-dashboard`) and click **Create**
+6. Copy the generated token — you won't be able to see it again
+
+> **Note:** If your Jira instance uses a different authentication method, consult your Jira admin for instructions on generating a PAT.
+
 ## Installation
 
 ```bash
@@ -33,7 +55,7 @@ JIRA_HOST=issues.redhat.com
 
 ## Configuration
 
-On first run, the server creates a `config.local.json` at the repo root (gitignored). Edit it to match your team:
+On first run, the server creates a `config.local.json` at the repo root (gitignored). Edit it to match your team. Most of the configuration (everything except `githubIdentity` and `jiraIdentity` at the top) is shared across the team, so reach out to others on the team who are already using this app to get a copy of their `config.local.json` — you'll just need to replace the identity fields with your own usernames.
 
 ```json
 {
