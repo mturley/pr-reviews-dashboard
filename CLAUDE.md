@@ -28,6 +28,17 @@ TypeScript 5.x (strict mode): Follow standard conventions
 
 <!-- MANUAL ADDITIONS START -->
 
+## Architecture Documentation
+
+The file `ARCHITECTURE.md` documents the overall structure, data flow, design decisions, and key abstractions of the application. **When making changes that affect the architecture, update ARCHITECTURE.md to keep it accurate.** This includes changes to:
+
+- Project structure (adding/removing/moving packages, directories, or key files)
+- Data flow (loading phases, request flow, caching strategy)
+- Business logic design (review status, grouping, recommended actions)
+- Server or client architecture (providers, router structure, API integrations)
+- Type system (adding/changing shared types)
+- Key design decisions or tradeoffs
+
 ## "How It Works" Explainer
 
 The file `packages/client/src/components/actions-panel/HowItWorksPanel.tsx` contains a user-facing explanation of how PR inclusion, review status, action needed, and priority ordering work. **When modifying any of the following logic, you must also update HowItWorksPanel.tsx to keep the explanation accurate:**

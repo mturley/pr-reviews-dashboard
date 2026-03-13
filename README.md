@@ -27,7 +27,7 @@ pnpm dev
 # Open http://localhost:5173
 ```
 
-On first run, the server creates a `config.local.json` where you configure your team members, GitHub orgs, and Jira project. See [SETUP.md](SETUP.md) for detailed configuration, development commands, and troubleshooting.
+On first run, the server creates a `config.local.json` where you configure your team members, GitHub orgs, and Jira project. See [SETUP.md](SETUP.md) for detailed configuration, development commands, and troubleshooting. For a deep dive into the codebase structure, data flow, and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Views
 

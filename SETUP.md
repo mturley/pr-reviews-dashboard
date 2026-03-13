@@ -1,6 +1,6 @@
 # Setup & Configuration
 
-Detailed setup guide for the PR Reviews Dashboard. For an overview of features, see [README.md](README.md).
+Detailed setup guide for the PR Reviews Dashboard. For an overview of features, see [README.md](README.md). For codebase structure and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Prerequisites
 
