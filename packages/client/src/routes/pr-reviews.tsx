@@ -226,7 +226,7 @@ export default function PRReviews() {
             {data.rateLimitRemaining !== null && (
               <span title={data.rateLimitResetAt ? `Resets at ${new Date(data.rateLimitResetAt).toLocaleTimeString()}` : undefined}>
                 GitHub API: {data.rateLimitRemaining} requests remaining
-                {data.rateLimitResetAt && <> (resets in <LiveRelativeTime isoString={data.rateLimitResetAt} />)</>}
+                {data.rateLimitResetAt && <> (resets <LiveRelativeTime isoString={data.rateLimitResetAt} />)</>}
               </span>
             )}
           </div>
@@ -508,10 +508,10 @@ function formatRelativeTime(isoString: string): string {
   const diffMs = new Date(isoString).getTime() - Date.now();
   if (diffMs <= 0) return "now";
   const mins = Math.ceil(diffMs / 60_000);
-  if (mins < 60) return `${mins} min`;
+  if (mins < 60) return `in ${mins} min`;
   const hrs = Math.floor(mins / 60);
   const remainMins = mins % 60;
-  return remainMins > 0 ? `${hrs}h ${remainMins}m` : `${hrs}h`;
+  return remainMins > 0 ? `in ${hrs}h ${remainMins}m` : `in ${hrs}h`;
 }
 
 function LiveRelativeTime({ isoString }: { isoString: string }) {
