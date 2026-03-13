@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/table";
 import type { PRGroup } from "../../../../server/src/types/pr.js";
 import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
-import { columns, SORTABLE_COLUMNS, type PRRow } from "./columns";
+import { createColumns, SORTABLE_COLUMNS, type PRRow } from "./columns";
+import { useJiraHost } from "@/hooks/useJiraHost";
 
 // Cell-based card styling for each group tbody.
 // With border-separate, we apply borders and rounded corners on individual cells
@@ -46,11 +47,13 @@ interface PRTableProps {
 function CollapsibleGroup({
   group,
   rows,
+  columns,
   columnVisibility,
   sorting,
 }: {
   group: PRGroup;
   rows: PRRow[];
+  columns: ColumnDef<PRRow, unknown>[];
   columnVisibility: VisibilityState | undefined;
   sorting: SortingState;
 }) {
@@ -58,7 +61,7 @@ function CollapsibleGroup({
 
   const table = useReactTable({
     data: rows,
-    columns: columns as ColumnDef<PRRow, unknown>[],
+    columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     state: {
@@ -121,6 +124,9 @@ export function PRTable({
   isJiraLoading,
   visibleColumnIds,
 }: PRTableProps) {
+  const jiraHost = useJiraHost();
+  const columns = useMemo(() => createColumns(jiraHost), [jiraHost]);
+
   // User-selected sort (single column). Tiebreakers are added implicitly.
   const [userSort, setUserSort] = useState<SortingState>([
     { id: "action", desc: false },
@@ -231,6 +237,7 @@ export function PRTable({
               <CollapsibleGroup
                 group={group}
                 rows={rows}
+                columns={columns as ColumnDef<PRRow, unknown>[]}
                 columnVisibility={columnVisibility}
                 sorting={sorting}
               />

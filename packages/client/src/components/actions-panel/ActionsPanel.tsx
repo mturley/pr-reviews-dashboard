@@ -8,6 +8,7 @@ import { ReviewBreakdownTooltip } from "@/components/shared/ReviewBreakdownToolt
 import type { RecommendedAction, AuthorStatus, ReviewerStatus } from "../../../../server/src/types/pr";
 import { formatUsername } from "@/lib/bot-users";
 import { AppLink } from "@/components/shared/AppLink";
+import { useJiraHost } from "@/hooks/useJiraHost";
 
 function getActionVariant(status: AuthorStatus | ReviewerStatus): "success" | "warning" | "danger" | "info" | "neutral" | "purple" {
   switch (status) {
@@ -72,6 +73,7 @@ interface ActionsPanelProps {
 const MAX_COLLAPSED = 1;
 
 export function ActionsPanel({ actions }: ActionsPanelProps) {
+  const jiraHost = useJiraHost();
   const [expanded, setExpanded] = useState(false);
 
   if (actions.length === 0) return null;
@@ -170,7 +172,7 @@ export function ActionsPanel({ actions }: ActionsPanelProps) {
                     {action.epicKey && (
                       <>
                         <AppLink
-                          href={`https://issues.redhat.com/browse/${action.epicKey}`}
+                          href={`https://${jiraHost}/browse/${action.epicKey}`}
                           epicKey={action.epicKey}
                           className="shrink-0 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                         >

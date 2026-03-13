@@ -23,6 +23,7 @@ import { DiffViewer } from "./DiffViewer";
 import type { PullRequest, JiraIssueRef } from "../../../../server/src/types/pr";
 import type { JiraIssue } from "../../../../server/src/types/jira";
 import { formatUsername } from "@/lib/bot-users";
+import { useJiraHost } from "@/hooks/useJiraHost";
 
 // --- Types ---
 
@@ -90,6 +91,7 @@ const EMPTY_MODAL: ResolvedModalData = {
 // --- Provider ---
 
 export function DetailModalProvider({ children }: { children: ReactNode }) {
+  const jiraHost = useJiraHost();
   const [isOpen, setIsOpen] = useState(false);
   const [target, setTarget] = useState<DetailTarget | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -112,8 +114,8 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
   // Re-resolve the current modal target using latest data from refs
   const reResolve = useCallback(() => {
     if (!isOpenRef.current || !targetRef.current) return;
-    setResolved(resolveTarget(targetRef.current, prMapRef.current, jiraMapRef.current));
-  }, []);
+    setResolved(resolveTarget(targetRef.current, prMapRef.current, jiraMapRef.current, jiraHost));
+  }, [jiraHost]);
 
   const registerPRs = useCallback((prs: PullRequest[]) => {
     let changed = false;
@@ -144,14 +146,14 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
       // Guard against stale response if modal was reopened for a different target
       if (openKeyRef.current !== key) return;
       jiraMapRef.current.set(issue.key, issue);
-      setResolved(resolveJira(key, prMapRef.current, jiraMapRef.current));
+      setResolved(resolveJira(key, prMapRef.current, jiraMapRef.current, jiraHost));
     } catch (err) {
       if (openKeyRef.current !== key) return;
       setLoadError(err instanceof Error ? err.message : "Failed to load Jira issue");
     } finally {
       if (openKeyRef.current === key) setLoadingJira(false);
     }
-  }, [utils]);
+  }, [utils, jiraHost]);
 
   const upgradePartialJiraTabs = useCallback(async (data: ResolvedModalData) => {
     const partialTabs = data.tabs.filter(
@@ -239,7 +241,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
   // Resolve data at open time — snapshot refs into state for rendering
   const open = useCallback((t: DetailTarget) => {
-    const data = resolveTarget(t, prMapRef.current, jiraMapRef.current);
+    const data = resolveTarget(t, prMapRef.current, jiraMapRef.current, jiraHost);
     openKeyRef.current = t.type === "jira" ? t.key : t.type === "pr" ? t.url : null;
     targetRef.current = t;
     isOpenRef.current = true;
@@ -260,7 +262,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
     // Fetch any missing PR data in the background
     fetchMissingPRs(data, openKeyRef.current);
-  }, [fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs]);
+  }, [fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs, jiraHost]);
 
   const close = useCallback(() => {
     isOpenRef.current = false;
@@ -348,7 +350,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
               <div className="flex items-center gap-3 mb-3">
                 <a
                   href={activeTab.type === "jira-detail"
-                    ? (activeTab as JiraTab).issue.url ?? `https://issues.redhat.com/browse/${activeTab.label}`
+                    ? (activeTab as JiraTab).issue.url ?? `https://${jiraHost}/browse/${activeTab.label}`
                     : activeTab.type === "pr-detail"
                       ? activeTab.pr.url
                       : "#"}
@@ -365,7 +367,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 <Button variant="outline" size="sm" asChild className="shrink-0">
                   <a
                     href={activeTab.type === "jira-detail"
-                      ? (activeTab as JiraTab).issue.url ?? `https://issues.redhat.com/browse/${activeTab.label}`
+                      ? (activeTab as JiraTab).issue.url ?? `https://${jiraHost}/browse/${activeTab.label}`
                       : activeTab.type === "pr-detail"
                         ? activeTab.pr.url
                         : "#"}
@@ -389,7 +391,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                   if (idx >= 0) {
                     setActiveTabIndex(idx);
                   } else {
-                    window.open(`https://issues.redhat.com/browse/${t.key}`, "_blank", "noopener,noreferrer");
+                    window.open(`https://${jiraHost}/browse/${t.key}`, "_blank", "noopener,noreferrer");
                   }
                 }}
               />
@@ -499,10 +501,11 @@ function resolveJira(
   key: string,
   prMap: Map<string, PullRequest>,
   jiraMap: Map<string, JiraIssue>,
+  jiraHost: string,
 ): ResolvedModalData {
   const issue = jiraMap.get(key);
   if (!issue) {
-    return { tabs: [], title: key, subtitle: "", headerIcon: null, externalUrl: `https://issues.redhat.com/browse/${key}` };
+    return { tabs: [], title: key, subtitle: "", headerIcon: null, externalUrl: `https://${jiraHost}/browse/${key}` };
   }
 
   // Resolve full PullRequest objects for linked PR URLs
@@ -535,9 +538,10 @@ function resolveTarget(
   target: DetailTarget,
   prMap: Map<string, PullRequest>,
   jiraMap: Map<string, JiraIssue>,
+  jiraHost: string,
 ): ResolvedModalData {
   if (target.type === "pr") return resolvePR(target.url, prMap, jiraMap);
-  return resolveJira(target.key, prMap, jiraMap);
+  return resolveJira(target.key, prMap, jiraMap, jiraHost);
 }
 
 function PRStateIcon({ state, isDraft, size = "h-5 w-5" }: { state: string; isDraft: boolean; size?: string }) {

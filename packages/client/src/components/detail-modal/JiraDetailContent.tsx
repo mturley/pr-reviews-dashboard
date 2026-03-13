@@ -13,6 +13,7 @@ import { AppLink } from "../shared/AppLink";
 import { JiraMarkupInline } from "../shared/JiraMarkup";
 import { formatUsername } from "@/lib/bot-users";
 import { JiraIssueExtras } from "./JiraIssueExtras";
+import { useJiraHost } from "@/hooks/useJiraHost";
 
 type JiraData = JiraIssue | JiraIssueRef;
 
@@ -39,6 +40,7 @@ interface JiraDetailContentProps {
 }
 
 export function JiraDetailContent({ issue, isPartial, isLoading, resolvedPRs, onNavigatePR }: JiraDetailContentProps) {
+  const jiraHost = useJiraHost();
   const full = isFullIssue(issue) ? issue : null;
 
   return (
@@ -128,7 +130,7 @@ export function JiraDetailContent({ issue, isPartial, isLoading, resolvedPRs, on
           <div className="flex items-center gap-2 text-sm">
             <span className="text-green-600 dark:text-green-400">⚡</span>
             <AppLink
-              href={`https://issues.redhat.com/browse/${issue.epicKey}`}
+              href={`https://${jiraHost}/browse/${issue.epicKey}`}
               epicKey={issue.epicKey}
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >

@@ -68,7 +68,8 @@ function ActionIcon({ action }: { action: string }) {
 
 export const SORTABLE_COLUMNS = new Set(["action", "age", "updated", "reviewStatus", "jiraPriority", "jiraState"]);
 
-export const columns = [
+export function createColumns(jiraHost: string) {
+return [
   columnHelper.accessor((row) => row.reviewStatus.priority ?? 999, {
     id: "action",
     header: "Action Needed",
@@ -251,7 +252,7 @@ export const columns = [
           <TooltipTrigger asChild>
             <div>
               <AppLink
-                href={`https://issues.redhat.com/browse/${epicKey}`}
+                href={`https://${jiraHost}/browse/${epicKey}`}
                 epicKey={epicKey}
                 className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
               >
@@ -271,3 +272,4 @@ export const columns = [
     },
   }),
 ];
+}
