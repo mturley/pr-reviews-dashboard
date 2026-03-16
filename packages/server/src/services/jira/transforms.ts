@@ -4,10 +4,69 @@ import type { JiraIssue } from "../../types/jira.js";
 import type { JiraPriority } from "../../types/pr.js";
 import type { JiraFieldMapping } from "../../types/config.js";
 import type { JiraRawIssue } from "./client.js";
+import { adfToMarkdown } from "./adf-to-markdown.js";
+
+/**
+ * Extract plain text from an Atlassian Document Format (ADF) object.
+ * Used for fields where we need plain text (not markdown).
+ */
+function extractAdfText(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const n = node as Record<string, unknown>;
+  if (n.type === "text" && typeof n.text === "string") return n.text;
+  if (Array.isArray(n.content)) {
+    return n.content.map(extractAdfText).join("");
+  }
+  return "";
+}
+
+/**
+ * Parse a rich text field that may be a string or ADF object.
+ * Returns markdown for ADF content, or the original string.
+ */
+function parseRichText(rawValue: unknown): string | null {
+  if (!rawValue) return null;
+  if (typeof rawValue === "string") return rawValue;
+  // ADF object from API v3 — convert to markdown
+  if (typeof rawValue === "object" && rawValue !== null) {
+    return adfToMarkdown(rawValue) ?? (extractAdfText(rawValue) || null);
+  }
+  return null;
+}
+
+/**
+ * Extract link URLs from an ADF node tree.
+ * Jira Cloud stores the Git Pull Request field as an ADF document
+ * where each URL is a text node with a "link" mark containing an href.
+ */
+function extractAdfLinks(node: unknown): string[] {
+  if (!node || typeof node !== "object") return [];
+  const n = node as Record<string, unknown>;
+  const urls: string[] = [];
+  // Check for link marks on text nodes
+  if (Array.isArray(n.marks)) {
+    for (const mark of n.marks) {
+      if (mark?.type === "link" && mark?.attrs?.href) {
+        urls.push(String(mark.attrs.href));
+      }
+    }
+  }
+  // Recurse into content array
+  if (Array.isArray(n.content)) {
+    for (const child of n.content) {
+      urls.push(...extractAdfLinks(child));
+    }
+  }
+  return urls;
+}
 
 function parsePRUrls(rawValue: unknown): string[] {
   if (!rawValue) return [];
-  // Jira returns the Git Pull Request field as an array of URL strings
+  // Jira Cloud returns the PR field as an ADF document with link marks
+  if (typeof rawValue === "object" && rawValue !== null && "type" in rawValue) {
+    return extractAdfLinks(rawValue);
+  }
+  // Legacy: array of URL strings
   if (Array.isArray(rawValue)) {
     return rawValue.filter((v): v is string => typeof v === "string" && v.length > 0);
   }
@@ -87,13 +146,13 @@ export function transformJiraIssue(
     storyPoints: fields[fieldMapping.storyPoints] ?? null,
     originalStoryPoints: fields[fieldMapping.originalStoryPoints] ?? null,
     blocked: parseBlocked(fields[fieldMapping.blocked]),
-    blockedReason: fields[fieldMapping.blockedReason] ?? null,
+    blockedReason: parseRichText(fields[fieldMapping.blockedReason]),
     labels: Array.isArray(fields.labels) ? fields.labels : [],
     activityType: parseActivityType(fields[fieldMapping.activityType]),
     reporter: fields.reporter?.displayName ?? null,
     createdAt: fields.created ?? null,
     updatedAt: fields.updated ?? null,
-    description: fields.description ?? null,
+    description: parseRichText(fields.description),
     linkedPRUrls: parsePRUrls(fields[fieldMapping.gitPullRequest]),
     linkedPRs: [],
   };

@@ -7,6 +7,7 @@ import { jiraSearch, jiraRequest, type JiraRawIssue } from "../services/jira/cli
 import { buildSprintDiscoveryJQL, buildSprintIssuesJQL, buildEpicIssuesJQL } from "../services/jira/queries.js";
 import { getRequiredFields } from "../services/jira/field-map.js";
 import { transformJiraIssue } from "../services/jira/transforms.js";
+import { adfToMarkdown } from "../services/jira/adf-to-markdown.js";
 import { cached } from "../services/cache.js";
 
 export const jiraRouter = router({
@@ -127,7 +128,7 @@ export const jiraRouter = router({
 
         // Fetch epic summary
         const epicData = await jiraRequest<{ fields: { summary: string } }>(
-          jiraHost, jiraEmail, jiraToken, `/rest/api/2/issue/${input.epicKey}`,
+          jiraHost, jiraEmail, jiraToken, `/rest/api/3/issue/${input.epicKey}`,
           { fields: "summary" },
         );
         console.log(`[progress] jira.getEpicIssues: done, ${issues.length} issues`);
@@ -158,7 +159,7 @@ export const jiraRouter = router({
           const fields = getRequiredFields(config.jiraFieldMapping);
           const raw = await jiraRequest<JiraRawIssue>(
             jiraHost, jiraEmail, jiraToken,
-            `/rest/api/2/issue/${input.key}`,
+            `/rest/api/3/issue/${input.key}`,
             { fields: fields.join(",") },
           );
           const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
@@ -167,7 +168,7 @@ export const jiraRouter = router({
             try {
               const epicData = await jiraRequest<{ fields: { summary: string } }>(
                 jiraHost, jiraEmail, jiraToken,
-                `/rest/api/2/issue/${issue.epicKey}`,
+                `/rest/api/3/issue/${issue.epicKey}`,
                 { fields: "summary" },
               );
               issue.epicSummary = epicData.fields.summary;
@@ -202,17 +203,17 @@ export const jiraRouter = router({
             comments: Array<{
               id: string;
               author: { accountId: string; displayName: string };
-              body: string;
+              body: unknown;
               created: string;
               updated: string;
             }>;
-          }>(jiraHost, jiraEmail, jiraToken, `/rest/api/2/issue/${input.key}/comment`);
+          }>(jiraHost, jiraEmail, jiraToken, `/rest/api/3/issue/${input.key}/comment`);
 
           const comments = (data.comments ?? []).map((c) => ({
             id: c.id,
             author: c.author?.accountId ?? "unknown",
             authorDisplayName: c.author?.displayName ?? "Unknown",
-            body: c.body ?? "",
+            body: (typeof c.body === "object" ? adfToMarkdown(c.body) : String(c.body ?? "")) ?? "",
             created: c.created,
             updated: c.updated,
           }));

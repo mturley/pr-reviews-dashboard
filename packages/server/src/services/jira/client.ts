@@ -69,6 +69,8 @@ export async function jiraRequest<T>(
   }
 
   if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    console.error(`[debug] Jira ${response.status} on ${url.pathname}: ${body.slice(0, 500)}`);
     throw new Error(`Jira API error: ${response.status} ${response.statusText}`);
   }
 
@@ -93,7 +95,7 @@ export async function jiraSearch(
   fields: string[],
   maxResults = 100,
 ): Promise<JiraSearchResponse> {
-  return jiraRequest<JiraSearchResponse>(host, email, token, "/rest/api/2/search", {
+  return jiraRequest<JiraSearchResponse>(host, email, token, "/rest/api/3/search/jql", {
     jql,
     fields: fields.join(","),
     maxResults: String(maxResults),
