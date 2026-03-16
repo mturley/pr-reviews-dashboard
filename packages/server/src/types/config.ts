@@ -3,7 +3,7 @@
 export interface TeamMember {
   displayName: string;
   githubUsername: string;
-  jiraUsername: string;
+  jiraAccountId: string;
   email: string;
 }
 
@@ -20,7 +20,7 @@ export interface JiraFieldMapping {
 
 export interface DashboardConfig {
   githubIdentity: string;
-  jiraIdentity: string;
+  jiraAccountId: string;
   teamName: string;
   githubOrgs: string[];
   jiraProjectKey: string;

@@ -13,12 +13,16 @@ export function getLastJiraRateLimit(): JiraRateLimit {
 
 export async function jiraRequest<T>(
   host: string,
+  email: string,
   token: string,
   path: string,
   params?: Record<string, string>,
 ): Promise<T> {
   if (!token) {
     throw new Error("JIRA_TOKEN is not configured");
+  }
+  if (!email) {
+    throw new Error("JIRA_EMAIL is not configured");
   }
   if (!host) {
     throw new Error("JIRA_HOST is not configured");
@@ -31,9 +35,10 @@ export async function jiraRequest<T>(
     }
   }
 
+  const basicAuth = Buffer.from(`${email}:${token}`).toString("base64");
   const response = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Basic ${basicAuth}`,
       "Content-Type": "application/json",
     },
   });
@@ -82,12 +87,13 @@ export type JiraRawIssue = Record<string, any>;
 
 export async function jiraSearch(
   host: string,
+  email: string,
   token: string,
   jql: string,
   fields: string[],
   maxResults = 100,
 ): Promise<JiraSearchResponse> {
-  return jiraRequest<JiraSearchResponse>(host, token, "/rest/api/2/search", {
+  return jiraRequest<JiraSearchResponse>(host, email, token, "/rest/api/2/search", {
     jql,
     fields: fields.join(","),
     maxResults: String(maxResults),

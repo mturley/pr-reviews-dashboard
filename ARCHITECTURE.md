@@ -174,9 +174,9 @@ Rate limits are tracked from both HTTP headers and GraphQL response bodies. The 
 
 ### Jira Integration
 
-Uses the Jira REST API v2 with Bearer token authentication. Sprint discovery works by searching for issues in open sprints and matching the team name in sprint labels. Custom field IDs are configurable via `config.local.json` (defaults are for Red Hat's Jira instance).
+Uses the Jira Cloud REST API v2 with Basic authentication (email + API token). Sprint discovery works by searching for issues in open sprints and matching the team name in sprint labels. Custom field IDs are configurable via `config.local.json` (defaults are for Red Hat's Jira Cloud instance).
 
-Sprint data parsing handles both Jira Data Center string format (`id=12345,name=Sprint 42,...`) and array format.
+Sprint data is parsed from the Cloud format (array of objects with `id`, `name`, `state` fields).
 
 ## Client Architecture
 

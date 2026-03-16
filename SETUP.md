@@ -7,7 +7,7 @@ Detailed setup guide for the PR Reviews Dashboard. For an overview of features, 
 - Node.js 20+
 - pnpm 9+ (`npm install -g pnpm`)
 - GitHub Personal Access Token (no scopes needed for public repos; add `repo` scope for private repo access)
-- Jira Personal Access Token with read access to your project
+- Jira Cloud API token and email address
 
 ## Creating Access Tokens
 
@@ -20,16 +20,12 @@ Detailed setup guide for the PR Reviews Dashboard. For an overview of features, 
 3. Give the token a descriptive name (e.g. `pr-reviews-dashboard`) and set an expiration
 4. Copy the generated token — you won't be able to see it again
 
-### Jira Personal Access Token
+### Jira Cloud API Token
 
-1. Log in to your Jira instance (e.g. [issues.redhat.com](https://issues.redhat.com))
-2. Click your profile avatar in the top-right corner and select **Profile**
-3. Click **Personal Access Tokens** in the left sidebar
-4. Click **Create token**
-5. Give it a name (e.g. `pr-reviews-dashboard`) and click **Create**
-6. Copy the generated token — you won't be able to see it again
-
-> **Note:** If your Jira instance uses a different authentication method, consult your Jira admin for instructions on generating a PAT.
+1. Go to [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Click **Create API token**
+3. Give it a label (e.g. `pr-reviews-dashboard`) and click **Create**
+4. Copy the generated token — you won't be able to see it again
 
 ## Installation
 
@@ -38,16 +34,18 @@ pnpm install
 cp .env.example .env
 ```
 
-Edit `.env` with your tokens:
+Edit `.env` with your credentials:
 
 ```bash
 # Required: GitHub Personal Access Token
 # No scopes needed for public repos. Add "repo" scope for private repo access.
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 
-# Required: Jira
-JIRA_TOKEN=your-jira-personal-access-token
-JIRA_HOST=issues.redhat.com
+# Required: Jira Cloud API Token and email
+# Create an API token at https://id.atlassian.com/manage-profile/security/api-tokens
+JIRA_EMAIL=your-email@example.com
+JIRA_TOKEN=your-jira-api-token
+JIRA_HOST=redhat.atlassian.net
 
 # Optional: Override default config file path
 # CONFIG_PATH=./config.local.json
@@ -55,12 +53,12 @@ JIRA_HOST=issues.redhat.com
 
 ## Configuration
 
-On first run, the server creates a `config.local.json` at the repo root (gitignored). Edit it to match your team. Most of the configuration (everything except `githubIdentity` and `jiraIdentity` at the top) is shared across the team, so reach out to others on the team who are already using this app to get a copy of their `config.local.json` — you'll just need to replace the identity fields with your own usernames.
+On first run, the server creates a `config.local.json` at the repo root (gitignored). Edit it to match your team. Most of the configuration (everything except `githubIdentity` and `jiraAccountId` at the top) is shared across the team, so reach out to others on the team who are already using this app to get a copy of their `config.local.json` — you'll just need to replace the identity fields with your own values.
 
 ```json
 {
   "githubIdentity": "your-github-username",
-  "jiraIdentity": "your-jira-username",
+  "jiraAccountId": "your-jira-account-id",
   "teamName": "My Team",
   "githubOrgs": ["my-org", "another-org"],
   "jiraProjectKey": "MYPROJECT",
@@ -72,18 +70,18 @@ On first run, the server creates a `config.local.json` at the repo root (gitigno
     {
       "displayName": "Jane Doe",
       "githubUsername": "janedoe",
-      "jiraUsername": "jdoe",
+      "jiraAccountId": "abc123def456",
       "email": "jdoe@example.com"
     }
   ],
   "jiraFieldMapping": {
-    "gitPullRequest": "customfield_12310220",
-    "sprint": "customfield_12310940",
-    "storyPoints": "customfield_12310243",
-    "originalStoryPoints": "customfield_12314040",
-    "epicLink": "customfield_12311140",
-    "blocked": "customfield_12316543",
-    "blockedReason": "customfield_12316544"
+    "gitPullRequest": "customfield_10875",
+    "sprint": "customfield_10020",
+    "storyPoints": "customfield_10028",
+    "originalStoryPoints": "customfield_10977",
+    "epicLink": "customfield_10014",
+    "blocked": "customfield_10517",
+    "blockedReason": "customfield_10483"
   }
 }
 ```
@@ -91,19 +89,25 @@ On first run, the server creates a `config.local.json` at the repo root (gitigno
 | Field | Description |
 |-------|-------------|
 | `githubIdentity` | Your GitHub username (determines "My PRs" vs "PRs I'm Reviewing") |
-| `jiraIdentity` | Your Jira username |
+| `jiraAccountId` | Your Jira Cloud account ID (used for activity timeline queries) |
 | `githubOrgs` | GitHub organizations to search for team PRs |
 | `jiraProjectKey` | Jira project key (e.g. `MYPROJECT`) |
 | `jiraComponentName` | Jira component to filter sprint issues (leave empty for all) |
 | `sprintDiscoveryLabel` | Label used to discover active sprint issues |
-| `teamMembers` | Array of team members with GitHub/Jira usernames |
+| `teamMembers` | Array of team members with GitHub usernames and Jira account IDs |
 | `jiraFieldMapping` | Maps semantic field names to Jira custom field IDs (see below) |
 | `autoRefreshIntervalMs` | Auto-refresh interval in milliseconds (default: 5 minutes) |
 | `staleThresholdDays` | PRs older than this are highlighted as stale (default: 14) |
 
 ### Jira custom field IDs
 
-The default `jiraFieldMapping` values are for Red Hat's Jira instance. If you use a different Jira instance, discover your field IDs via `GET /rest/api/2/field` and update accordingly.
+The default `jiraFieldMapping` values are for Red Hat's Jira Cloud instance. If you use a different Jira instance, discover your field IDs via `GET /rest/api/2/field` and update accordingly.
+
+### Finding your Jira account ID
+
+Your Jira account ID is an opaque string (e.g. `5a148dfe1121d32de39e72a1`). You can find it by:
+- Looking at the URL when viewing your Jira profile: `https://your-instance.atlassian.net/jira/people/<accountId>`
+- Using the Jira REST API: `GET /rest/api/2/myself`
 
 ## Development
 
@@ -152,7 +156,7 @@ packages/
 
 **GitHub rate limit errors**: The dashboard shows remaining rate limit in the UI. If you hit limits, reduce `autoRefreshIntervalMs` or disable auto-refresh.
 
-**Jira authentication fails**: Verify `JIRA_HOST` is the domain only (e.g. `issues.redhat.com`, not `https://issues.redhat.com`). Verify the PAT has not expired.
+**Jira authentication fails**: Verify `JIRA_HOST` is the domain only (e.g. `redhat.atlassian.net`, not `https://redhat.atlassian.net`). Verify `JIRA_EMAIL` is the email associated with your Atlassian account. Verify the API token has not expired.
 
 **No sprint data**: Ensure `sprintDiscoveryLabel` matches a label on your team's sprint issues, and that `jiraProjectKey` and `jiraComponentName` are correct.
 

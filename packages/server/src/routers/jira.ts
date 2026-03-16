@@ -11,7 +11,7 @@ import { cached } from "../services/cache.js";
 
 export const jiraRouter = router({
   getSprintIssues: publicProcedure.query(async ({ ctx }) => {
-    const { config, jiraToken, jiraHost } = ctx;
+    const { config, jiraEmail, jiraToken, jiraHost } = ctx;
 
     if (!jiraToken || !jiraHost) {
       throw new TRPCError({
@@ -33,7 +33,7 @@ export const jiraRouter = router({
         if (teamName) {
           console.log(`[progress] jira.getSprintIssues: discovering sprint for team "${teamName}"`);
           const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
-          const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
+          const discoveryResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
           for (const raw of discoveryResponse.issues) {
             const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
             if (issue.sprintName?.toLowerCase().includes(teamName.toLowerCase())) {
@@ -48,7 +48,7 @@ export const jiraRouter = router({
         // Step 2: Fetch issues for the specific sprint (or all open sprints as fallback)
         console.log("[progress] jira.getSprintIssues: fetching sprint issues");
         const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
-        const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
+        const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, fields);
 
         const issues = response.issues.map((raw) =>
           transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
@@ -61,7 +61,7 @@ export const jiraRouter = router({
           console.log(`[progress] jira.getSprintIssues: enriching ${epicKeys.length} epic summaries`);
           const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
           try {
-            const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
             const epicMap = new Map<string, string>();
             for (const raw of epicResponse.issues) {
               epicMap.set(raw.key, raw.fields?.summary ?? "");
@@ -80,7 +80,7 @@ export const jiraRouter = router({
         const sprintId = targetSprintId ?? issues.find((i) => i.sprintId)?.sprintId ?? 0;
         const sprintUrl = sprintId
           ? config.jiraRapidViewId
-            ? `https://${jiraHost}/secure/RapidBoard.jspa?rapidView=${config.jiraRapidViewId}&sprint=${sprintId}`
+            ? `https://${jiraHost}/jira/software/projects/${config.jiraProjectKey}/boards/${config.jiraRapidViewId}?sprint=${sprintId}`
             : `https://${jiraHost}/issues/?jql=${encodeURIComponent(`sprint = ${sprintId}`)}`
           : null;
 
@@ -111,7 +111,7 @@ export const jiraRouter = router({
       includeClosedResolved: z.boolean().default(true),
     }))
     .query(async ({ ctx, input }) => {
-      const { config, jiraToken, jiraHost } = ctx;
+      const { config, jiraEmail, jiraToken, jiraHost } = ctx;
       if (!jiraToken || !jiraHost) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
       }
@@ -120,14 +120,14 @@ export const jiraRouter = router({
         console.log(`[progress] jira.getEpicIssues: fetching issues for epic ${input.epicKey}`);
         const jql = buildEpicIssuesJQL(input.epicKey, input.includeClosedResolved);
         const fields = getRequiredFields(config.jiraFieldMapping);
-        const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
+        const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, fields);
         const issues = response.issues.map((raw) =>
           transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
         );
 
         // Fetch epic summary
         const epicData = await jiraRequest<{ fields: { summary: string } }>(
-          jiraHost, jiraToken, `/rest/api/2/issue/${input.epicKey}`,
+          jiraHost, jiraEmail, jiraToken, `/rest/api/2/issue/${input.epicKey}`,
           { fields: "summary" },
         );
         console.log(`[progress] jira.getEpicIssues: done, ${issues.length} issues`);
@@ -146,7 +146,7 @@ export const jiraRouter = router({
   getIssue: publicProcedure
     .input(z.object({ key: z.string() }))
     .query(async ({ ctx, input }) => {
-      const { config, jiraToken, jiraHost } = ctx;
+      const { config, jiraEmail, jiraToken, jiraHost } = ctx;
       if (!jiraToken || !jiraHost) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
       }
@@ -157,7 +157,7 @@ export const jiraRouter = router({
           console.log(`[progress] jira.getIssue: fetching ${input.key}`);
           const fields = getRequiredFields(config.jiraFieldMapping);
           const raw = await jiraRequest<JiraRawIssue>(
-            jiraHost, jiraToken,
+            jiraHost, jiraEmail, jiraToken,
             `/rest/api/2/issue/${input.key}`,
             { fields: fields.join(",") },
           );
@@ -166,7 +166,7 @@ export const jiraRouter = router({
           if (issue.epicKey) {
             try {
               const epicData = await jiraRequest<{ fields: { summary: string } }>(
-                jiraHost, jiraToken,
+                jiraHost, jiraEmail, jiraToken,
                 `/rest/api/2/issue/${issue.epicKey}`,
                 { fields: "summary" },
               );
@@ -189,7 +189,7 @@ export const jiraRouter = router({
   getIssueComments: publicProcedure
     .input(z.object({ key: z.string() }))
     .query(async ({ ctx, input }) => {
-      const { jiraToken, jiraHost } = ctx;
+      const { jiraEmail, jiraToken, jiraHost } = ctx;
       if (!jiraToken || !jiraHost) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
       }
@@ -201,16 +201,16 @@ export const jiraRouter = router({
           const data = await jiraRequest<{
             comments: Array<{
               id: string;
-              author: { name: string; displayName: string };
+              author: { accountId: string; displayName: string };
               body: string;
               created: string;
               updated: string;
             }>;
-          }>(jiraHost, jiraToken, `/rest/api/2/issue/${input.key}/comment`);
+          }>(jiraHost, jiraEmail, jiraToken, `/rest/api/2/issue/${input.key}/comment`);
 
           const comments = (data.comments ?? []).map((c) => ({
             id: c.id,
-            author: c.author?.name ?? "unknown",
+            author: c.author?.accountId ?? "unknown",
             authorDisplayName: c.author?.displayName ?? "Unknown",
             body: c.body ?? "",
             created: c.created,
@@ -227,9 +227,9 @@ export const jiraRouter = router({
 
   // T062: Jira activity events
   getActivity: publicProcedure
-    .input(z.object({ username: z.string(), days: z.number().min(1).max(30).default(7) }))
+    .input(z.object({ accountId: z.string(), days: z.number().min(1).max(30).default(7) }))
     .query(async ({ ctx, input }) => {
-      const { config, jiraToken, jiraHost } = ctx;
+      const { config, jiraEmail, jiraToken, jiraHost } = ctx;
       if (!jiraToken || !jiraHost) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
       }
@@ -237,11 +237,11 @@ export const jiraRouter = router({
       const since = new Date(new Date().setHours(0, 0, 0, 0) - (input.days - 1) * 24 * 60 * 60 * 1000);
       const sinceStr = since.toISOString().split("T")[0];
       const epicLinkField = config.jiraFieldMapping.epicLink;
-      const jql = `project = "${config.jiraProjectKey}" AND updated >= "${sinceStr}" AND (assignee = "${input.username}" OR reporter = "${input.username}")`;
+      const jql = `project = "${config.jiraProjectKey}" AND updated >= "${sinceStr}" AND (assignee = "${input.accountId}" OR reporter = "${input.accountId}")`;
 
       try {
-        console.log(`[progress] jira.getActivity: fetching activity for ${input.username} (${input.days} days)`);
-        const response = await jiraSearch(jiraHost, jiraToken, jql, [
+        console.log(`[progress] jira.getActivity: fetching activity for ${input.accountId} (${input.days} days)`);
+        const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, [
           "summary", "status", "issuetype", "updated", "created", "assignee", epicLinkField,
         ]);
 
@@ -257,7 +257,7 @@ export const jiraRouter = router({
         if (epicKeys.size > 0) {
           try {
             const epicJql = [...epicKeys].map((k) => `key = "${k}"`).join(" OR ");
-            const epicResponse = await jiraSearch(jiraHost, jiraToken, epicJql, ["summary"], epicKeys.size);
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary"], epicKeys.size);
             for (const raw of epicResponse.issues) {
               epicMap.set(raw.key, raw.fields?.summary ?? "");
             }
@@ -283,8 +283,8 @@ export const jiraRouter = router({
             id: `${issue.key}-updated`,
             source: "jira",
             timestamp: fields.updated ?? fields.created ?? new Date().toISOString(),
-            actor: fields.assignee?.name ?? input.username,
-            actorDisplayName: fields.assignee?.displayName ?? input.username,
+            actor: fields.assignee?.accountId ?? input.accountId,
+            actorDisplayName: fields.assignee?.displayName ?? input.accountId,
             actionType: "issue_status_changed",
             targetType: "issue",
             targetKey: `https://${jiraHost}/browse/${issue.key}`,
@@ -309,7 +309,7 @@ export const jiraRouter = router({
 
   // Debug: inspect sprint query results and PR linking
   debugPRLinks: publicProcedure.query(async ({ ctx }) => {
-    const { config, jiraToken, jiraHost } = ctx;
+    const { config, jiraEmail, jiraToken, jiraHost } = ctx;
     if (!jiraToken || !jiraHost) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
     }
@@ -323,7 +323,7 @@ export const jiraRouter = router({
 
     if (teamName) {
       const discoveryJql = buildSprintDiscoveryJQL(config.jiraProjectKey, config.jiraComponentName);
-      const discoveryResponse = await jiraSearch(jiraHost, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
+      const discoveryResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, discoveryJql, [config.jiraFieldMapping.sprint], 50);
       for (const raw of discoveryResponse.issues) {
         const issue = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);
         if (issue.sprintName && !allSprintNames.includes(issue.sprintName)) {
@@ -339,7 +339,7 @@ export const jiraRouter = router({
     // Step 2: Query the specific sprint
     const jql = buildSprintIssuesJQL(config.jiraProjectKey, config.jiraComponentName, targetSprintId);
     const fields = getRequiredFields(config.jiraFieldMapping);
-    const response = await jiraSearch(jiraHost, jiraToken, jql, fields);
+    const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, fields);
 
     const issues = response.issues.map((raw) => {
       const transformed = transformJiraIssue(raw, jiraHost, config.jiraFieldMapping);

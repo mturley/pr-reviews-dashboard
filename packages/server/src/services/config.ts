@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DEFAULT_CONFIG: DashboardConfig = {
   githubIdentity: "",
-  jiraIdentity: "",
+  jiraAccountId: "",
   teamName: "My Team",
   githubOrgs: [],
   jiraProjectKey: "",
@@ -18,14 +18,14 @@ const DEFAULT_CONFIG: DashboardConfig = {
   sprintDiscoveryLabel: "",
   teamMembers: [],
   jiraFieldMapping: {
-    gitPullRequest: "customfield_12310220",
-    sprint: "customfield_12310940",
-    storyPoints: "customfield_12310243",
-    originalStoryPoints: "customfield_12314040",
-    epicLink: "customfield_12311140",
-    blocked: "customfield_12316543",
-    blockedReason: "customfield_12316544",
-    activityType: "customfield_12320040",
+    gitPullRequest: "customfield_10875",
+    sprint: "customfield_10020",
+    storyPoints: "customfield_10028",
+    originalStoryPoints: "customfield_10977",
+    epicLink: "customfield_10014",
+    blocked: "customfield_10517",
+    blockedReason: "customfield_10483",
+    activityType: "customfield_10904",
   },
   jiraRapidViewId: null,
   autoRefreshIntervalMs: 300_000,
@@ -40,7 +40,7 @@ function getConfigPath(): string {
 // A self-documenting initial config written on first run
 const INITIAL_CONFIG_CONTENT = `{
   "githubIdentity": "your-github-username",
-  "jiraIdentity": "your-jira-username",
+  "jiraAccountId": "your-jira-account-id",
   "teamName": "My Team",
   "githubOrgs": ["your-org"],
   "jiraProjectKey": "MYPROJECT",
@@ -53,18 +53,18 @@ const INITIAL_CONFIG_CONTENT = `{
     {
       "displayName": "Your Name",
       "githubUsername": "your-github-username",
-      "jiraUsername": "your-jira-username",
+      "jiraAccountId": "your-jira-account-id",
       "email": "you@example.com"
     }
   ],
   "jiraFieldMapping": {
-    "gitPullRequest": "customfield_12310220",
-    "sprint": "customfield_12310940",
-    "storyPoints": "customfield_12310243",
-    "originalStoryPoints": "customfield_12314040",
-    "epicLink": "customfield_12311140",
-    "blocked": "customfield_12316543",
-    "blockedReason": "customfield_12316544"
+    "gitPullRequest": "customfield_10875",
+    "sprint": "customfield_10020",
+    "storyPoints": "customfield_10028",
+    "originalStoryPoints": "customfield_10977",
+    "epicLink": "customfield_10014",
+    "blocked": "customfield_10517",
+    "blockedReason": "customfield_10483"
   }
 }
 `;

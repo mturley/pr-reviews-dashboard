@@ -29,8 +29,9 @@ function parseActivityType(rawValue: unknown): string | null {
 
 function parseBlocked(rawValue: unknown): boolean {
   if (!rawValue) return false;
-  if (typeof rawValue === "object" && rawValue !== null && "value" in rawValue) {
-    return (rawValue as { value: string }).value === "True";
+  // Jira Cloud returns {id: "10852"} for True, {id: "10853"} for False
+  if (typeof rawValue === "object" && rawValue !== null && "id" in rawValue) {
+    return String((rawValue as { id: string }).id) === "10852";
   }
   return false;
 }
@@ -38,23 +39,9 @@ function parseBlocked(rawValue: unknown): boolean {
 function parseSprint(rawValue: unknown): { name: string | null; id: number | null } {
   if (!rawValue) return { name: null, id: null };
 
-  // Jira Datacenter returns sprint as a string like:
-  // "com.atlassian.greenhopper.service.sprint.Sprint@...[id=12345,name=Sprint 42,...]"
-  if (typeof rawValue === "string") {
-    const nameMatch = rawValue.match(/name=([^,\]]+)/);
-    const idMatch = rawValue.match(/id=(\d+)/);
-    return {
-      name: nameMatch ? nameMatch[1] : null,
-      id: idMatch ? parseInt(idMatch[1], 10) : null,
-    };
-  }
-
-  // If it's an array (Jira returns array of sprints), take the last one (active)
+  // Jira Cloud returns an array of sprint objects: [{id, name, state, ...}]
   if (Array.isArray(rawValue) && rawValue.length > 0) {
     const sprint = rawValue[rawValue.length - 1];
-    if (typeof sprint === "string") {
-      return parseSprint(sprint);
-    }
     if (typeof sprint === "object" && sprint !== null) {
       return {
         name: sprint.name ?? null,
@@ -92,7 +79,7 @@ export function transformJiraIssue(
     priority: jiraPriority,
     state: fields.status?.name ?? "Unknown",
     assignee: fields.assignee?.displayName ?? null,
-    assigneeUsername: fields.assignee?.name ?? null,
+    assigneeAccountId: fields.assignee?.accountId ?? null,
     sprintName: sprint.name,
     sprintId: sprint.id,
     epicKey: fields[fieldMapping.epicLink] ?? null,

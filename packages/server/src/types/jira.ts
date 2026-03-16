@@ -13,7 +13,7 @@ export interface JiraIssue {
   priority: JiraPriority;
   state: string;
   assignee: string | null;
-  assigneeUsername: string | null;
+  assigneeAccountId: string | null;
   sprintName: string | null;
   sprintId: number | null;
   epicKey: string | null;

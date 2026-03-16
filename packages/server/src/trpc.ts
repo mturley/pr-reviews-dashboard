@@ -7,6 +7,7 @@ import type { DashboardConfig } from "./types/config.js";
 export interface TRPCContext {
   config: DashboardConfig;
   githubToken: string;
+  jiraEmail: string;
   jiraToken: string;
   jiraHost: string;
 }
@@ -16,6 +17,7 @@ export async function createContext(): Promise<TRPCContext> {
   return {
     config,
     githubToken: process.env.GITHUB_TOKEN ?? "",
+    jiraEmail: process.env.JIRA_EMAIL ?? "",
     jiraToken: process.env.JIRA_TOKEN ?? "",
     jiraHost: process.env.JIRA_HOST ?? "",
   };

@@ -246,8 +246,8 @@ export default function ActivityTimeline() {
     { enabled: !!username, refetchInterval },
   );
   const jiraActivity = trpc.jira.getActivity.useQuery(
-    { username: configQuery.data?.config.jiraIdentity ?? "", days },
-    { enabled: !!configQuery.data?.config.jiraIdentity, refetchInterval },
+    { accountId: configQuery.data?.config.jiraAccountId ?? "", days },
+    { enabled: !!configQuery.data?.config.jiraAccountId, refetchInterval },
   );
 
   const refetch = useCallback(() => {
