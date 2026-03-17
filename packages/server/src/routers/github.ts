@@ -327,6 +327,43 @@ export const githubRouter = router({
           });
         }
 
+        const reviews = pr.reviews as { nodes: Array<{ author: { login: string } | null; state: string; submittedAt: string | null }> } | undefined;
+        if (reviews?.nodes) {
+          for (const review of reviews.nodes) {
+            const reviewAuthor = review.author?.login;
+            if (reviewAuthor === input.username && review.submittedAt) {
+              const stateLabel = review.state === "APPROVED" ? "Approved"
+                : review.state === "CHANGES_REQUESTED" ? "Changes requested"
+                : review.state === "COMMENTED" ? "Commented"
+                : review.state === "DISMISSED" ? "Dismissed"
+                : review.state;
+              events.push({
+                id: `${pr.id}-review-${review.submittedAt}`, source: "github", timestamp: review.submittedAt,
+                actor: reviewAuthor, actorDisplayName: reviewAuthor,
+                actionType: "pr_reviewed", targetType: "review",
+                targetKey: url, targetTitle: title, detail: stateLabel,
+                prState, prAuthor: author,
+              });
+            }
+          }
+        }
+
+        const comments = pr.comments as { nodes: Array<{ author: { login: string } | null; createdAt: string }> } | undefined;
+        if (comments?.nodes) {
+          for (const comment of comments.nodes) {
+            const commentAuthor = comment.author?.login;
+            if (commentAuthor === input.username && comment.createdAt) {
+              events.push({
+                id: `${pr.id}-comment-${comment.createdAt}`, source: "github", timestamp: comment.createdAt,
+                actor: commentAuthor, actorDisplayName: commentAuthor,
+                actionType: "pr_commented", targetType: "comment",
+                targetKey: url, targetTitle: title, detail: repoName,
+                prState, prAuthor: author,
+              });
+            }
+          }
+        }
+
         const commits = pr.commits as { nodes: Array<{ commit: { oid: string; pushedDate: string | null; committedDate: string | null; author: { user: { login: string } | null } | null } }> } | undefined;
         if (commits?.nodes) {
           for (const { commit } of commits.nodes) {

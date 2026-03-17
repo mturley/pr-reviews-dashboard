@@ -207,13 +207,10 @@ function convertTable(node: AdfNode): string {
   if (rows.length === 0) return "";
 
   const mdRows: string[][] = [];
-  let isFirstRowHeader = false;
-
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
     const cells: string[] = [];
     for (const cell of row.content ?? []) {
-      if (r === 0 && cell.type === "tableHeader") isFirstRowHeader = true;
       const cellText = (cell.content ?? [])
         .map((child) => {
           if (child.type === "paragraph") {
