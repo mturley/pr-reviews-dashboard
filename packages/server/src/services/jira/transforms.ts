@@ -43,6 +43,13 @@ function extractAdfLinks(node: unknown): string[] {
   if (!node || typeof node !== "object") return [];
   const n = node as Record<string, unknown>;
   const urls: string[] = [];
+  // Check for inlineCard nodes (Jira Cloud Smart Links)
+  if (n.type === "inlineCard") {
+    const attrs = n.attrs as Record<string, unknown> | undefined;
+    if (attrs?.url) {
+      urls.push(String(attrs.url));
+    }
+  }
   // Check for link marks on text nodes
   if (Array.isArray(n.marks)) {
     for (const mark of n.marks) {
