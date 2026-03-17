@@ -32,6 +32,7 @@ const PR_FRAGMENT = `
       nodes {
         author { login }
         state
+        body
         submittedAt
         commit { oid }
         comments { totalCount }

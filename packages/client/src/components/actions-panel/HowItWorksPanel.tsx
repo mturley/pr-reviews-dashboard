@@ -65,7 +65,10 @@ export function HowItWorksPanel() {
             <ul className="list-disc list-outside space-y-1 ml-6">
               <li>
                 <B label="New Feedback" variant="danger" /> — Reviewers have
-                submitted reviews or comments since your last push. Address their feedback.
+                submitted reviews or comments since your last push that require your attention.
+                Positive signals like approvals, <code className="text-xs bg-muted px-1 rounded">/lgtm</code>,
+                and <code className="text-xs bg-muted px-1 rounded">/approve</code> commands are not
+                counted as feedback. Bot reviews are also excluded.
               </li>
               <li>
                 <B label="WIP" variant="warning" /> — PR is marked as a draft or has the{" "}

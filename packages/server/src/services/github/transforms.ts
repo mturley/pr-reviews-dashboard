@@ -12,6 +12,7 @@ function transformReview(node: GraphQLNode): Review {
     submittedAt: node.submittedAt ?? "",
     commitOid: node.commit?.oid ?? "",
     commentCount: node.comments?.totalCount ?? 0,
+    body: node.body ?? "",
   };
 }
 

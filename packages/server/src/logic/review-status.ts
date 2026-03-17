@@ -8,6 +8,7 @@ import type {
   ReviewerBreakdownEntry,
   CommentAction,
   Review,
+  PRComment,
 } from "../types/pr.js";
 
 const BOT_USERNAMES = new Set([
@@ -20,7 +21,8 @@ const BOT_USERNAMES = new Set([
 ]);
 
 function isBot(username: string): boolean {
-  return BOT_USERNAMES.has(username.toLowerCase());
+  const lower = username.toLowerCase();
+  return BOT_USERNAMES.has(lower) || lower.endsWith("[bot]");
 }
 
 function getLatestReviewPerUser(reviews: Review[]): Map<string, Review> {
@@ -58,12 +60,14 @@ function buildReviewerBreakdown(
   const entries: ReviewerBreakdownEntry[] = [];
 
   for (const [username, review] of latestReviews) {
+    const reviewAction = review.state === "COMMENTED" ? detectCommentAction(review.body) : undefined;
     entries.push({
       username,
       state: review.state,
       submittedAt: review.submittedAt,
       hasNewCommitsSince: review.commitOid !== pr.headRefOid,
       source: "review",
+      commentAction: reviewAction,
     });
   }
 
@@ -98,12 +102,32 @@ function buildReviewerBreakdown(
   return entries;
 }
 
+/** Returns true if a review or comment represents a positive signal (not feedback requiring action). */
+function isPositiveSignal(review: Review): boolean;
+function isPositiveSignal(comment: PRComment): boolean;
+function isPositiveSignal(item: Review | PRComment): boolean {
+  if ("state" in item) {
+    // Review: APPROVED is positive, COMMENTED with /lgtm or /approve body is positive
+    if (item.state === "APPROVED") return true;
+    if (item.state === "COMMENTED") {
+      const action = detectCommentAction(item.body);
+      return action === "LGTM" || action === "APPROVE";
+    }
+    return false;
+  }
+  // Comment: /lgtm or /approve is positive
+  const action = detectCommentAction(item.body);
+  return action === "LGTM" || action === "APPROVE";
+}
+
 function countFeedbackSinceLastPush(pr: PullRequest): number {
   const reviews = pr.reviews.filter(
-    (r) => r.state !== "PENDING" && !isBot(r.author) && r.submittedAt > pr.pushedAt,
+    (r) => r.state !== "PENDING" && !isBot(r.author) && r.submittedAt > pr.pushedAt
+      && !isPositiveSignal(r),
   ).length;
   const comments = pr.comments.filter(
-    (c) => c.author !== pr.author && !isBot(c.author) && c.createdAt > pr.pushedAt,
+    (c) => c.author !== pr.author && !isBot(c.author) && c.createdAt > pr.pushedAt
+      && !isPositiveSignal(c),
   ).length;
   return reviews + comments;
 }

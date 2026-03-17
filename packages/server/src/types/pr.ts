@@ -9,6 +9,7 @@ export interface Review {
   submittedAt: string;
   commitOid: string;
   commentCount: number;
+  body: string;
 }
 
 export interface PRComment {

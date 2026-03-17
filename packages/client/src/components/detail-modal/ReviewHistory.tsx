@@ -31,6 +31,8 @@ function getEntryBadge(entry: ReviewerBreakdownEntry): { label: string; variant:
     case "CHANGES_REQUESTED":
       return { label: "Changes requested", variant: "danger" };
     case "COMMENTED":
+      if (entry.commentAction === "LGTM") return { label: "/lgtm", variant: "success" };
+      if (entry.commentAction === "APPROVE") return { label: "/approve", variant: "success" };
       return { label: "Commented", variant: "neutral" };
     case "DISMISSED":
       return { label: "Dismissed", variant: "neutral" };
