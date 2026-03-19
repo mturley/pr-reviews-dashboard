@@ -5,10 +5,12 @@ import {
   Tag,
 } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { SlackThreadIndicator } from "@/components/shared/SlackThreadIndicator";
 import type { PullRequest, JiraIssueRef } from "../../../../server/src/types/pr";
 import { computeReviewStatus } from "../../../../server/src/logic/review-status";
 import { formatUsername } from "@/lib/bot-users";
 import { trpc } from "@/trpc";
+import { useSlackThreads } from "@/hooks/useSlackThreads";
 import { ReviewHistory } from "./ReviewHistory";
 import { PRExtras } from "./PRExtras";
 
@@ -81,6 +83,8 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
   const configQuery = trpc.config.get.useQuery();
   const viewer = configQuery.data?.config?.githubIdentity ?? "";
   const reviewStatus = computeReviewStatus(pr, viewer);
+  const { threadsByUrl, slackEnabled } = useSlackThreads([pr.url]);
+  const slackThreads = threadsByUrl[pr.url] ?? [];
 
   return (
     <div className="space-y-6">
@@ -167,6 +171,36 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
             <div className="space-y-1.5">
               {pr.linkedJiraIssues.map((issue) => (
                 <JiraRefRow key={issue.key} issue={issue} onClick={() => onNavigate(issue)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Slack threads */}
+        {slackEnabled && slackThreads.length > 0 && (
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-1.5">
+              Slack Threads
+              <SlackThreadIndicator threads={slackThreads} />
+            </h3>
+            <div className="space-y-1.5">
+              {slackThreads.map((thread) => (
+                <a
+                  key={`${thread.channelId}:${thread.messageTs}`}
+                  href={thread.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-sm hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-blue-600 dark:text-blue-400">#{thread.channelName}</span>
+                    <span className="text-xs text-muted-foreground">by {thread.author}</span>
+                    {thread.replyCount > 0 && (
+                      <span className="text-xs text-muted-foreground">({thread.replyCount} replies)</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{thread.snippet}</p>
+                </a>
               ))}
             </div>
           </div>

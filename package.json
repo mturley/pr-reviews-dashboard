@@ -8,7 +8,8 @@
     "start": "pnpm --filter server start",
     "test": "pnpm --parallel --filter './packages/*' test",
     "lint": "pnpm --parallel --filter './packages/*' lint",
-    "typecheck": "pnpm --parallel --filter './packages/*' typecheck"
+    "typecheck": "pnpm --parallel --filter './packages/*' typecheck",
+    "setup:google": "npx tsx scripts/setup-google.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

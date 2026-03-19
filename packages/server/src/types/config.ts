@@ -18,6 +18,19 @@ export interface JiraFieldMapping {
   activityType: string;
 }
 
+export interface IntegrationSettings {
+  slack?: { enabled: boolean };
+  google?: { enabled: boolean };
+}
+
+export interface GoogleAccountConfig {
+  label: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  calendarIds?: string[];
+}
+
 export interface DashboardConfig {
   githubIdentity: string;
   jiraAccountId: string;
@@ -31,4 +44,7 @@ export interface DashboardConfig {
   jiraRapidViewId: number | null;
   autoRefreshIntervalMs: number;
   staleThresholdDays: number;
+  integrations?: IntegrationSettings;
+  googleAccounts?: GoogleAccountConfig[];
+  slackWatchedChannels?: string[];
 }

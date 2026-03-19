@@ -27,6 +27,7 @@ import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { LoadingProgress } from "@/components/shared/LoadingProgress";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { useDetailModal } from "@/components/detail-modal/DetailModalProvider";
+import { useSlackThreads } from "@/hooks/useSlackThreads";
 
 export default function PRReviews() {
   const configQuery = trpc.config.get.useQuery();
@@ -49,6 +50,10 @@ export default function PRReviews() {
     useAutoRefreshContext();
 
   const data = useProgressiveData({ refetchInterval });
+
+  // Slack thread linking — collect PR URLs for Slack search
+  const prUrls = useMemo(() => data.prs.map((pr) => pr.url), [data.prs]);
+  const { threadsByUrl: slackThreadsByUrl } = useSlackThreads(prUrls);
 
   // Register PR data with detail modal
   const { registerPRs } = useDetailModal();
@@ -273,6 +278,7 @@ export default function PRReviews() {
           reviewStatuses={reviewStatuses}
           isJiraLoading={data.isJiraLoading}
           visibleColumnIds={visibleColumnIds}
+          slackThreadsByUrl={Object.keys(slackThreadsByUrl).length > 0 ? slackThreadsByUrl : undefined}
         />
       )}
     </div>

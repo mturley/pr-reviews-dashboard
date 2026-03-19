@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import type { PRGroup } from "../../../../server/src/types/pr.js";
 import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
+import type { SlackThread } from "../../../../server/src/types/slack.js";
 import { createColumns, SORTABLE_COLUMNS, type PRRow } from "./columns";
 import { useJiraHost } from "@/hooks/useJiraHost";
 
@@ -42,6 +43,7 @@ interface PRTableProps {
   reviewStatuses: Map<string, ReviewStatusResult>;
   isJiraLoading?: boolean;
   visibleColumnIds?: string[];
+  slackThreadsByUrl?: Record<string, SlackThread[]>;
 }
 
 function CollapsibleGroup({
@@ -123,9 +125,10 @@ export function PRTable({
   reviewStatuses,
   isJiraLoading,
   visibleColumnIds,
+  slackThreadsByUrl,
 }: PRTableProps) {
   const jiraHost = useJiraHost();
-  const columns = useMemo(() => createColumns(jiraHost), [jiraHost]);
+  const columns = useMemo(() => createColumns(jiraHost, slackThreadsByUrl), [jiraHost, slackThreadsByUrl]);
 
   // User-selected sort (single column). Tiebreakers are added implicitly.
   const [userSort, setUserSort] = useState<SortingState>([

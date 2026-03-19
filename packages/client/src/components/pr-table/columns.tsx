@@ -4,8 +4,10 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { GitPullRequest, GitMerge, CircleDot, CircleDashed, MessageSquareWarning, CircleX, Eye, PenLine } from "lucide-react";
 import type { PullRequest } from "../../../../server/src/types/pr.js";
 import type { ReviewStatusResult } from "../../../../server/src/types/pr.js";
+import type { SlackThread } from "../../../../server/src/types/slack.js";
 import { ReviewStatusCell } from "./ReviewStatusCell";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { SlackThreadIndicator } from "@/components/shared/SlackThreadIndicator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { formatUsername } from "@/lib/bot-users";
 import { AppLink } from "@/components/shared/AppLink";
@@ -68,7 +70,7 @@ function ActionIcon({ action }: { action: string }) {
 
 export const SORTABLE_COLUMNS = new Set(["action", "age", "updated", "reviewStatus", "jiraPriority", "jiraState"]);
 
-export function createColumns(jiraHost: string) {
+export function createColumns(jiraHost: string, slackThreadsByUrl?: Record<string, SlackThread[]>) {
 return [
   columnHelper.accessor((row) => row.reviewStatus.priority ?? 999, {
     id: "action",
@@ -271,5 +273,17 @@ return [
       );
     },
   }),
+
+  // Slack thread indicator — only populated when Slack integration is enabled
+  ...(slackThreadsByUrl ? [columnHelper.accessor((row) => (slackThreadsByUrl[row.pr.url] ?? []).length, {
+    id: "slack",
+    header: "Slack",
+    enableSorting: false,
+    cell: (info) => {
+      const threads = slackThreadsByUrl[info.row.original.pr.url] ?? [];
+      if (threads.length === 0) return <span className="text-xs text-muted-foreground">-</span>;
+      return <SlackThreadIndicator threads={threads} />;
+    },
+  })] : []),
 ];
 }

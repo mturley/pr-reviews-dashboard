@@ -10,10 +10,12 @@ import type { JiraIssue } from "../../../../server/src/types/jira";
 import type { JiraIssueRef } from "../../../../server/src/types/pr";
 import type { PullRequest } from "../../../../server/src/types/pr";
 import { AppLink } from "../shared/AppLink";
+import { SlackThreadIndicator } from "../shared/SlackThreadIndicator";
 import { JiraMarkupInline } from "../shared/JiraMarkup";
 import { formatUsername } from "@/lib/bot-users";
 import { JiraIssueExtras } from "./JiraIssueExtras";
 import { useJiraHost } from "@/hooks/useJiraHost";
+import { useSlackThreads } from "@/hooks/useSlackThreads";
 
 type JiraData = JiraIssue | JiraIssueRef;
 
@@ -42,6 +44,9 @@ interface JiraDetailContentProps {
 export function JiraDetailContent({ issue, isPartial, isLoading, resolvedPRs, onNavigatePR }: JiraDetailContentProps) {
   const jiraHost = useJiraHost();
   const full = isFullIssue(issue) ? issue : null;
+  const issueUrl = `https://${jiraHost}/browse/${issue.key}`;
+  const { threadsByUrl, slackEnabled } = useSlackThreads([issueUrl]);
+  const slackThreads = threadsByUrl[issueUrl] ?? [];
 
   return (
     <div className="space-y-5">
@@ -182,6 +187,36 @@ export function JiraDetailContent({ issue, isPartial, isLoading, resolvedPRs, on
                 className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
               >
                 {url.split("/").pop()}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Slack threads */}
+      {slackEnabled && slackThreads.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-muted-foreground mb-1.5">
+            Slack Threads
+            <SlackThreadIndicator threads={slackThreads} />
+          </h3>
+          <div className="space-y-1.5">
+            {slackThreads.map((thread) => (
+              <a
+                key={`${thread.channelId}:${thread.messageTs}`}
+                href={thread.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-sm hover:bg-muted/50 rounded px-2 py-1.5 -mx-2 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-blue-600 dark:text-blue-400">#{thread.channelName}</span>
+                  <span className="text-xs text-muted-foreground">by {thread.author}</span>
+                  {thread.replyCount > 0 && (
+                    <span className="text-xs text-muted-foreground">({thread.replyCount} replies)</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">{thread.snippet}</p>
               </a>
             ))}
           </div>

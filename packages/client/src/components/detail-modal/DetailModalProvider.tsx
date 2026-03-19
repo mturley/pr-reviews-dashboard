@@ -19,11 +19,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PRDetailContent } from "./PRDetailContent";
 import { JiraDetailContent } from "./JiraDetailContent";
+import { ContextHubContent } from "./ContextHubContent";
 import { DiffViewer } from "./DiffViewer";
 import type { PullRequest, JiraIssueRef } from "../../../../server/src/types/pr";
 import type { JiraIssue } from "../../../../server/src/types/jira";
 import { formatUsername } from "@/lib/bot-users";
 import { useJiraHost } from "@/hooks/useJiraHost";
+import { useIntegrationStatus } from "@/hooks/useIntegrationStatus";
 
 // --- Types ---
 
@@ -70,7 +72,14 @@ interface JiraTab {
   resolvedPRs?: PullRequest[];
 }
 
-type Tab = PRTab | PRDiffTab | JiraTab;
+interface ContextTab {
+  type: "context";
+  label: string;
+  targetUrls: string[];
+  targetType: "pr" | "jira";
+}
+
+type Tab = PRTab | PRDiffTab | JiraTab | ContextTab;
 
 interface ResolvedModalData {
   tabs: Tab[];
@@ -90,8 +99,49 @@ const EMPTY_MODAL: ResolvedModalData = {
 
 // --- Provider ---
 
+function injectContextTab(data: ResolvedModalData, target: DetailTarget, jiraHost: string, anyIntegrationEnabled: boolean): ResolvedModalData {
+  if (!anyIntegrationEnabled || data.tabs.length === 0) return data;
+
+  const targetUrls: string[] = [];
+  if (target.type === "pr") {
+    // Include PR URL and linked Jira issue URLs
+    targetUrls.push(data.externalUrl);
+    for (const tab of data.tabs) {
+      if (tab.type === "jira-detail" && tab.label !== "Details") {
+        targetUrls.push(`https://${jiraHost}/browse/${tab.label}`);
+      }
+    }
+  } else {
+    // Include Jira issue URL and linked PR URLs
+    targetUrls.push(data.externalUrl);
+    for (const tab of data.tabs) {
+      if (tab.type === "pr-detail" && tab.label !== "Details") {
+        targetUrls.push(tab.pr.url);
+      }
+    }
+  }
+
+  const contextTab: ContextTab = {
+    type: "context",
+    label: "Context",
+    targetUrls,
+    targetType: target.type,
+  };
+
+  // Insert Context tab after the main detail tabs but before linked items
+  // For PRs: after "Files Changed" (index 1), before linked Jira tabs
+  // For Jira: after "Details" (index 0), before linked PR tabs
+  const insertIndex = target.type === "pr" ? 2 : 1;
+  const tabs = [...data.tabs];
+  tabs.splice(Math.min(insertIndex, tabs.length), 0, contextTab);
+
+  return { ...data, tabs };
+}
+
 export function DetailModalProvider({ children }: { children: ReactNode }) {
   const jiraHost = useJiraHost();
+  const { slackEnabled, googleEnabled } = useIntegrationStatus();
+  const anyIntegrationEnabled = slackEnabled || googleEnabled;
   const [isOpen, setIsOpen] = useState(false);
   const [target, setTarget] = useState<DetailTarget | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -114,8 +164,9 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
   // Re-resolve the current modal target using latest data from refs
   const reResolve = useCallback(() => {
     if (!isOpenRef.current || !targetRef.current) return;
-    setResolved(resolveTarget(targetRef.current, prMapRef.current, jiraMapRef.current, jiraHost));
-  }, [jiraHost]);
+    const data = resolveTarget(targetRef.current, prMapRef.current, jiraMapRef.current, jiraHost);
+    setResolved(injectContextTab(data, targetRef.current, jiraHost, anyIntegrationEnabled));
+  }, [jiraHost, anyIntegrationEnabled]);
 
   const registerPRs = useCallback((prs: PullRequest[]) => {
     let changed = false;
@@ -146,14 +197,16 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
       // Guard against stale response if modal was reopened for a different target
       if (openKeyRef.current !== key) return;
       jiraMapRef.current.set(issue.key, issue);
-      setResolved(resolveJira(key, prMapRef.current, jiraMapRef.current, jiraHost));
+      const jiraTarget: DetailTarget = { type: "jira", key };
+      const rawData = resolveJira(key, prMapRef.current, jiraMapRef.current, jiraHost);
+      setResolved(injectContextTab(rawData, jiraTarget, jiraHost, anyIntegrationEnabled));
     } catch (err) {
       if (openKeyRef.current !== key) return;
       setLoadError(err instanceof Error ? err.message : "Failed to load Jira issue");
     } finally {
       if (openKeyRef.current === key) setLoadingJira(false);
     }
-  }, [utils, jiraHost]);
+  }, [utils, jiraHost, anyIntegrationEnabled]);
 
   const upgradePartialJiraTabs = useCallback(async (data: ResolvedModalData) => {
     const partialTabs = data.tabs.filter(
@@ -241,7 +294,8 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
   // Resolve data at open time — snapshot refs into state for rendering
   const open = useCallback((t: DetailTarget) => {
-    const data = resolveTarget(t, prMapRef.current, jiraMapRef.current, jiraHost);
+    const rawData = resolveTarget(t, prMapRef.current, jiraMapRef.current, jiraHost);
+    const data = injectContextTab(rawData, t, jiraHost, anyIntegrationEnabled);
     openKeyRef.current = t.type === "jira" ? t.key : t.type === "pr" ? t.url : null;
     targetRef.current = t;
     isOpenRef.current = true;
@@ -262,7 +316,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
     // Fetch any missing PR data in the background
     fetchMissingPRs(data, openKeyRef.current);
-  }, [fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs, jiraHost]);
+  }, [fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs, jiraHost, anyIntegrationEnabled]);
 
   const close = useCallback(() => {
     isOpenRef.current = false;
@@ -403,6 +457,12 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 onSplitViewChange={setSplitView}
                 hideWhitespace={hideWhitespace}
                 onHideWhitespaceChange={setHideWhitespace}
+              />
+            )}
+            {activeTab?.type === "context" && (
+              <ContextHubContent
+                targetUrls={activeTab.targetUrls}
+                targetType={activeTab.targetType}
               />
             )}
             {activeTab?.type === "jira-detail" && (
@@ -552,6 +612,9 @@ function PRStateIcon({ state, isDraft, size = "h-5 w-5" }: { state: string; isDr
 }
 
 function TabLabel({ tab }: { tab: Tab }) {
+  if (tab.type === "context") {
+    return <>Context</>;
+  }
   if (tab.type === "jira-detail" && tab.label !== "Details") {
     const jTab = tab as JiraTab;
     return (

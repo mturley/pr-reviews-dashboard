@@ -10,6 +10,7 @@ export interface TRPCContext {
   jiraEmail: string;
   jiraToken: string;
   jiraHost: string;
+  slackToken: string;
 }
 
 export async function createContext(): Promise<TRPCContext> {
@@ -20,6 +21,7 @@ export async function createContext(): Promise<TRPCContext> {
     jiraEmail: process.env.JIRA_EMAIL ?? "",
     jiraToken: process.env.JIRA_TOKEN ?? "",
     jiraHost: process.env.JIRA_HOST ?? "",
+    slackToken: process.env.SLACK_USER_TOKEN ?? "",
   };
 }
 

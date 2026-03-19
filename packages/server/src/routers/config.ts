@@ -26,4 +26,17 @@ export const configRouter = router({
       const saved = await saveConfig(updated);
       return { config: saved };
     }),
+
+  getIntegrationStatus: publicProcedure.query(async ({ ctx }) => {
+    const slackAvailable = !!ctx.slackToken;
+    const slackEnabled = slackAvailable && ctx.config.integrations?.slack?.enabled !== false;
+
+    const googleAvailable = (ctx.config.googleAccounts ?? []).length > 0;
+    const googleEnabled = googleAvailable && ctx.config.integrations?.google?.enabled !== false;
+
+    return {
+      slack: { available: slackAvailable, enabled: slackEnabled },
+      google: { available: googleAvailable, enabled: googleEnabled },
+    };
+  }),
 });
