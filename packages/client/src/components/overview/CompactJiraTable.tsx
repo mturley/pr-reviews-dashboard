@@ -1,6 +1,7 @@
 // Compact Jira issue table for Overview cards
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReviewStatusCell } from "@/components/pr-table/ReviewStatusCell";
 import { AppLink } from "@/components/shared/AppLink";
@@ -22,6 +23,7 @@ interface CompactJiraTableProps {
   viewer: string;
   hideAssignee?: boolean;
   isPRsLoading?: boolean;
+  maxItems?: number;
 }
 
 function CompactPRCell({ pr }: { pr: LinkedPR }) {
@@ -67,44 +69,71 @@ export function CompactJiraTable({
   viewer,
   hideAssignee,
   isPRsLoading = false,
+  maxItems = 10,
 }: CompactJiraTableProps) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = issues.length > maxItems;
+  const visibleIssues = expanded ? issues : issues.slice(0, maxItems);
+
   const prsByIssueKey = useMemo(
     () => buildLinkedPRMap(issues, linkedPRs, viewer),
     [issues, linkedPRs, viewer],
   );
 
   return (
-    <Table className="border-separate border-spacing-0">
-      <TableHeader>
-        <TableRow className="border-none hover:bg-transparent">
-          <TableHead className="border-none text-xs">Type</TableHead>
-          <TableHead className="border-none text-xs">Key</TableHead>
-          <TableHead className="border-none text-xs">Summary</TableHead>
-          <TableHead className="border-none text-xs">Priority</TableHead>
-          {!hideAssignee && <TableHead className="border-none text-xs">Assignee</TableHead>}
-          <TableHead className="border-none text-xs">Status</TableHead>
-          <TableHead className="border-none text-xs">Linked PRs</TableHead>
-          <TableHead className="border-none text-xs">Review Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {issues.map((issue) => {
-          const issuePRs = prsByIssueKey.get(issue.key) ?? [];
-          const rowCount = Math.max(issuePRs.length, 1);
+    <div>
+      <Table className="border-separate border-spacing-0">
+        <TableHeader>
+          <TableRow className="border-none hover:bg-transparent">
+            <TableHead className="border-none text-xs">Type</TableHead>
+            <TableHead className="border-none text-xs">Key</TableHead>
+            <TableHead className="border-none text-xs">Summary</TableHead>
+            <TableHead className="border-none text-xs">Priority</TableHead>
+            {!hideAssignee && <TableHead className="border-none text-xs">Assignee</TableHead>}
+            <TableHead className="border-none text-xs">Status</TableHead>
+            <TableHead className="border-none text-xs">Linked PRs</TableHead>
+            <TableHead className="border-none text-xs">Review Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {visibleIssues.map((issue) => {
+            const issuePRs = prsByIssueKey.get(issue.key) ?? [];
+            const rowCount = Math.max(issuePRs.length, 1);
 
-          return (
-            <IssueRows
-              key={issue.key}
-              issue={issue}
-              linkedPRs={issuePRs}
-              rowCount={rowCount}
-              hideAssignee={hideAssignee}
-              isPRsLoading={isPRsLoading}
-            />
-          );
-        })}
-      </TableBody>
-    </Table>
+            return (
+              <IssueRows
+                key={issue.key}
+                issue={issue}
+                linkedPRs={issuePRs}
+                rowCount={rowCount}
+                hideAssignee={hideAssignee}
+                isPRsLoading={isPRsLoading}
+              />
+            );
+          })}
+        </TableBody>
+      </Table>
+      {!expanded && hasMore && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded(true)}
+          className="mt-1 h-7 text-xs text-muted-foreground"
+        >
+          Show {issues.length - maxItems} more
+        </Button>
+      )}
+      {expanded && hasMore && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded(false)}
+          className="mt-1 h-7 text-xs text-muted-foreground"
+        >
+          Show less
+        </Button>
+      )}
+    </div>
   );
 }
 

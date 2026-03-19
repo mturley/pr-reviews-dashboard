@@ -1,11 +1,13 @@
 // Compact PR table for Overview cards (My PRs, PRs I'm Reviewing)
 
+import { useState } from "react";
 import {
   GitPullRequest,
   GitMerge,
   CircleDot,
   CircleDashed,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ReviewStatusCell } from "@/components/pr-table/ReviewStatusCell";
 import { AppLink } from "@/components/shared/AppLink";
 import {
@@ -30,22 +32,28 @@ interface CompactPRTableProps {
   prs: PullRequest[];
   reviewStatuses: Map<string, ReviewStatusResult>;
   hideAuthor?: boolean;
+  maxItems?: number;
 }
 
-export function CompactPRTable({ prs, reviewStatuses, hideAuthor }: CompactPRTableProps) {
+export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 }: CompactPRTableProps) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = prs.length > maxItems;
+  const visiblePRs = expanded ? prs : prs.slice(0, maxItems);
+
   return (
-    <Table className="border-separate border-spacing-0">
-      <TableHeader>
-        <TableRow className="border-none hover:bg-transparent">
-          <TableHead className="border-none text-xs">PR</TableHead>
-          {!hideAuthor && <TableHead className="border-none text-xs">Author</TableHead>}
-          <TableHead className="border-none text-xs">Review Status</TableHead>
-          <TableHead className="border-none text-xs">Jira</TableHead>
-          <TableHead className="border-none text-xs">Priority</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {prs.map((pr) => {
+    <div>
+      <Table className="border-separate border-spacing-0">
+        <TableHeader>
+          <TableRow className="border-none hover:bg-transparent">
+            <TableHead className="border-none text-xs">PR</TableHead>
+            {!hideAuthor && <TableHead className="border-none text-xs">Author</TableHead>}
+            <TableHead className="border-none text-xs">Review Status</TableHead>
+            <TableHead className="border-none text-xs">Jira</TableHead>
+            <TableHead className="border-none text-xs">Priority</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {visiblePRs.map((pr) => {
           const reviewStatus = reviewStatuses.get(pr.id);
           const ciState = pr.checkStatus.state;
           const hasCIFailure = ciState === "FAILURE" || ciState === "ERROR";
@@ -112,7 +120,28 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor }: CompactPRTab
             </TableRow>
           );
         })}
-      </TableBody>
-    </Table>
+        </TableBody>
+      </Table>
+      {!expanded && hasMore && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded(true)}
+          className="mt-1 h-7 text-xs text-muted-foreground"
+        >
+          Show {prs.length - maxItems} more
+        </Button>
+      )}
+      {expanded && hasMore && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded(false)}
+          className="mt-1 h-7 text-xs text-muted-foreground"
+        >
+          Show less
+        </Button>
+      )}
+    </div>
   );
 }

@@ -14,7 +14,7 @@ export function OverviewCard({ title, count, isLoading, emptyMessage, children }
   const isEmpty = !isLoading && count === 0;
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden break-inside-avoid">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/30">
         <span className="text-sm font-semibold">{title}</span>
         {count != null && count > 0 && (

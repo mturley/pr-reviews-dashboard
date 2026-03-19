@@ -26,14 +26,24 @@ export default function Overview() {
   const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
     useAutoRefreshContext();
 
-  const data = useOverviewData({ refetchInterval, config });
-
   // View options state (simple local state, not URL-driven for overview)
   const [showOptions, setShowOptions] = useState(false);
   const [filterActionNeeded, setFilterActionNeeded] = useState(false);
   const [ignoreDrafts, setIgnoreDrafts] = useState(true);
   const [ignoreOtherTeams, setIgnoreOtherTeams] = useState(true);
   const [ignoreBots, setIgnoreBots] = useState(true);
+
+  const teamMemberUsernames = useMemo(
+    () => (config?.teamMembers ?? []).map((m) => m.githubUsername),
+    [config?.teamMembers],
+  );
+
+  const data = useOverviewData({
+    refetchInterval,
+    config,
+    filters: { ignoreDrafts, ignoreOtherTeams, ignoreBots, filterActionNeeded },
+    teamMemberUsernames,
+  });
 
   // Register PR data with detail modal
   const { registerPRs, registerJiraIssues } = useDetailModal();
@@ -49,12 +59,6 @@ export default function Overview() {
     ];
     if (allIssues.length > 0) registerJiraIssues(allIssues);
   }, [data.myEpics, data.myAssignedIssues, data.filterReviewIssues, data.filterTestingIssues, data.watchedIssues, registerJiraIssues]);
-
-  // Filter PRs based on view options
-  const teamMemberUsernames = useMemo(
-    () => (config?.teamMembers ?? []).map((m) => m.githubUsername),
-    [config?.teamMembers],
-  );
 
   const filteredMyPRs = useMemo(() => {
     let prs = data.myPRs;
@@ -197,8 +201,8 @@ export default function Overview() {
         )}
       </div>
 
-      {/* Responsive 2-column card grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Responsive 2-column masonry layout */}
+      <div className="columns-1 lg:columns-2 gap-4 space-y-4">
         {/* Card 1: My Epics */}
         <OverviewCard
           title="My Epics"
@@ -252,7 +256,7 @@ export default function Overview() {
           isLoading={data.isGitHubLoading}
           emptyMessage="No review actions needed"
         >
-          <ActionsPanel actions={data.actions} />
+          <ActionsPanel actions={data.actions} flat maxItems={10} />
         </OverviewCard>
 
         {/* Card 5: PRs I'm Reviewing */}

@@ -5,6 +5,8 @@ import { trpc } from "../trpc";
 import { useProgressiveData, type LoadingPhase } from "./useProgressiveData";
 import { computeReviewStatus } from "../../../server/src/logic/review-status";
 import { deriveRecommendedActions } from "../../../server/src/logic/recommended-actions";
+import { groupPRs } from "../../../server/src/logic/grouping";
+import { isBot } from "@/lib/bot-users";
 import type { PullRequest, ReviewStatusResult, RecommendedAction } from "../../../server/src/types/pr";
 import type { JiraIssue } from "../../../server/src/types/jira";
 import type { DashboardConfig } from "../../../server/src/types/config";
@@ -43,11 +45,20 @@ export interface OverviewDataResult {
   sprintName: string | null;
 }
 
+export interface OverviewFilters {
+  ignoreDrafts: boolean;
+  ignoreOtherTeams: boolean;
+  ignoreBots: boolean;
+  filterActionNeeded: boolean;
+}
+
 export function useOverviewData(options: {
   refetchInterval?: number | false;
   config?: DashboardConfig;
+  filters: OverviewFilters;
+  teamMemberUsernames: string[];
 }): OverviewDataResult {
-  const { config, refetchInterval } = options;
+  const { config, refetchInterval, filters, teamMemberUsernames } = options;
   const viewer = config?.githubIdentity ?? "";
   const accountId = config?.jiraAccountId ?? "";
   const filterId = config?.teamAreaLabelsFilter ?? null;
@@ -98,11 +109,29 @@ export function useOverviewData(options: {
     return map;
   }, [progressiveData.prs, viewer]);
 
-  // Derive recommended actions from reviewing PRs only
-  const allActionPRs = useMemo(
-    () => [...myPRs, ...reviewingPRs],
-    [myPRs, reviewingPRs],
-  );
+  // Apply filters to PRs before computing actions (matches /reviews tab behavior)
+  const filteredPRs = useMemo(() => {
+    let prs = progressiveData.prs;
+    if (filters.ignoreDrafts) prs = prs.filter((pr) => !pr.isDraft);
+    if (filters.ignoreBots) prs = prs.filter((pr) => !isBot(pr.author));
+    if (filters.ignoreOtherTeams && teamMemberUsernames.length > 0) {
+      const teamSet = new Set(teamMemberUsernames.map((u) => u.toLowerCase()));
+      // Keep PRs authored by team members OR authored by the viewer
+      prs = prs.filter((pr) => pr.author === viewer || teamSet.has(pr.author.toLowerCase()));
+    }
+    return prs;
+  }, [progressiveData.prs, filters.ignoreDrafts, filters.ignoreBots, filters.ignoreOtherTeams, teamMemberUsernames, viewer]);
+
+  // Use groupPRs to get all 4 groups (matches /reviews tab)
+  const allActionPRs = useMemo(() => {
+    const groups = groupPRs(filteredPRs, {
+      viewerGithubUsername: viewer,
+      teamMembers: teamMemberUsernames,
+      sprintName: progressiveData.sprintName ?? undefined,
+    });
+    return groups.flatMap((g) => g.prs);
+  }, [filteredPRs, viewer, teamMemberUsernames, progressiveData.sprintName]);
+
   const actions = useMemo(
     () => deriveRecommendedActions(allActionPRs, reviewStatuses),
     [allActionPRs, reviewStatuses],
