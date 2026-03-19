@@ -109,28 +109,26 @@ export function useOverviewData(options: {
     return map;
   }, [progressiveData.prs, viewer]);
 
-  // Apply filters to PRs before computing actions (matches /reviews tab behavior)
-  const filteredPRs = useMemo(() => {
+  // Filter PRs for actions (matches /reviews tab: exclude bots and other teams, but keep drafts)
+  const actionPRs = useMemo(() => {
     let prs = progressiveData.prs;
-    if (filters.ignoreDrafts) prs = prs.filter((pr) => !pr.isDraft);
     if (filters.ignoreBots) prs = prs.filter((pr) => !isBot(pr.author));
     if (filters.ignoreOtherTeams && teamMemberUsernames.length > 0) {
       const teamSet = new Set(teamMemberUsernames.map((u) => u.toLowerCase()));
-      // Keep PRs authored by team members OR authored by the viewer
       prs = prs.filter((pr) => pr.author === viewer || teamSet.has(pr.author.toLowerCase()));
     }
     return prs;
-  }, [progressiveData.prs, filters.ignoreDrafts, filters.ignoreBots, filters.ignoreOtherTeams, teamMemberUsernames, viewer]);
+  }, [progressiveData.prs, filters.ignoreBots, filters.ignoreOtherTeams, teamMemberUsernames, viewer]);
 
   // Use groupPRs to get all 4 groups (matches /reviews tab)
   const allActionPRs = useMemo(() => {
-    const groups = groupPRs(filteredPRs, {
+    const groups = groupPRs(actionPRs, {
       viewerGithubUsername: viewer,
       teamMembers: teamMemberUsernames,
       sprintName: progressiveData.sprintName ?? undefined,
     });
     return groups.flatMap((g) => g.prs);
-  }, [filteredPRs, viewer, teamMemberUsernames, progressiveData.sprintName]);
+  }, [actionPRs, viewer, teamMemberUsernames, progressiveData.sprintName]);
 
   const actions = useMemo(
     () => deriveRecommendedActions(allActionPRs, reviewStatuses),
