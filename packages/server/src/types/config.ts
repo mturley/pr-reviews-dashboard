@@ -29,6 +29,7 @@ export interface DashboardConfig {
   teamMembers: TeamMember[];
   jiraFieldMapping: JiraFieldMapping;
   jiraRapidViewId: number | null;
+  teamAreaLabelsFilter: number | null;
   autoRefreshIntervalMs: number;
   staleThresholdDays: number;
 }

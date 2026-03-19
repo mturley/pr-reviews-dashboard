@@ -52,6 +52,7 @@ pr-reviews-dashboard/
         review-status.ts    # Review status computation (perspective-dependent)
         grouping.ts         # PR grouping into priority buckets
         recommended-actions.ts  # Prioritized action derivation
+
       types/
         pr.ts               # PullRequest, Review, ReviewStatusResult types
         jira.ts             # JiraIssue types
@@ -63,11 +64,13 @@ pr-reviews-dashboard/
       App.tsx               # Providers, router, nav bar
       trpc.ts               # tRPC client (httpBatchLink to /trpc)
       routes/
+        overview.tsx        # Overview dashboard (responsive card grid)
         pr-reviews.tsx      # Main PR dashboard (filters, grouping, actions)
         sprint-status.tsx   # Jira sprint view with PR correlation
         epic-status.tsx     # Epic issue browser with PR correlation
         activity-timeline.tsx  # Unified GitHub + Jira activity feed
       hooks/
+        useOverviewData.ts        # Overview tab data orchestration
         useProgressiveData.ts     # 3-phase data loading orchestration
         useAutoRefreshContext.tsx  # Auto-refresh interval management
         useDetailModal.ts         # Detail modal state access
@@ -76,8 +79,9 @@ pr-reviews-dashboard/
         useFontSize.ts            # Font size control
         useJiraHost.ts            # Jira host from config
       components/
+        overview/           # Overview tab card components
         pr-table/           # PR table rendering (columns, rows, badges)
-        jira-table/         # Jira issue table rendering
+        jira-table/         # Jira issue table rendering (shared cells in cells.tsx)
         actions-panel/      # Recommended actions panel + "How It Works"
         detail-modal/       # PR/Jira detail modals, diff viewer
         controls/           # Filter bar, grouping, refresh, column customizer
@@ -195,7 +199,8 @@ The app wraps the component tree in providers (defined in `App.tsx`):
 
 | Route | Component | Description |
 |-------|-----------|-------------|
-| `/` | `pr-reviews.tsx` | Main PR dashboard with grouping, filtering, actions |
+| `/` | `overview.tsx` | Overview dashboard with responsive card grid |
+| `/reviews` | `pr-reviews.tsx` | Main PR dashboard with grouping, filtering, actions |
 | `/sprint` | `sprint-status.tsx` | Jira sprint view with PR correlation |
 | `/epic/:epicKey?` | `epic-status.tsx` | Epic issue browser |
 | `/activity` | `activity-timeline.tsx` | Unified GitHub + Jira activity feed |
@@ -203,6 +208,18 @@ The app wraps the component tree in providers (defined in `App.tsx`):
 ### URL State
 
 View state (filters, grouping, perspective, column visibility) is serialized to URL query parameters via `useViewState`. This makes views shareable and preserves state across page refreshes.
+
+### Overview Tab
+
+The Overview route (`/`) shows a responsive 2-column card grid (collapsing to 1 column on narrow screens) with 8 summary cards. It reuses `useProgressiveData` for GitHub PRs and Jira sprint data, and adds 3 additional Jira queries via `useOverviewData`:
+
+- **`getMyIssues`** -- epics and issues assigned to the user in New/Backlog/In Progress states
+- **`getFilterIssues`** -- issues matching a saved Jira filter (configurable via `teamAreaLabelsFilter`) in Review/Testing states
+- **`getWatchedIssues`** -- issues the user is watching (via Jira's `watcher` JQL)
+
+Cards are: My Epics, My Assigned Issues, My PRs, Recommended Review Actions (reuses `ActionsPanel`), PRs I'm Reviewing, Team Issues in Review, Team Issues in Testing, and Other Watched Issues. Issues are deduplicated across cards -- filter-based cards exclude issues assigned to the user, and watched issues exclude everything shown in other cards.
+
+Compact table components (`CompactPRTable`, `CompactJiraTable`) render subset columns with shared cell renderers extracted into `jira-table/cells.tsx`.
 
 ### Detail Modal
 

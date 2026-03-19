@@ -28,6 +28,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
     activityType: "customfield_10464",
   },
   jiraRapidViewId: null,
+  teamAreaLabelsFilter: null,
   autoRefreshIntervalMs: 300_000,
   staleThresholdDays: 14,
 };
@@ -47,6 +48,7 @@ const INITIAL_CONFIG_CONTENT = `{
   "jiraComponentName": "",
   "sprintDiscoveryLabel": "",
   "jiraRapidViewId": null,
+  "teamAreaLabelsFilter": null,
   "autoRefreshIntervalMs": 300000,
   "staleThresholdDays": 14,
   "teamMembers": [

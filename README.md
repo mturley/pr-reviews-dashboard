@@ -6,7 +6,7 @@ A local-only web dashboard that combines GitHub PR data with Jira issue metadata
 
 ## Features at a Glance
 
-- **Four integrated views** -- PR Reviews, Sprint Status, Epic Status, and Activity Timeline
+- **Five integrated views** -- Overview, PR Reviews, Sprint Status, Epic Status, and Activity Timeline
 - **Smart review status** -- automatically computes what action you need to take on each PR, from both author and reviewer perspectives
 - **Priority-sorted recommended actions** -- always know what to work on next
 - **Inline detail modal** -- view PR diffs, review history, and Jira issue details without leaving the dashboard
@@ -31,9 +31,26 @@ On first run, the server creates a `config.local.json` where you configure your 
 
 ## Views
 
-### My PRs and Reviews
+### Overview
 
-The main dashboard showing all open PRs relevant to you and your team. PRs are automatically grouped into priority buckets:
+The default landing page showing a responsive 2-column card grid with a high-level summary of all your work. Cards include:
+
+- **My Epics** -- Jira epics assigned to you in New/Backlog/In Progress states
+- **My Assigned Issues** -- non-epic Jira issues assigned to you in active states
+- **My PRs** -- compact view of open PRs you authored
+- **Recommended Review Actions** -- priority-sorted action items (same as the PR Reviews page)
+- **PRs I'm Reviewing** -- compact view of PRs where you've submitted reviews
+- **Team Issues in Review** -- team issues (from a configurable Jira filter) in Review state
+- **Team Issues in Testing** -- team issues in Testing state
+- **Other Watched Issues** -- Jira issues you're watching that don't appear in other cards
+
+Each card shows relevant columns (PR link, review status, Jira key, priority, assignee, linked PRs) and supports clicking through to the detail modal. The grid collapses to a single column on narrow viewports.
+
+![Overview](docs/images/overview.png)
+
+### My PRs and Reviews (`/reviews`)
+
+The detailed dashboard showing all open PRs relevant to you and your team. PRs are automatically grouped into priority buckets:
 
 - **My PRs** -- pull requests you authored
 - **PRs I'm Reviewing** -- PRs where you've submitted a review or are @-mentioned

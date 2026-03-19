@@ -23,6 +23,18 @@ export function buildSprintIssuesJQL(projectKey: string, componentName: string, 
   return jql;
 }
 
+export function buildMyIssuesJQL(projectKey: string, accountId: string): string {
+  return `project = "${projectKey}" AND assignee = "${accountId}" AND status IN ("New", "Backlog", "In Progress") ORDER BY priority ASC, updated DESC`;
+}
+
+export function buildFilterIssuesJQL(filterId: number): string {
+  return `filter = ${filterId} AND status IN ("Review", "Code Review", "In Review", "Testing", "In Testing") ORDER BY priority ASC, updated DESC`;
+}
+
+export function buildWatchedIssuesJQL(projectKey: string, accountId: string): string {
+  return `project = "${projectKey}" AND watcher = "${accountId}" AND status NOT IN ("Closed", "Resolved", "Done") ORDER BY updated DESC`;
+}
+
 export function buildEpicIssuesJQL(
   epicKey: string,
   includeClosedResolved: boolean,
