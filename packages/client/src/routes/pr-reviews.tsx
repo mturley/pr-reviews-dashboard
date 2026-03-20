@@ -14,6 +14,7 @@ import type { ViewState } from "@/lib/url-state";
 import type { TeamMember } from "../../../server/src/types/config";
 import { useProgressiveData, type LoadingPhase } from "@/hooks/useProgressiveData";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
+import { useSharedFilters } from "@/hooks/useSharedFilters";
 import { useViewState } from "@/hooks/useViewState";
 import { PRTable } from "@/components/pr-table/PRTable";
 import { ActionsPanel } from "@/components/actions-panel/ActionsPanel";
@@ -38,6 +39,7 @@ export default function PRReviews() {
   );
 
   const { viewState, updateViewState } = useViewState();
+  const { filters: sharedFilters, setFilters } = useSharedFilters();
   const { columns: columnConfig, setColumns: setColumnConfig, visibleColumnIds } = useColumnConfig();
 
   // Perspective: use URL param or fall back to config identity
@@ -61,7 +63,7 @@ export default function PRReviews() {
     let prs = data.prs;
 
     // Filter to team members + dependabot when toggle is on
-    if (viewState.ignoreOtherTeams && teamMemberUsernames.length > 0) {
+    if (sharedFilters.ignoreOtherTeams && teamMemberUsernames.length > 0) {
       const teamSet = new Set(teamMemberUsernames.map((u) => u.toLowerCase()));
       prs = prs.filter((pr) => {
         const authorLower = pr.author.toLowerCase();
@@ -74,16 +76,16 @@ export default function PRReviews() {
         viewState.filterRepo.includes(`${pr.repoOwner}/${pr.repoName}`),
       );
     }
-    if (!viewState.filterDraft) {
+    if (sharedFilters.ignoreDrafts) {
       prs = prs.filter((pr) => !pr.isDraft);
     }
 
-    if (viewState.ignoreBots) {
+    if (sharedFilters.ignoreBots) {
       prs = prs.filter((pr) => !isBot(pr.author));
     }
 
     return prs;
-  }, [data.prs, viewState.ignoreOtherTeams, teamMemberUsernames, viewState.filterRepo, viewState.filterDraft, viewState.ignoreBots]);
+  }, [data.prs, sharedFilters.ignoreOtherTeams, teamMemberUsernames, viewState.filterRepo, sharedFilters.ignoreDrafts, sharedFilters.ignoreBots]);
 
   // Available repos for filter
   const availableRepos = useMemo(() => {
@@ -102,12 +104,12 @@ export default function PRReviews() {
 
   // Filter by action needed
   const displayPRs = useMemo(() => {
-    if (!viewState.filterActionNeeded) return filteredPRs;
+    if (!sharedFilters.filterActionNeeded) return filteredPRs;
     return filteredPRs.filter((pr) => {
       const status = reviewStatuses.get(pr.id);
       return status?.action != null;
     });
-  }, [filteredPRs, viewState.filterActionNeeded, reviewStatuses]);
+  }, [filteredPRs, sharedFilters.filterActionNeeded, reviewStatuses]);
 
   const groups = useMemo(() => {
     if (displayPRs.length === 0) return [];
@@ -142,12 +144,12 @@ export default function PRReviews() {
 
   // When "Action needed only" filter is active, override empty messages to reflect filtering
   const displayGroups = useMemo(() => {
-    if (!viewState.filterActionNeeded) return groups;
+    if (!sharedFilters.filterActionNeeded) return groups;
     return groups.map((group) => ({
       ...group,
       emptyMessage: "No action needed",
     }));
-  }, [groups, viewState.filterActionNeeded]);
+  }, [groups, sharedFilters.filterActionNeeded]);
 
   // Only include PRs that appear in the table groups
   const groupedPRs = useMemo(() => {
@@ -250,6 +252,8 @@ export default function PRReviews() {
         perspective={perspective}
         viewState={viewState}
         updateViewState={updateViewState}
+        sharedFilters={sharedFilters}
+        setFilters={setFilters}
         allTeamMembers={allTeamMembers}
         currentUser={config?.githubIdentity ?? ""}
         columnConfig={columnConfig}
@@ -292,6 +296,8 @@ function ViewOptionsBar({
   perspective,
   viewState,
   updateViewState,
+  sharedFilters,
+  setFilters,
   allTeamMembers,
   currentUser,
   columnConfig,
@@ -301,6 +307,8 @@ function ViewOptionsBar({
   perspective: string;
   viewState: ViewState;
   updateViewState: (patch: Partial<ViewState>) => void;
+  sharedFilters: import("@/hooks/useSharedFilters").SharedFilters;
+  setFilters: (updates: Partial<import("@/hooks/useSharedFilters").SharedFilters>) => void;
   allTeamMembers: TeamMember[];
   currentUser: string;
   columnConfig: ColumnConfig[];
@@ -317,10 +325,10 @@ function ViewOptionsBar({
   const hiddenColumnCount = columnConfig.filter((c) => !c.visible).length;
 
   const filters: string[] = [];
-  if (viewState.filterActionNeeded) filters.push("Action needed only");
-  if (!viewState.filterDraft) filters.push("Ignore drafts");
-  if (viewState.ignoreOtherTeams) filters.push("Ignore PRs from other scrums");
-  if (viewState.ignoreBots) filters.push("Ignore PRs from bots");
+  if (sharedFilters.filterActionNeeded) filters.push("Action needed only");
+  if (sharedFilters.ignoreDrafts) filters.push("Ignore drafts");
+  if (sharedFilters.ignoreOtherTeams) filters.push("Ignore PRs from other scrums");
+  if (sharedFilters.ignoreBots) filters.push("Ignore PRs from bots");
   if (viewState.filterRepo.length > 0)
     filters.push(`${viewState.filterRepo.length} repo${viewState.filterRepo.length > 1 ? "s" : ""}`);
   if (hiddenColumnCount > 0)
@@ -363,14 +371,14 @@ function ViewOptionsBar({
             onChange={(v) => updateViewState({ groupBy: v })}
           />
           <FilterBar
-            actionNeeded={viewState.filterActionNeeded}
-            onActionNeededChange={(v) => updateViewState({ filterActionNeeded: v })}
-            showDraft={viewState.filterDraft}
-            onShowDraftChange={(v) => updateViewState({ filterDraft: v })}
-            ignoreOtherTeams={viewState.ignoreOtherTeams}
-            onIgnoreOtherTeamsChange={(v) => updateViewState({ ignoreOtherTeams: v })}
-            ignoreBots={viewState.ignoreBots}
-            onIgnoreBotsChange={(v) => updateViewState({ ignoreBots: v })}
+            actionNeeded={sharedFilters.filterActionNeeded}
+            onActionNeededChange={(v) => setFilters({ filterActionNeeded: v })}
+            showDraft={!sharedFilters.ignoreDrafts}
+            onShowDraftChange={(v) => setFilters({ ignoreDrafts: !v })}
+            ignoreOtherTeams={sharedFilters.ignoreOtherTeams}
+            onIgnoreOtherTeamsChange={(v) => setFilters({ ignoreOtherTeams: v })}
+            ignoreBots={sharedFilters.ignoreBots}
+            onIgnoreBotsChange={(v) => setFilters({ ignoreBots: v })}
             repos={availableRepos}
             selectedRepos={viewState.filterRepo}
             onRepoFilterChange={(v) => updateViewState({ filterRepo: v })}

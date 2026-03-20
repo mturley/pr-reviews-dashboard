@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { trpc } from "../trpc";
 import { isBot } from "@/lib/bot-users";
 import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
+import { useSharedFilters } from "@/hooks/useSharedFilters";
 import { useOverviewData } from "@/hooks/useOverviewData";
 import { useDetailModal } from "@/components/detail-modal/DetailModalProvider";
 import { ActionsPanel } from "@/components/actions-panel/ActionsPanel";
@@ -26,12 +27,9 @@ export default function Overview() {
   const { autoRefresh, setAutoRefresh, intervalMs, setIntervalMs, refetchInterval } =
     useAutoRefreshContext();
 
-  // View options state (simple local state, not URL-driven for overview)
+  // Shared filter state (persisted to localStorage, shared with /reviews)
+  const { filters: sharedFilters, setFilters } = useSharedFilters();
   const [showOptions, setShowOptions] = useState(false);
-  const [filterActionNeeded, setFilterActionNeeded] = useState(false);
-  const [ignoreDrafts, setIgnoreDrafts] = useState(true);
-  const [ignoreOtherTeams, setIgnoreOtherTeams] = useState(true);
-  const [ignoreBots, setIgnoreBots] = useState(true);
 
   const teamMemberUsernames = useMemo(
     () => (config?.teamMembers ?? []).map((m) => m.githubUsername),
@@ -41,7 +39,7 @@ export default function Overview() {
   const data = useOverviewData({
     refetchInterval,
     config,
-    filters: { ignoreDrafts, ignoreOtherTeams, ignoreBots, filterActionNeeded },
+    filters: sharedFilters,
     teamMemberUsernames,
   });
 
@@ -62,22 +60,22 @@ export default function Overview() {
 
   const filteredMyPRs = useMemo(() => {
     let prs = data.myPRs;
-    if (ignoreDrafts) prs = prs.filter((pr) => !pr.isDraft);
-    if (filterActionNeeded) prs = prs.filter((pr) => data.reviewStatuses.get(pr.id)?.action != null);
+    if (sharedFilters.ignoreDrafts) prs = prs.filter((pr) => !pr.isDraft);
+    if (sharedFilters.filterActionNeeded) prs = prs.filter((pr) => data.reviewStatuses.get(pr.id)?.action != null);
     return prs;
-  }, [data.myPRs, ignoreDrafts, filterActionNeeded, data.reviewStatuses]);
+  }, [data.myPRs, sharedFilters.ignoreDrafts, sharedFilters.filterActionNeeded, data.reviewStatuses]);
 
   const filteredReviewingPRs = useMemo(() => {
     let prs = data.reviewingPRs;
-    if (ignoreDrafts) prs = prs.filter((pr) => !pr.isDraft);
-    if (ignoreOtherTeams && teamMemberUsernames.length > 0) {
+    if (sharedFilters.ignoreDrafts) prs = prs.filter((pr) => !pr.isDraft);
+    if (sharedFilters.ignoreOtherTeams && teamMemberUsernames.length > 0) {
       const teamSet = new Set(teamMemberUsernames.map((u) => u.toLowerCase()));
       prs = prs.filter((pr) => teamSet.has(pr.author.toLowerCase()));
     }
-    if (ignoreBots) prs = prs.filter((pr) => !isBot(pr.author));
-    if (filterActionNeeded) prs = prs.filter((pr) => data.reviewStatuses.get(pr.id)?.action != null);
+    if (sharedFilters.ignoreBots) prs = prs.filter((pr) => !isBot(pr.author));
+    if (sharedFilters.filterActionNeeded) prs = prs.filter((pr) => data.reviewStatuses.get(pr.id)?.action != null);
     return prs;
-  }, [data.reviewingPRs, ignoreDrafts, ignoreOtherTeams, ignoreBots, filterActionNeeded, teamMemberUsernames, data.reviewStatuses]);
+  }, [data.reviewingPRs, sharedFilters.ignoreDrafts, sharedFilters.ignoreOtherTeams, sharedFilters.ignoreBots, sharedFilters.filterActionNeeded, teamMemberUsernames, data.reviewStatuses]);
 
   const configPhase: LoadingPhase = {
     label: "Configuration",
@@ -107,11 +105,11 @@ export default function Overview() {
   }
 
   // Active filter summary
-  const filters: string[] = [];
-  if (filterActionNeeded) filters.push("Action needed only");
-  if (ignoreDrafts) filters.push("Ignore drafts");
-  if (ignoreOtherTeams) filters.push("Ignore PRs from other scrums");
-  if (ignoreBots) filters.push("Ignore PRs from bots");
+  const filterLabels: string[] = [];
+  if (sharedFilters.filterActionNeeded) filterLabels.push("Action needed only");
+  if (sharedFilters.ignoreDrafts) filterLabels.push("Ignore drafts");
+  if (sharedFilters.ignoreOtherTeams) filterLabels.push("Ignore PRs from other scrums");
+  if (sharedFilters.ignoreBots) filterLabels.push("Ignore PRs from bots");
 
   return (
     <div className="space-y-4">
@@ -173,28 +171,28 @@ export default function Overview() {
             <Settings className="h-4 w-4" />
             {showOptions ? "Hide view options" : "Show view options"}
           </Button>
-          {filters.length > 0 && (
+          {filterLabels.length > 0 && (
             <span className="text-xs text-muted-foreground">
-              {filters.join(", ")}
+              {filterLabels.join(", ")}
             </span>
           )}
         </div>
         {showOptions && (
           <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
             <div className="flex items-center gap-1.5">
-              <Switch checked={filterActionNeeded} onCheckedChange={setFilterActionNeeded} />
+              <Switch checked={sharedFilters.filterActionNeeded} onCheckedChange={(v) => setFilters({ filterActionNeeded: v })} />
               <span className="text-xs">Action needed only</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Switch checked={ignoreDrafts} onCheckedChange={setIgnoreDrafts} />
+              <Switch checked={sharedFilters.ignoreDrafts} onCheckedChange={(v) => setFilters({ ignoreDrafts: v })} />
               <span className="text-xs">Ignore drafts</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Switch checked={ignoreOtherTeams} onCheckedChange={setIgnoreOtherTeams} />
+              <Switch checked={sharedFilters.ignoreOtherTeams} onCheckedChange={(v) => setFilters({ ignoreOtherTeams: v })} />
               <span className="text-xs">Ignore PRs from other scrums</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Switch checked={ignoreBots} onCheckedChange={setIgnoreBots} />
+              <Switch checked={sharedFilters.ignoreBots} onCheckedChange={(v) => setFilters({ ignoreBots: v })} />
               <span className="text-xs">Ignore PRs from bots</span>
             </div>
           </div>
