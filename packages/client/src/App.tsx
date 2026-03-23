@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useFontSize } from "@/hooks/useFontSize";
 import { AutoRefreshProvider } from "@/hooks/useAutoRefreshContext";
 import { DetailModalProvider } from "@/components/detail-modal/DetailModalProvider";
+import Overview from "./routes/overview";
 import PRReviews from "./routes/pr-reviews";
 import ActivityTimeline from "./routes/activity-timeline";
 import SprintStatus from "./routes/sprint-status";
@@ -21,7 +22,8 @@ function NavBar() {
   const { theme, setTheme } = useTheme();
   const { fontSize, setFontSize } = useFontSize();
   const links = [
-    { to: "/", label: "My PRs and Reviews" },
+    { to: "/", label: "Overview" },
+    { to: "/reviews", label: "My PRs and Reviews" },
     { to: "/sprint", label: "Current Sprint Status" },
     { to: "/epic", label: "Epic Status" },
     { to: "/activity", label: "My Activity" },
@@ -82,7 +84,8 @@ export default function App() {
                   <NavBar />
                   <main className="p-6">
                     <Routes>
-                      <Route path="/" element={<ErrorBoundary><PRReviews /></ErrorBoundary>} />
+                      <Route path="/" element={<ErrorBoundary><Overview /></ErrorBoundary>} />
+                      <Route path="/reviews" element={<ErrorBoundary><PRReviews /></ErrorBoundary>} />
                       <Route path="/activity" element={<ErrorBoundary><ActivityTimeline /></ErrorBoundary>} />
                       <Route path="/sprint" element={<ErrorBoundary><SprintStatus /></ErrorBoundary>} />
                       <Route path="/epic/:epicKey?" element={<ErrorBoundary><EpicStatus /></ErrorBoundary>} />

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "../trpc.js";
 import { jiraSearch, jiraRequest, type JiraRawIssue } from "../services/jira/client.js";
-import { buildSprintDiscoveryJQL, buildSprintIssuesJQL, buildEpicIssuesJQL } from "../services/jira/queries.js";
+import { buildSprintDiscoveryJQL, buildSprintIssuesJQL, buildEpicIssuesJQL, buildMyIssuesJQL, buildFilterIssuesJQL, buildWatchedIssuesJQL } from "../services/jira/queries.js";
 import { getRequiredFields } from "../services/jira/field-map.js";
 import { transformJiraIssue } from "../services/jira/transforms.js";
 import { adfToMarkdown } from "../services/jira/adf-to-markdown.js";
@@ -307,6 +307,137 @@ export const jiraRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
       }
     }),
+
+  // Overview: issues assigned to me in active states
+  getMyIssues: publicProcedure.query(async ({ ctx }) => {
+    const { config, jiraEmail, jiraToken, jiraHost } = ctx;
+    if (!jiraToken || !jiraHost) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
+    }
+
+    try {
+      const cacheKey = `myIssues:${config.jiraAccountId}`;
+      return await cached(cacheKey, 60_000, async () => {
+        console.log("[progress] jira.getMyIssues: fetching issues assigned to me");
+        const jql = buildMyIssuesJQL(config.jiraProjectKey, config.jiraAccountId);
+        const fields = getRequiredFields(config.jiraFieldMapping);
+        const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, fields);
+        const issues = response.issues.map((raw) =>
+          transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
+        );
+
+        // Enrich epic summaries
+        const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
+        if (epicKeys.length > 0) {
+          try {
+            const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
+            const epicMap = new Map<string, string>();
+            for (const raw of epicResponse.issues) {
+              epicMap.set(raw.key, raw.fields?.summary ?? "");
+            }
+            for (const issue of issues) {
+              if (issue.epicKey) issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+            }
+          } catch { /* non-critical */ }
+        }
+
+        console.log(`[progress] jira.getMyIssues: done, ${issues.length} issues`);
+        return { issues, fetchedAt: new Date().toISOString() };
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
+    }
+  }),
+
+  // Overview: issues matching a saved Jira filter (for team area labels)
+  getFilterIssues: publicProcedure
+    .input(z.object({ filterId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const { config, jiraEmail, jiraToken, jiraHost } = ctx;
+      if (!jiraToken || !jiraHost) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
+      }
+
+      try {
+        const cacheKey = `filterIssues:${input.filterId}`;
+        return await cached(cacheKey, 60_000, async () => {
+          console.log(`[progress] jira.getFilterIssues: fetching filter ${input.filterId}`);
+          const jql = buildFilterIssuesJQL(input.filterId);
+          const fields = getRequiredFields(config.jiraFieldMapping);
+          const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, fields);
+          const issues = response.issues.map((raw) =>
+            transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
+          );
+
+          // Enrich epic summaries
+          const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
+          if (epicKeys.length > 0) {
+            try {
+              const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
+              const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
+              const epicMap = new Map<string, string>();
+              for (const raw of epicResponse.issues) {
+                epicMap.set(raw.key, raw.fields?.summary ?? "");
+              }
+              for (const issue of issues) {
+                if (issue.epicKey) issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+              }
+            } catch { /* non-critical */ }
+          }
+
+          console.log(`[progress] jira.getFilterIssues: done, ${issues.length} issues`);
+          return { issues, fetchedAt: new Date().toISOString() };
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
+      }
+    }),
+
+  // Overview: issues the user is watching
+  getWatchedIssues: publicProcedure.query(async ({ ctx }) => {
+    const { config, jiraEmail, jiraToken, jiraHost } = ctx;
+    if (!jiraToken || !jiraHost) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Jira not configured" });
+    }
+
+    try {
+      const cacheKey = `watchedIssues:${config.jiraAccountId}`;
+      return await cached(cacheKey, 60_000, async () => {
+        console.log("[progress] jira.getWatchedIssues: fetching watched issues");
+        const jql = buildWatchedIssuesJQL(config.jiraProjectKey, config.jiraAccountId);
+        const fields = getRequiredFields(config.jiraFieldMapping);
+        const response = await jiraSearch(jiraHost, jiraEmail, jiraToken, jql, fields);
+        const issues = response.issues.map((raw) =>
+          transformJiraIssue(raw, jiraHost, config.jiraFieldMapping),
+        );
+
+        // Enrich epic summaries
+        const epicKeys = [...new Set(issues.map((i) => i.epicKey).filter(Boolean))] as string[];
+        if (epicKeys.length > 0) {
+          try {
+            const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
+            const epicMap = new Map<string, string>();
+            for (const raw of epicResponse.issues) {
+              epicMap.set(raw.key, raw.fields?.summary ?? "");
+            }
+            for (const issue of issues) {
+              if (issue.epicKey) issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+            }
+          } catch { /* non-critical */ }
+        }
+
+        console.log(`[progress] jira.getWatchedIssues: done, ${issues.length} issues`);
+        return { issues, fetchedAt: new Date().toISOString() };
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message, cause: error });
+    }
+  }),
 
   // Debug: inspect sprint query results and PR linking
   debugPRLinks: publicProcedure.query(async ({ ctx }) => {

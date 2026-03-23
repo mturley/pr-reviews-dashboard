@@ -8,10 +8,6 @@ export interface ViewState {
   sortBy: SortByOption;
   perspective: string;
   filterRepo: string[];
-  filterActionNeeded: boolean;
-  filterDraft: boolean;
-  ignoreOtherTeams: boolean;
-  ignoreBots: boolean;
 }
 
 const DEFAULTS: ViewState = {
@@ -19,10 +15,6 @@ const DEFAULTS: ViewState = {
   sortBy: "age",
   perspective: "",
   filterRepo: [],
-  filterActionNeeded: false,
-  filterDraft: true,
-  ignoreOtherTeams: true,
-  ignoreBots: true,
 };
 
 export function parseViewState(params: URLSearchParams): ViewState {
@@ -31,10 +23,6 @@ export function parseViewState(params: URLSearchParams): ViewState {
     sortBy: (params.get("sortBy") as SortByOption) ?? DEFAULTS.sortBy,
     perspective: params.get("perspective") ?? DEFAULTS.perspective,
     filterRepo: params.get("repo")?.split(",").filter(Boolean) ?? DEFAULTS.filterRepo,
-    filterActionNeeded: params.get("action") === "1",
-    filterDraft: params.get("noDraft") !== "1",
-    ignoreOtherTeams: params.get("teamOnly") !== "0",
-    ignoreBots: params.get("noBots") !== "0",
   };
 }
 
@@ -56,22 +44,6 @@ export function serializeViewState(state: Partial<ViewState>, current: URLSearch
   if (state.filterRepo !== undefined) {
     if (state.filterRepo.length === 0) next.delete("repo");
     else next.set("repo", state.filterRepo.join(","));
-  }
-  if (state.filterActionNeeded !== undefined) {
-    if (state.filterActionNeeded) next.set("action", "1");
-    else next.delete("action");
-  }
-  if (state.filterDraft !== undefined) {
-    if (!state.filterDraft) next.set("noDraft", "1");
-    else next.delete("noDraft");
-  }
-  if (state.ignoreOtherTeams !== undefined) {
-    if (!state.ignoreOtherTeams) next.set("teamOnly", "0");
-    else next.delete("teamOnly");
-  }
-  if (state.ignoreBots !== undefined) {
-    if (!state.ignoreBots) next.set("noBots", "0");
-    else next.delete("noBots");
   }
   return next;
 }
