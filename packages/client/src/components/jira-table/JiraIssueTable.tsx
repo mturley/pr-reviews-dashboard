@@ -59,8 +59,9 @@ function stateSortValue(state: string): number {
   return JIRA_STATE_ORDER[state.toLowerCase()] ?? 3;
 }
 
+// Higher value = more important, so descending sort = most important first
 function prioritySortValue(issue: JiraIssue): number {
-  return JIRA_PRIORITY_ORDER[issue.priority.name.toLowerCase()] ?? 5;
+  return -(JIRA_PRIORITY_ORDER[issue.priority.name.toLowerCase()] ?? 5);
 }
 
 function spSortValue(issue: JiraIssue): number {
@@ -220,7 +221,7 @@ export function JiraIssueTable({
   const [groupBy, setGroupBy] = useState<GroupBy>("state");
   const [excludeSubtasks, setExcludeSubtasks] = useState(true);
   const [sortColumn, setSortColumn] = useState<SortColumn>("priority");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const prsByIssueKey = useMemo(
     () => buildLinkedPRMap(issues, linkedPRs, viewer),

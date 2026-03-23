@@ -213,6 +213,7 @@ export default function Overview() {
             linkedPRs={data.overviewLinkedPRs}
             viewer={config?.githubIdentity ?? ""}
             hideAssignee
+            hideLinkedPRs
             isPRsLoading={data.isOverviewPRsLoading}
           />
         </OverviewCard>
@@ -247,17 +248,7 @@ export default function Overview() {
           />
         </OverviewCard>
 
-        {/* Card 4: Recommended Review Actions */}
-        <OverviewCard
-          title="Recommended Review Actions"
-          count={data.actions.length}
-          isLoading={data.isGitHubLoading}
-          emptyMessage="No review actions needed"
-        >
-          <ActionsPanel actions={data.actions} flat maxItems={10} />
-        </OverviewCard>
-
-        {/* Card 5: PRs I'm Reviewing */}
+        {/* Card 4: PRs I'm Reviewing */}
         <OverviewCard
           title="PRs I'm Reviewing"
           count={filteredReviewingPRs.length}
@@ -268,6 +259,16 @@ export default function Overview() {
             prs={filteredReviewingPRs}
             reviewStatuses={data.reviewStatuses}
           />
+        </OverviewCard>
+
+        {/* Card 5: Recommended Review Actions */}
+        <OverviewCard
+          title="Recommended Review Actions"
+          count={data.actions.length}
+          isLoading={data.isGitHubLoading}
+          emptyMessage="No review actions needed"
+        >
+          <ActionsPanel actions={data.actions} flat maxItems={10} />
         </OverviewCard>
 
         {/* Card 6: Team Issues in Review */}

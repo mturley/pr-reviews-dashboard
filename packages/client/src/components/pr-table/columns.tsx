@@ -34,12 +34,12 @@ function formatAge(createdAt: string): string {
   return `${days} days`;
 }
 
-// Jira priority IDs are numeric strings where lower = higher priority
-// e.g. "1" = Blocker, "2" = Critical, "3" = Major, "4" = Normal, "5" = Minor
+// Jira priority: higher numeric value = more important, so descending = most important first
+// Source IDs are inverted: "1" = Blocker (most important), so we negate.
 function jiraPrioritySortValue(row: PRRow): number {
   const id = row.pr.linkedJiraIssues[0]?.priority?.id;
-  if (!id) return 999;
-  return parseInt(id, 10) || 999;
+  if (!id) return -999;
+  return -(parseInt(id, 10) || 999);
 }
 
 // Review status sort: by priority field (lower = more urgent), null = least urgent

@@ -141,7 +141,7 @@ export function PRTable({
       result.push({ id: "action", desc: false });
     }
     if (!sortedIds.has("jiraPriority")) {
-      result.push({ id: "jiraPriority", desc: false });
+      result.push({ id: "jiraPriority", desc: true });
     }
     return result;
   }, [userSort]);
@@ -164,8 +164,17 @@ export function PRTable({
     },
     onSortingChange: (updater) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      // Only keep the user's primary sort (first column), strip implicit tiebreakers
-      setUserSort(next.slice(0, 1));
+      // Find which column changed vs. the current sorting state — that's the user's intent.
+      // A clicked column either appears new, or has a toggled direction.
+      const changed = next.find((s) => {
+        const prev = sorting.find((p) => p.id === s.id);
+        return !prev || prev.desc !== s.desc;
+      });
+      if (changed) {
+        setUserSort([changed]);
+      } else {
+        setUserSort(next.slice(0, 1));
+      }
     },
     enableSortingRemoval: false,
   });
