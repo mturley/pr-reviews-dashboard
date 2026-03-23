@@ -19,7 +19,7 @@ export function AutoRefreshProvider({
   defaultIntervalMs?: number;
   children: ReactNode;
 }) {
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [intervalMs, setIntervalMs] = useState(defaultIntervalMs);
 
   return (

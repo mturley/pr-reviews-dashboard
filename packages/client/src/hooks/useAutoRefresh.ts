@@ -11,7 +11,7 @@ interface UseAutoRefreshResult {
 }
 
 export function useAutoRefresh(defaultIntervalMs = 300_000): UseAutoRefreshResult {
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [intervalMs, setIntervalMs] = useState(defaultIntervalMs);
 
   return {
