@@ -1,9 +1,8 @@
 // Sprint Status route — uses shared JiraIssueTable
 
 import { useEffect, useMemo, useCallback } from "react";
-import { ExternalLink } from "lucide-react";
 import { trpc } from "../trpc";
-import { Button } from "@/components/ui/button";
+import { ExternalLinkButtonGroup } from "@/components/ExternalLinkButtonGroup";
 import { JiraIssueTable } from "@/components/jira-table/JiraIssueTable";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -64,12 +63,7 @@ export default function SprintStatus() {
             )}
           </h1>
           {jiraQuery.data?.sprintUrl && (
-            <a href={jiraQuery.data.sprintUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm">
-                Open on Jira
-                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </a>
+            <ExternalLinkButtonGroup href={jiraQuery.data.sprintUrl} label="Open on Jira" />
           )}
         </div>
         <div className="flex items-center gap-4">

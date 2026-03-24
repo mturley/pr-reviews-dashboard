@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLinkButtonGroup } from "@/components/ExternalLinkButtonGroup";
 
 export default function EpicStatus() {
   const configQuery = trpc.config.get.useQuery();
@@ -162,12 +162,7 @@ export default function EpicStatus() {
             </SelectContent>
           </Select>
           {epicUrl && (
-            <a href={epicUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm">
-                Open on Jira
-                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </a>
+            <ExternalLinkButtonGroup href={epicUrl} label="Open on Jira" />
           )}
         </div>
 

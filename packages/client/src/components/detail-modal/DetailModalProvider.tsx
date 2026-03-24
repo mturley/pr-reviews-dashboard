@@ -4,7 +4,6 @@ import {
   GitMerge,
   CircleDot,
   CircleDashed,
-  ExternalLink,
   Loader2,
 } from "lucide-react";
 import { trpc } from "@/trpc";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ExternalLinkButtonGroup } from "@/components/ExternalLinkButtonGroup";
 import { PRDetailContent } from "./PRDetailContent";
 import { JiraDetailContent } from "./JiraDetailContent";
 import { DiffViewer } from "./DiffViewer";
@@ -306,12 +306,11 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 </a>
               </DialogTitle>
               {externalUrl && (
-                <Button variant="outline" size="sm" asChild className="shrink-0 ml-auto mr-2">
-                  <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="gap-1.5">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    {target?.type === "pr" ? "Open on GitHub" : "Open on Jira"}
-                  </a>
-                </Button>
+                <ExternalLinkButtonGroup
+                  href={externalUrl}
+                  label={target?.type === "pr" ? "Open on GitHub" : "Open on Jira"}
+                  className="shrink-0 ml-auto mr-2"
+                />
               )}
             </div>
             {subtitle && (
@@ -364,21 +363,15 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                       ? `#${activeTab.pr.number}: ${activeTab.pr.title}`
                       : activeTab.label}
                 </a>
-                <Button variant="outline" size="sm" asChild className="shrink-0">
-                  <a
-                    href={activeTab.type === "jira-detail"
-                      ? (activeTab as JiraTab).issue.url ?? `https://${jiraHost}/browse/${activeTab.label}`
-                      : activeTab.type === "pr-detail"
-                        ? activeTab.pr.url
-                        : "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="gap-1.5"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    {activeTab.type === "jira-detail" ? "Open on Jira" : "Open on GitHub"}
-                  </a>
-                </Button>
+                <ExternalLinkButtonGroup
+                  href={activeTab.type === "jira-detail"
+                    ? (activeTab as JiraTab).issue.url ?? `https://${jiraHost}/browse/${activeTab.label}`
+                    : activeTab.type === "pr-detail"
+                      ? activeTab.pr.url
+                      : "#"}
+                  label={activeTab.type === "jira-detail" ? "Open on Jira" : "Open on GitHub"}
+                  className="shrink-0"
+                />
               </div>
             )}
             {activeTab?.type === "pr-detail" && (
