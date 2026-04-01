@@ -20,6 +20,33 @@ import { CompactPRTable } from "@/components/overview/CompactPRTable";
 import { CompactJiraTable } from "@/components/overview/CompactJiraTable";
 import type { LoadingPhase } from "@/hooks/useProgressiveData";
 
+const OVERVIEW_SECTIONS = [
+  "My Epics",
+  "My Assigned Issues",
+  "My PRs",
+  "PRs I'm Reviewing",
+  "Recommended Review Actions",
+  "Team Issues in Review",
+  "Team Issues in Testing",
+  "Other Watched Issues",
+] as const;
+
+type OverviewSection = (typeof OVERVIEW_SECTIONS)[number];
+
+const SECTIONS_STORAGE_KEY = "overview-visible-sections";
+
+function loadVisibleSections(): Set<OverviewSection> {
+  try {
+    const stored = localStorage.getItem(SECTIONS_STORAGE_KEY);
+    if (stored) return new Set(JSON.parse(stored) as OverviewSection[]);
+  } catch { /* ignore */ }
+  return new Set(OVERVIEW_SECTIONS);
+}
+
+function saveVisibleSections(sections: Set<OverviewSection>) {
+  localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify([...sections]));
+}
+
 export default function Overview() {
   const configQuery = trpc.config.get.useQuery();
   const config = configQuery.data?.config;
@@ -30,6 +57,24 @@ export default function Overview() {
   // Shared filter state (persisted to localStorage, shared with /reviews)
   const { filters: sharedFilters, setFilters } = useSharedFilters();
   const [showOptions, setShowOptions] = useState(false);
+
+  // Section visibility toggles (persisted to localStorage)
+  const [visibleSections, setVisibleSections] = useState<Set<OverviewSection>>(loadVisibleSections);
+
+  const toggleSection = (section: OverviewSection) => {
+    setVisibleSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      saveVisibleSections(next);
+      return next;
+    });
+  };
+
+  const isSectionVisible = (section: OverviewSection) => visibleSections.has(section);
 
   const teamMemberUsernames = useMemo(
     () => (config?.teamMembers ?? []).map((m) => m.githubUsername),
@@ -197,136 +242,166 @@ export default function Overview() {
             </div>
           </div>
         )}
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-3">
+          <span className="text-xs text-muted-foreground mr-1">Sections:</span>
+          {OVERVIEW_SECTIONS.map((section) => (
+            <Button
+              key={section}
+              variant={isSectionVisible(section) ? "default" : "outline"}
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => toggleSection(section)}
+            >
+              {section}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Responsive 2-column masonry layout */}
       <div className="columns-1 lg:columns-2 gap-4 space-y-4">
         {/* Card 1: My Epics */}
-        <OverviewCard
-          title="My Epics"
-          count={data.myEpics.length}
-          isLoading={!config?.jiraAccountId ? false : data.isJiraLoading && data.myEpics.length === 0}
-          emptyMessage="No active epics assigned to you"
-        >
-          <CompactJiraTable
-            issues={data.myEpics}
-            linkedPRs={data.overviewLinkedPRs}
-            viewer={config?.githubIdentity ?? ""}
-            hideAssignee
-            hideLinkedPRs
-            isPRsLoading={data.isOverviewPRsLoading}
-          />
-        </OverviewCard>
-
-        {/* Card 2: My Assigned Issues */}
-        <OverviewCard
-          title="My Assigned Issues"
-          count={data.myAssignedIssues.length}
-          isLoading={!config?.jiraAccountId ? false : data.isJiraLoading && data.myAssignedIssues.length === 0}
-          emptyMessage="No active issues assigned to you"
-        >
-          <CompactJiraTable
-            issues={data.myAssignedIssues}
-            linkedPRs={data.overviewLinkedPRs}
-            viewer={config?.githubIdentity ?? ""}
-            hideAssignee
-            isPRsLoading={data.isOverviewPRsLoading}
-          />
-        </OverviewCard>
-
-        {/* Card 3: My PRs */}
-        <OverviewCard
-          title="My PRs"
-          count={filteredMyPRs.length}
-          isLoading={data.isGitHubLoading}
-          emptyMessage="No open PRs authored by you"
-        >
-          <CompactPRTable
-            prs={filteredMyPRs}
-            reviewStatuses={data.reviewStatuses}
-            hideAuthor
-          />
-        </OverviewCard>
-
-        {/* Card 4: PRs I'm Reviewing */}
-        <OverviewCard
-          title="PRs I'm Reviewing"
-          count={filteredReviewingPRs.length}
-          isLoading={data.isGitHubLoading}
-          emptyMessage="No PRs to review"
-        >
-          <CompactPRTable
-            prs={filteredReviewingPRs}
-            reviewStatuses={data.reviewStatuses}
-          />
-        </OverviewCard>
-
-        {/* Card 5: Recommended Review Actions */}
-        <OverviewCard
-          title="Recommended Review Actions"
-          count={data.actions.length}
-          isLoading={data.isGitHubLoading}
-          emptyMessage="No review actions needed"
-        >
-          <ActionsPanel actions={data.actions} flat maxItems={10} />
-        </OverviewCard>
-
-        {/* Card 6: Team Issues in Review */}
-        {config?.teamAreaLabelsFilter != null ? (
+        {isSectionVisible("My Epics") && (
           <OverviewCard
-            title="Team Issues in Review"
-            count={data.filterReviewIssues.length}
-            isLoading={data.filterReviewIssues.length === 0 && data.isFetching}
-            emptyMessage="No team issues in Review state"
+            title="My Epics"
+            count={data.myEpics.length}
+            isLoading={!config?.jiraAccountId ? false : data.isJiraLoading && data.myEpics.length === 0}
+            emptyMessage="No active epics assigned to you"
           >
             <CompactJiraTable
-              issues={data.filterReviewIssues}
+              issues={data.myEpics}
               linkedPRs={data.overviewLinkedPRs}
               viewer={config?.githubIdentity ?? ""}
+              hideAssignee
+              hideLinkedPRs
               isPRsLoading={data.isOverviewPRsLoading}
             />
           </OverviewCard>
-        ) : (
-          <OverviewCard title="Team Issues in Review" emptyMessage='Configure "teamAreaLabelsFilter" in config.local.json to see team issues'>
-            <span />
+        )}
+
+        {/* Card 2: My Assigned Issues */}
+        {isSectionVisible("My Assigned Issues") && (
+          <OverviewCard
+            title="My Assigned Issues"
+            count={data.myAssignedIssues.length}
+            isLoading={!config?.jiraAccountId ? false : data.isJiraLoading && data.myAssignedIssues.length === 0}
+            emptyMessage="No active issues assigned to you"
+          >
+            <CompactJiraTable
+              issues={data.myAssignedIssues}
+              linkedPRs={data.overviewLinkedPRs}
+              viewer={config?.githubIdentity ?? ""}
+              hideAssignee
+              isPRsLoading={data.isOverviewPRsLoading}
+            />
           </OverviewCard>
+        )}
+
+        {/* Card 3: My PRs */}
+        {isSectionVisible("My PRs") && (
+          <OverviewCard
+            title="My PRs"
+            count={filteredMyPRs.length}
+            isLoading={data.isGitHubLoading}
+            emptyMessage="No open PRs authored by you"
+          >
+            <CompactPRTable
+              prs={filteredMyPRs}
+              reviewStatuses={data.reviewStatuses}
+              hideAuthor
+            />
+          </OverviewCard>
+        )}
+
+        {/* Card 4: PRs I'm Reviewing */}
+        {isSectionVisible("PRs I'm Reviewing") && (
+          <OverviewCard
+            title="PRs I'm Reviewing"
+            count={filteredReviewingPRs.length}
+            isLoading={data.isGitHubLoading}
+            emptyMessage="No PRs to review"
+          >
+            <CompactPRTable
+              prs={filteredReviewingPRs}
+              reviewStatuses={data.reviewStatuses}
+            />
+          </OverviewCard>
+        )}
+
+        {/* Card 5: Recommended Review Actions */}
+        {isSectionVisible("Recommended Review Actions") && (
+          <OverviewCard
+            title="Recommended Review Actions"
+            count={data.actions.length}
+            isLoading={data.isGitHubLoading}
+            emptyMessage="No review actions needed"
+          >
+            <ActionsPanel actions={data.actions} flat maxItems={10} />
+          </OverviewCard>
+        )}
+
+        {/* Card 6: Team Issues in Review */}
+        {isSectionVisible("Team Issues in Review") && (
+          config?.teamAreaLabelsFilter != null ? (
+            <OverviewCard
+              title="Team Issues in Review"
+              count={data.filterReviewIssues.length}
+              isLoading={data.filterReviewIssues.length === 0 && data.isFetching}
+              emptyMessage="No team issues in Review state"
+            >
+              <CompactJiraTable
+                issues={data.filterReviewIssues}
+                linkedPRs={data.overviewLinkedPRs}
+                viewer={config?.githubIdentity ?? ""}
+                isPRsLoading={data.isOverviewPRsLoading}
+              />
+            </OverviewCard>
+          ) : (
+            <OverviewCard title="Team Issues in Review" emptyMessage='Configure "teamAreaLabelsFilter" in config.local.json to see team issues'>
+              <span />
+            </OverviewCard>
+          )
         )}
 
         {/* Card 7: Team Issues in Testing */}
-        {config?.teamAreaLabelsFilter != null ? (
+        {isSectionVisible("Team Issues in Testing") && (
+          config?.teamAreaLabelsFilter != null ? (
+            <OverviewCard
+              title="Team Issues in Testing"
+              count={data.filterTestingIssues.length}
+              isLoading={data.filterTestingIssues.length === 0 && data.isFetching}
+              emptyMessage="No team issues in Testing state"
+            >
+              <CompactJiraTable
+                issues={data.filterTestingIssues}
+                linkedPRs={data.overviewLinkedPRs}
+                viewer={config?.githubIdentity ?? ""}
+                isPRsLoading={data.isOverviewPRsLoading}
+              />
+            </OverviewCard>
+          ) : (
+            <OverviewCard title="Team Issues in Testing" emptyMessage='Configure "teamAreaLabelsFilter" in config.local.json to see team issues'>
+              <span />
+            </OverviewCard>
+          )
+        )}
+
+        {/* Card 8: Other Watched Issues */}
+        {isSectionVisible("Other Watched Issues") && (
           <OverviewCard
-            title="Team Issues in Testing"
-            count={data.filterTestingIssues.length}
-            isLoading={data.filterTestingIssues.length === 0 && data.isFetching}
-            emptyMessage="No team issues in Testing state"
+            title="Other Watched Issues"
+            count={data.watchedIssues.length}
+            isLoading={!config?.jiraAccountId ? false : data.watchedIssues.length === 0 && data.isFetching}
+            emptyMessage="No other watched issues"
           >
             <CompactJiraTable
-              issues={data.filterTestingIssues}
+              issues={data.watchedIssues}
               linkedPRs={data.overviewLinkedPRs}
               viewer={config?.githubIdentity ?? ""}
               isPRsLoading={data.isOverviewPRsLoading}
             />
           </OverviewCard>
-        ) : (
-          <OverviewCard title="Team Issues in Testing" emptyMessage='Configure "teamAreaLabelsFilter" in config.local.json to see team issues'>
-            <span />
-          </OverviewCard>
         )}
-
-        {/* Card 8: Other Watched Issues */}
-        <OverviewCard
-          title="Other Watched Issues"
-          count={data.watchedIssues.length}
-          isLoading={!config?.jiraAccountId ? false : data.watchedIssues.length === 0 && data.isFetching}
-          emptyMessage="No other watched issues"
-        >
-          <CompactJiraTable
-            issues={data.watchedIssues}
-            linkedPRs={data.overviewLinkedPRs}
-            viewer={config?.githubIdentity ?? ""}
-            isPRsLoading={data.isOverviewPRsLoading}
-          />
-        </OverviewCard>
       </div>
     </div>
   );
