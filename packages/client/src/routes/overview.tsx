@@ -1,8 +1,8 @@
 // Overview route — responsive card grid with summary of all work
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { Settings, GripVertical } from "lucide-react";
+import { Settings, GripVertical, RotateCcw } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -15,6 +15,7 @@ import {
   type DragStartEvent,
   type CollisionDetection,
   DragOverlay,
+  type DragOverEvent,
   useDroppable,
 } from "@dnd-kit/core";
 import {
@@ -263,8 +264,55 @@ export default function Overview() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Track layout in a ref so onDragOver can check container membership synchronously
+  // without calling setLayout (which triggers re-renders even when returning prev)
+  const layoutRef = useRef(layout);
+  useEffect(() => { layoutRef.current = layout; }, [layout]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as OverviewSection);
+  }, []);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const section = active.id as OverviewSection;
+    const overId = over.id as string;
+
+    // Determine containers from the ref (no state update needed to check)
+    const cur = layoutRef.current;
+    const fromCol: ContainerId | null =
+      cur.left.includes(section) ? "left" :
+      cur.right.includes(section) ? "right" : null;
+    if (!fromCol) return;
+
+    let toCol: ContainerId;
+    let overSection: OverviewSection | null = null;
+    if (overId === "left" || overId === "right") {
+      toCol = overId;
+    } else {
+      overSection = overId as OverviewSection;
+      toCol = cur.left.includes(overSection) ? "left" :
+              cur.right.includes(overSection) ? "right" : fromCol;
+    }
+
+    // Only handle cross-container moves (same-container reorder is in dragEnd)
+    if (fromCol === toCol) return;
+
+    // Perform the move
+    const next = { left: [...cur.left], right: [...cur.right], hidden: cur.hidden };
+    next[fromCol] = next[fromCol].filter((s) => s !== section);
+    if (overSection) {
+      const overIndex = next[toCol].indexOf(overSection);
+      next[toCol].splice(overIndex, 0, section);
+    } else {
+      next[toCol].push(section);
+    }
+
+    // Update ref synchronously so subsequent onDragOver calls see the new state
+    layoutRef.current = next;
+    setLayout(next);
   }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -613,64 +661,75 @@ export default function Overview() {
           )}
         </div>
         {showOptions && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
-              <div className="flex items-center gap-1.5">
-                <Switch checked={sharedFilters.filterActionNeeded} onCheckedChange={(v) => setFilters({ filterActionNeeded: v })} />
-                <span className="text-xs">Action needed only</span>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={containerAwareCollision}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <Switch checked={sharedFilters.filterActionNeeded} onCheckedChange={(v) => setFilters({ filterActionNeeded: v })} />
+                  <span className="text-xs">Action needed only</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Switch checked={sharedFilters.ignoreDrafts} onCheckedChange={(v) => setFilters({ ignoreDrafts: v })} />
+                  <span className="text-xs">Ignore drafts</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Switch checked={sharedFilters.ignoreOtherTeams} onCheckedChange={(v) => setFilters({ ignoreOtherTeams: v })} />
+                  <span className="text-xs">Ignore PRs from other scrums</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Switch checked={sharedFilters.ignoreBots} onCheckedChange={(v) => setFilters({ ignoreBots: v })} />
+                  <span className="text-xs">Ignore PRs from bots</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground ml-auto"
+                  onClick={() => {
+                    const next = { ...DEFAULT_LAYOUT };
+                    setLayout(next);
+                    saveLayout(next);
+                  }}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset columns to defaults
+                </Button>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Switch checked={sharedFilters.ignoreDrafts} onCheckedChange={(v) => setFilters({ ignoreDrafts: v })} />
-                <span className="text-xs">Ignore drafts</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Switch checked={sharedFilters.ignoreOtherTeams} onCheckedChange={(v) => setFilters({ ignoreOtherTeams: v })} />
-                <span className="text-xs">Ignore PRs from other scrums</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Switch checked={sharedFilters.ignoreBots} onCheckedChange={(v) => setFilters({ ignoreBots: v })} />
-                <span className="text-xs">Ignore PRs from bots</span>
-              </div>
+              <div className="border-t border-border" />
+              <DroppableColumn
+                id="left"
+                label="Left column"
+                sections={layout.left}
+                hiddenSet={hiddenSet}
+                onToggleVisibility={toggleVisibility}
+              />
+              <div className="border-t border-border" />
+              <DroppableColumn
+                id="right"
+                label="Right column"
+                sections={layout.right}
+                hiddenSet={hiddenSet}
+                onToggleVisibility={toggleVisibility}
+              />
             </div>
-
-            {/* Section layout controls with drag-and-drop */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={containerAwareCollision}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <div className="rounded-lg border border-border bg-card p-3 space-y-2">
-                <DroppableColumn
-                  id="left"
-                  label="Left column"
-                  sections={layout.left}
-                  hiddenSet={hiddenSet}
-                  onToggleVisibility={toggleVisibility}
-                />
-                <div className="border-t border-border" />
-                <DroppableColumn
-                  id="right"
-                  label="Right column"
-                  sections={layout.right}
-                  hiddenSet={hiddenSet}
-                  onToggleVisibility={toggleVisibility}
-                />
-              </div>
-              <DragOverlay>
-                {activeId && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-6 px-2 text-xs cursor-grabbing shadow-lg"
-                  >
-                    <GripVertical className="h-3 w-3 mr-1 opacity-50" />
-                    {activeId}
-                  </Button>
-                )}
-              </DragOverlay>
-            </DndContext>
-          </div>
+            <DragOverlay>
+              {activeId && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-6 px-2 text-xs cursor-grabbing shadow-lg"
+                >
+                  <GripVertical className="h-3 w-3 mr-1 opacity-50" />
+                  {activeId}
+                </Button>
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
 
