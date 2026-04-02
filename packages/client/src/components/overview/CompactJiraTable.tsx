@@ -135,26 +135,26 @@ export function CompactJiraTable({
   const sortProps = { sortColumn, sortDirection };
 
   return (
-    <div>
-      <Table className="border-separate border-spacing-0 w-full">
+    <div className="overflow-hidden">
+      <Table className="border-separate border-spacing-0 w-full table-fixed">
         <TableHeader>
           <TableRow className="border-none hover:bg-transparent">
-            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("type")}>
-              <span className="inline-flex items-center gap-1">T <SortIcon column="type" {...sortProps} /></span>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[32px]" onClick={() => handleSort("type")}>
+              <span className="inline-flex items-center gap-1"><SortIcon column="type" {...sortProps} /></span>
             </TableHead>
             <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("key")}>
               <span className="inline-flex items-center gap-1">Summary <SortIcon column="key" {...sortProps} /></span>
             </TableHead>
-            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("priority")}>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[32px]" onClick={() => handleSort("priority")}>
               <span className="inline-flex items-center gap-1">P <SortIcon column="priority" {...sortProps} /></span>
             </TableHead>
             {!hideAssignee && (
-              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("assignee")}>
+              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[120px]" onClick={() => handleSort("assignee")}>
                 <span className="inline-flex items-center gap-1">Assignee <SortIcon column="assignee" {...sortProps} /></span>
               </TableHead>
             )}
             {!hideStatus && (
-              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("status")}>
+              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[90px]" onClick={() => handleSort("status")}>
                 <span className="inline-flex items-center gap-1">Status <SortIcon column="status" {...sortProps} /></span>
               </TableHead>
             )}
@@ -262,7 +262,7 @@ function IssueRows({
           </div>
         </TableCell>
         {!hideAssignee && (
-          <TableCell rowSpan={rowCount} className="py-1.5 text-xs whitespace-nowrap">
+          <TableCell rowSpan={rowCount} className="py-1.5 text-xs truncate">
             {issue.assignee ?? "-"}
           </TableCell>
         )}

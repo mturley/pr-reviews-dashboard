@@ -100,22 +100,22 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
   const sortProps = { sortColumn, sortDirection };
 
   return (
-    <div>
-      <Table className="border-separate border-spacing-0 w-full">
+    <div className="overflow-hidden">
+      <Table className="border-separate border-spacing-0 w-full table-fixed">
         <TableHeader>
           <TableRow className="border-none hover:bg-transparent">
             <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("reviewStatus")}>
               <span className="inline-flex items-center gap-1">PR <SortIcon column="reviewStatus" {...sortProps} /></span>
             </TableHead>
             {!hideAuthor && (
-              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("author")}>
+              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[100px]" onClick={() => handleSort("author")}>
                 <span className="inline-flex items-center gap-1">Author <SortIcon column="author" {...sortProps} /></span>
               </TableHead>
             )}
-            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("jira")}>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[180px]" onClick={() => handleSort("jira")}>
               <span className="inline-flex items-center gap-1">Jira <SortIcon column="jira" {...sortProps} /></span>
             </TableHead>
-            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("priority")}>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap w-[32px]" onClick={() => handleSort("priority")}>
               <span className="inline-flex items-center gap-1">P <SortIcon column="priority" {...sortProps} /></span>
             </TableHead>
           </TableRow>
