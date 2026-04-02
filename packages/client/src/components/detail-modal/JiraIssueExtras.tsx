@@ -3,6 +3,7 @@ import { Loader2, ArrowUpDown } from "lucide-react";
 import { trpc } from "@/trpc";
 import { JiraMarkup } from "../shared/JiraMarkup";
 import { Button } from "@/components/ui/button";
+import { CollapsibleBody } from "./CollapsibleBody";
 
 function formatTimestamp(dateStr: string): string {
   const date = new Date(dateStr);
@@ -41,7 +42,9 @@ export function JiraIssueExtras({ issueKey, description }: JiraIssueExtrasProps)
         <div>
           <h3 className="text-xs font-semibold text-muted-foreground mb-2">Description</h3>
           <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm prose-sm max-w-none">
-            <JiraMarkup text={description} className="space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-bold [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:italic" />
+            <CollapsibleBody>
+              <JiraMarkup text={description} className="space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-bold [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:italic" />
+            </CollapsibleBody>
           </div>
         </div>
       )}
@@ -89,20 +92,26 @@ export function JiraIssueExtras({ issueKey, description }: JiraIssueExtrasProps)
           <div className="space-y-3">
             {sortedComments.map((comment) => (
               <div key={comment.id} className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-                <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{comment.authorDisplayName}</span>
-                  <span>·</span>
-                  <span>{formatTimestamp(comment.created)}</span>
-                  {comment.updated !== comment.created && (
-                    <>
+                <CollapsibleBody
+                  renderHeader={(showLess) => (
+                    <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">{comment.authorDisplayName}</span>
                       <span>·</span>
-                      <span>edited {formatTimestamp(comment.updated)}</span>
-                    </>
+                      <span>{formatTimestamp(comment.created)}</span>
+                      {comment.updated !== comment.created && (
+                        <>
+                          <span>·</span>
+                          <span>edited {formatTimestamp(comment.updated)}</span>
+                        </>
+                      )}
+                      {showLess}
+                    </div>
                   )}
-                </div>
-                <div className="text-sm">
-                  <JiraMarkup text={comment.body} className="space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:italic" />
-                </div>
+                >
+                  <div className="text-sm">
+                    <JiraMarkup text={comment.body} className="space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-3 [&_blockquote]:italic" />
+                  </div>
+                </CollapsibleBody>
               </div>
             ))}
           </div>

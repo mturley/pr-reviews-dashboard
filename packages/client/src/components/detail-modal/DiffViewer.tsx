@@ -158,10 +158,10 @@ export function DiffViewer({ pr, splitView, onSplitViewChange, hideWhitespace, o
     pullNumber: pr.number,
   });
 
-  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
   const toggleFile = useCallback((filename: string) => {
-    setExpandedFiles((prev) => {
+    setCollapsedFiles((prev) => {
       const next = new Set(prev);
       if (next.has(filename)) next.delete(filename);
       else next.add(filename);
@@ -189,11 +189,11 @@ export function DiffViewer({ pr, splitView, onSplitViewChange, hideWhitespace, o
   const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
   const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
-  const allExpanded = files.length > 0 && files.every((f) => expandedFiles.has(f.filename));
-  const noneExpanded = expandedFiles.size === 0;
+  const allExpanded = files.length > 0 && collapsedFiles.size === 0;
+  const noneExpanded = files.length > 0 && files.every((f) => collapsedFiles.has(f.filename));
 
-  const expandAll = () => setExpandedFiles(new Set(files.map((f) => f.filename)));
-  const collapseAll = () => setExpandedFiles(new Set());
+  const expandAll = () => setCollapsedFiles(new Set());
+  const collapseAll = () => setCollapsedFiles(new Set(files.map((f) => f.filename)));
 
   return (
     <div className="space-y-3">
@@ -239,7 +239,7 @@ export function DiffViewer({ pr, splitView, onSplitViewChange, hideWhitespace, o
             file={file}
             splitView={splitView}
             hideWhitespace={hideWhitespace}
-            expanded={expandedFiles.has(file.filename)}
+            expanded={!collapsedFiles.has(file.filename)}
             onToggle={() => toggleFile(file.filename)}
           />
         ))}

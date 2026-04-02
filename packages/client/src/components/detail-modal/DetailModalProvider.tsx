@@ -97,7 +97,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [resolved, setResolved] = useState<ResolvedModalData>(EMPTY_MODAL);
 
-  const [splitView, setSplitView] = useState(false);
+  const [splitView, setSplitView] = useState(true);
   const [hideWhitespace, setHideWhitespace] = useState(false);
   const [loadingJira, setLoadingJira] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
