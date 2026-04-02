@@ -232,12 +232,12 @@ function IssueRows({
             )}
           </div>
         </TableCell>
-        <TableCell rowSpan={rowCount} className="py-1.5 text-xs">
+        <TableCell rowSpan={rowCount} className="py-1.5 text-sm">
           <div>
             <AppLink
               href={issue.url}
               detail={{ type: "jira", key: issue.key }}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
             >
               {issue.key}
             </AppLink>

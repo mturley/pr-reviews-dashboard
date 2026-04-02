@@ -137,7 +137,7 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
                     <AppLink
                       href={pr.url}
                       detail={{ type: "pr", url: pr.url }}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate"
                     >
                       #{pr.number}: {pr.title}
                     </AppLink>
