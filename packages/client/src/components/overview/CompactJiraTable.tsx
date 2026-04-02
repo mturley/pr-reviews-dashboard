@@ -31,21 +31,28 @@ interface CompactJiraTableProps {
   viewer: string;
   hideAssignee?: boolean;
   hideLinkedPRs?: boolean;
+  hideStatus?: boolean;
   isPRsLoading?: boolean;
   maxItems?: number;
 }
 
 function CompactPRCell({ pr }: { pr: LinkedPR }) {
+  const hasCIFailure = pr.checkState === "FAILURE" || pr.checkState === "ERROR";
   return (
-    <div className="flex items-center gap-1">
-      <PRStateIcon pr={pr} />
-      <AppLink
-        href={pr.url}
-        detail={{ type: "pr", url: pr.url }}
-        className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[150px]"
-      >
-        #{pr.number} {pr.title}
-      </AppLink>
+    <div>
+      <div className="flex items-center gap-1">
+        <PRStateIcon pr={pr} />
+        <AppLink
+          href={pr.url}
+          detail={{ type: "pr", url: pr.url }}
+          className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate"
+        >
+          #{pr.number} {pr.title}
+        </AppLink>
+      </div>
+      <div className="ml-5 mt-1">
+        <ReviewStatusCell result={pr.reviewStatus} hasCIFailure={hasCIFailure} inline />
+      </div>
     </div>
   );
 }
@@ -105,6 +112,7 @@ export function CompactJiraTable({
   viewer,
   hideAssignee,
   hideLinkedPRs,
+  hideStatus,
   isPRsLoading = false,
   maxItems = 10,
 }: CompactJiraTableProps) {
@@ -128,31 +136,29 @@ export function CompactJiraTable({
 
   return (
     <div>
-      <Table className="border-separate border-spacing-0">
+      <Table className="border-separate border-spacing-0 w-full">
         <TableHeader>
           <TableRow className="border-none hover:bg-transparent">
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("type")}>
-              <span className="inline-flex items-center gap-1">Type <SortIcon column="type" {...sortProps} /></span>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("type")}>
+              <span className="inline-flex items-center gap-1">T <SortIcon column="type" {...sortProps} /></span>
             </TableHead>
             <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("key")}>
-              <span className="inline-flex items-center gap-1">Key <SortIcon column="key" {...sortProps} /></span>
+              <span className="inline-flex items-center gap-1">Summary <SortIcon column="key" {...sortProps} /></span>
             </TableHead>
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("summary")}>
-              <span className="inline-flex items-center gap-1">Summary <SortIcon column="summary" {...sortProps} /></span>
-            </TableHead>
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("priority")}>
-              <span className="inline-flex items-center gap-1">Priority <SortIcon column="priority" {...sortProps} /></span>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("priority")}>
+              <span className="inline-flex items-center gap-1">P <SortIcon column="priority" {...sortProps} /></span>
             </TableHead>
             {!hideAssignee && (
-              <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("assignee")}>
+              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("assignee")}>
                 <span className="inline-flex items-center gap-1">Assignee <SortIcon column="assignee" {...sortProps} /></span>
               </TableHead>
             )}
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("status")}>
-              <span className="inline-flex items-center gap-1">Status <SortIcon column="status" {...sortProps} /></span>
-            </TableHead>
-            {!hideLinkedPRs && <TableHead className="border-none text-xs">Linked PRs</TableHead>}
-            {!hideLinkedPRs && <TableHead className="border-none text-xs">Review Status</TableHead>}
+            {!hideStatus && (
+              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("status")}>
+                <span className="inline-flex items-center gap-1">Status <SortIcon column="status" {...sortProps} /></span>
+              </TableHead>
+            )}
+            {!hideLinkedPRs && <TableHead className="border-none text-xs whitespace-nowrap">Linked PRs</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -168,6 +174,7 @@ export function CompactJiraTable({
                 rowCount={rowCount}
                 hideAssignee={hideAssignee}
                 hideLinkedPRs={hideLinkedPRs}
+                hideStatus={hideStatus}
                 isPRsLoading={isPRsLoading}
               />
             );
@@ -204,6 +211,7 @@ function IssueRows({
   rowCount,
   hideAssignee,
   hideLinkedPRs,
+  hideStatus,
   isPRsLoading,
 }: {
   issue: JiraIssue;
@@ -211,6 +219,7 @@ function IssueRows({
   rowCount: number;
   hideAssignee?: boolean;
   hideLinkedPRs?: boolean;
+  hideStatus?: boolean;
   isPRsLoading: boolean;
 }) {
   return (
@@ -223,27 +232,27 @@ function IssueRows({
             )}
           </div>
         </TableCell>
-        <TableCell rowSpan={rowCount} className="py-1.5">
-          <AppLink
-            href={issue.url}
-            detail={{ type: "jira", key: issue.key }}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
-          >
-            {issue.key}
-          </AppLink>
-        </TableCell>
-        <TableCell rowSpan={rowCount} className="py-1.5 max-w-[200px] text-xs">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="truncate">
-                {issue.blocked && (
-                  <StatusBadge label="Blocked" variant="danger" className="mr-1" />
-                )}
-                {issue.summary}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{issue.summary}</TooltipContent>
-          </Tooltip>
+        <TableCell rowSpan={rowCount} className="py-1.5 text-xs">
+          <div>
+            <AppLink
+              href={issue.url}
+              detail={{ type: "jira", key: issue.key }}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+            >
+              {issue.key}
+            </AppLink>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate text-muted-foreground">
+                  {issue.blocked && (
+                    <StatusBadge label="Blocked" variant="danger" className="mr-1" />
+                  )}
+                  {issue.summary}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{issue.summary}</TooltipContent>
+            </Tooltip>
+          </div>
         </TableCell>
         <TableCell rowSpan={rowCount} className="py-1.5">
           <div className="flex items-center gap-1 text-xs">
@@ -253,13 +262,15 @@ function IssueRows({
           </div>
         </TableCell>
         {!hideAssignee && (
-          <TableCell rowSpan={rowCount} className="py-1.5 text-xs">
+          <TableCell rowSpan={rowCount} className="py-1.5 text-xs whitespace-nowrap">
             {issue.assignee ?? "-"}
           </TableCell>
         )}
-        <TableCell rowSpan={rowCount} className="py-1.5 text-xs">
-          {issue.state}
-        </TableCell>
+        {!hideStatus && (
+          <TableCell rowSpan={rowCount} className="py-1.5 text-xs whitespace-nowrap">
+            {issue.state}
+          </TableCell>
+        )}
         {/* First PR row or no-PR placeholder */}
         {!hideLinkedPRs && (
           <TableCell className="py-1.5">
@@ -270,29 +281,11 @@ function IssueRows({
             )}
           </TableCell>
         )}
-        {!hideLinkedPRs && (
-          <TableCell className="py-1.5">
-            {linkedPRs.length > 0 ? (
-              <ReviewStatusCell
-                result={linkedPRs[0].reviewStatus}
-                hasCIFailure={linkedPRs[0].checkState === "FAILURE" || linkedPRs[0].checkState === "ERROR"}
-              />
-            ) : (
-              <span className="text-xs text-muted-foreground">-</span>
-            )}
-          </TableCell>
-        )}
       </TableRow>
       {!hideLinkedPRs && linkedPRs.slice(1).map((pr) => (
         <TableRow key={pr.url} className="hover:bg-muted/50">
           <TableCell className="py-1.5">
             <CompactPRCell pr={pr} />
-          </TableCell>
-          <TableCell className="py-1.5">
-            <ReviewStatusCell
-              result={pr.reviewStatus}
-              hasCIFailure={pr.checkState === "FAILURE" || pr.checkState === "ERROR"}
-            />
           </TableCell>
         </TableRow>
       ))}

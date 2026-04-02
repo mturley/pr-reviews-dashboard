@@ -529,7 +529,7 @@ export default function Overview() {
             isLoading={data.isGitHubLoading}
             emptyMessage="No review actions needed"
           >
-            <ActionsPanel actions={data.actions} flat maxItems={10} />
+            <ActionsPanel actions={data.actions} flat maxItems={3} />
           </OverviewCard>
         );
       case "Team Issues in Review":
@@ -545,6 +545,7 @@ export default function Overview() {
               issues={data.filterReviewIssues}
               linkedPRs={data.overviewLinkedPRs}
               viewer={config?.githubIdentity ?? ""}
+              hideStatus
               isPRsLoading={data.isOverviewPRsLoading}
             />
           </OverviewCard>
@@ -566,6 +567,7 @@ export default function Overview() {
               issues={data.filterTestingIssues}
               linkedPRs={data.overviewLinkedPRs}
               viewer={config?.githubIdentity ?? ""}
+              hideStatus
               isPRsLoading={data.isOverviewPRsLoading}
             />
           </OverviewCard>

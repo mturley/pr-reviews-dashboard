@@ -101,25 +101,22 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
 
   return (
     <div>
-      <Table className="border-separate border-spacing-0">
+      <Table className="border-separate border-spacing-0 w-full">
         <TableHeader>
           <TableRow className="border-none hover:bg-transparent">
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("pr")}>
-              <span className="inline-flex items-center gap-1">PR <SortIcon column="pr" {...sortProps} /></span>
+            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("reviewStatus")}>
+              <span className="inline-flex items-center gap-1">PR <SortIcon column="reviewStatus" {...sortProps} /></span>
             </TableHead>
             {!hideAuthor && (
-              <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("author")}>
+              <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("author")}>
                 <span className="inline-flex items-center gap-1">Author <SortIcon column="author" {...sortProps} /></span>
               </TableHead>
             )}
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("reviewStatus")}>
-              <span className="inline-flex items-center gap-1">Review Status <SortIcon column="reviewStatus" {...sortProps} /></span>
-            </TableHead>
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("jira")}>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("jira")}>
               <span className="inline-flex items-center gap-1">Jira <SortIcon column="jira" {...sortProps} /></span>
             </TableHead>
-            <TableHead className="border-none text-xs cursor-pointer select-none" onClick={() => handleSort("priority")}>
-              <span className="inline-flex items-center gap-1">Priority <SortIcon column="priority" {...sortProps} /></span>
+            <TableHead className="border-none text-xs cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort("priority")}>
+              <span className="inline-flex items-center gap-1">P <SortIcon column="priority" {...sortProps} /></span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -140,7 +137,7 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
                     <AppLink
                       href={pr.url}
                       detail={{ type: "pr", url: pr.url }}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[250px]"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate"
                     >
                       #{pr.number}: {pr.title}
                     </AppLink>
@@ -148,19 +145,19 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
                   <div className="text-xs text-muted-foreground ml-5">
                     {pr.repoOwner}/{pr.repoName}
                   </div>
+                  <div className="ml-5 mt-1">
+                    {reviewStatus ? (
+                      <ReviewStatusCell result={reviewStatus} hasCIFailure={hasCIFailure} inline />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </div>
                 </div>
               </TableCell>
               {!hideAuthor && (
-                <TableCell className="py-1.5 text-xs">{formatUsername(pr.author)}</TableCell>
+                <TableCell className="py-1.5 text-xs whitespace-nowrap">{formatUsername(pr.author)}</TableCell>
               )}
-              <TableCell className="py-1.5">
-                {reviewStatus ? (
-                  <ReviewStatusCell result={reviewStatus} hasCIFailure={hasCIFailure} />
-                ) : (
-                  <span className="text-xs text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell className="py-1.5">
+              <TableCell className="py-1.5 whitespace-nowrap">
                 {issue ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -190,12 +187,16 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
               </TableCell>
               <TableCell className="py-1.5">
                 {priority ? (
-                  <div className="flex items-center gap-1 text-xs">
-                    {priority.iconUrl && (
-                      <img src={priority.iconUrl} alt={priority.name} className="h-3.5 w-3.5" />
-                    )}
-                    {priority.name}
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-xs">
+                        {priority.iconUrl && (
+                          <img src={priority.iconUrl} alt={priority.name} className="h-3.5 w-3.5" />
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">{priority.name}</TooltipContent>
+                  </Tooltip>
                 ) : (
                   <span className="text-xs text-muted-foreground">-</span>
                 )}

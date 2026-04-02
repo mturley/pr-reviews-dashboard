@@ -35,11 +35,12 @@ function getStatusVariant(status: AuthorStatus | ReviewerStatus, hasAction?: boo
 interface ReviewStatusCellProps {
   result: ReviewStatusResult;
   hasCIFailure?: boolean;
+  inline?: boolean;
 }
 
-export function ReviewStatusCell({ result, hasCIFailure }: ReviewStatusCellProps) {
+export function ReviewStatusCell({ result, hasCIFailure, inline }: ReviewStatusCellProps) {
   const content = (
-    <div className="flex flex-col items-start gap-1">
+    <div className={inline ? "flex flex-wrap items-center gap-1" : "flex flex-col items-start gap-1"}>
       <StatusBadge label={result.status} variant={getStatusVariant(result.status, result.action != null)} />
       {hasCIFailure && (
         <StatusBadge label="CI Failed" variant="danger" />

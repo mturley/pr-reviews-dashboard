@@ -189,17 +189,23 @@ function CollapsibleDayGroup({
                 )}
                 {(() => {
                   const link = getTargetLink(event);
-                  return link ? (
-                    <a
+                  if (!link) return null;
+                  const detail: import("@/components/detail-modal/DetailModalProvider").DetailTarget | undefined =
+                    event.source === "github"
+                      ? { type: "pr", url: link.url }
+                      : event.source === "jira"
+                        ? { type: "jira", key: link.label }
+                        : undefined;
+                  return (
+                    <AppLink
                       href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      detail={detail}
                       className="font-medium text-blue-600 hover:underline dark:text-blue-400 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {link.label}
-                    </a>
-                  ) : null;
+                    </AppLink>
+                  );
                 })()}
                 <span className="truncate">{event.targetTitle}</span>
                 {event.source === "github" && event.prAuthor && (
