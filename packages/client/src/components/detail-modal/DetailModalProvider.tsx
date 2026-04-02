@@ -290,7 +290,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
       <Dialog open={isOpen} onOpenChange={(v) => !v && close()}>
         <DialogContent className={cn(
           "max-h-[90vh] flex flex-col gap-0 p-0 transition-[max-width] duration-300",
-          activeTab?.type === "pr-diff" && splitView ? "max-w-[95vw]" : "max-w-6xl",
+          activeTab?.type === "pr-diff" ? "max-w-[95vw]" : "max-w-6xl",
         )}>
           <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
             <div className="flex items-center gap-2 pr-8">

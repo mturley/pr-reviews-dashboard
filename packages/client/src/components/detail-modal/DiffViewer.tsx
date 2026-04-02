@@ -322,48 +322,63 @@ function FileEntry({ file, splitView, hideWhitespace, expanded, onToggle }: File
       </button>
 
       {expanded && parsed && splitView && sideBySidePairs && (
-        <div className="border-t border-border overflow-x-auto">
-          <table className="w-full text-xs font-mono border-collapse">
-            <tbody>
-              {sideBySidePairs.map((pair, i) => {
-                if (pair.left?.type === "hunk-header") {
+        <div className="border-t border-border flex">
+          {/* Left pane */}
+          <div className="w-1/2 overflow-x-auto border-r border-border">
+            <table className="w-full text-xs font-mono border-collapse">
+              <tbody>
+                {sideBySidePairs.map((pair, i) => {
+                  if (pair.left?.type === "hunk-header" || pair.left?.type === "no-newline") {
+                    return (
+                      <tr key={i}>
+                        <td colSpan={2} className={cn("px-3 leading-5 whitespace-pre", lineClassName(pair.left, hideWhitespace))}>
+                          {pair.left.content}
+                        </td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr key={i}>
-                      <td colSpan={4} className={cn("px-3 leading-5", lineClassName(pair.left, hideWhitespace))}>
-                        {pair.left.content}
+                      <td className="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border leading-5 align-top">
+                        {pair.left?.oldLineNum}
+                      </td>
+                      <td className={cn("px-2 whitespace-pre leading-5", lineClassName(pair.left, hideWhitespace))}>
+                        {pair.left?.content ?? ""}
                       </td>
                     </tr>
                   );
-                }
-                if (pair.left?.type === "no-newline") {
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Right pane */}
+          <div className="w-1/2 overflow-x-auto">
+            <table className="w-full text-xs font-mono border-collapse">
+              <tbody>
+                {sideBySidePairs.map((pair, i) => {
+                  if (pair.left?.type === "hunk-header" || pair.left?.type === "no-newline") {
+                    return (
+                      <tr key={i}>
+                        <td colSpan={2} className={cn("px-3 leading-5 whitespace-pre", lineClassName(pair.left, hideWhitespace))}>
+                          {pair.left.content}
+                        </td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr key={i}>
-                      <td colSpan={4} className={cn("px-3 leading-5", lineClassName(pair.left, hideWhitespace))}>
-                        {pair.left.content}
+                      <td className="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border leading-5 align-top">
+                        {pair.right?.newLineNum}
+                      </td>
+                      <td className={cn("px-2 whitespace-pre leading-5", lineClassName(pair.right, hideWhitespace))}>
+                        {pair.right?.content ?? ""}
                       </td>
                     </tr>
                   );
-                }
-
-                return (
-                  <tr key={i}>
-                    <td className="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border leading-5 align-top">
-                      {pair.left?.oldLineNum}
-                    </td>
-                    <td className={cn("px-2 whitespace-pre w-1/2 leading-5", lineClassName(pair.left, hideWhitespace))}>
-                      {pair.left?.content ?? ""}
-                    </td>
-                    <td className="w-10 text-right pr-2 text-muted-foreground select-none border-x border-border leading-5 align-top">
-                      {pair.right?.newLineNum}
-                    </td>
-                    <td className={cn("px-2 whitespace-pre w-1/2 leading-5", lineClassName(pair.right, hideWhitespace))}>
-                      {pair.right?.content ?? ""}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
