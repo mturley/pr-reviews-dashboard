@@ -7,6 +7,7 @@ type GraphQLNode = any;
 
 function transformReview(node: GraphQLNode): Review {
   return {
+    databaseId: node.databaseId ?? null,
     author: node.author?.login ?? "unknown",
     state: node.state as ReviewState,
     submittedAt: node.submittedAt ?? "",

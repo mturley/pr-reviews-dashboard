@@ -191,7 +191,7 @@ export function PRDetailContent({ pr, onNavigate }: PRDetailContentProps) {
         />
       </div>
     </div>
-    <PRExtras owner={pr.repoOwner} repo={pr.repoName} pullNumber={pr.number} />
+    <PRExtras owner={pr.repoOwner} repo={pr.repoName} pullNumber={pr.number} reviews={pr.reviews} />
     </div>
   );
 }

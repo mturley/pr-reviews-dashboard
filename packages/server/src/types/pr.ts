@@ -4,6 +4,7 @@
 export type ReviewState = "APPROVED" | "CHANGES_REQUESTED" | "COMMENTED" | "DISMISSED" | "PENDING";
 
 export interface Review {
+  databaseId: number | null;
   author: string;
   state: ReviewState;
   submittedAt: string;

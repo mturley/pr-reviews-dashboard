@@ -30,6 +30,7 @@ const PR_FRAGMENT = `
     }
     reviews(first: 20) {
       nodes {
+        databaseId
         author { login }
         state
         body
