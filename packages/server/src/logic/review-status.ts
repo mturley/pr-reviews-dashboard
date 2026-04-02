@@ -60,6 +60,7 @@ function buildReviewerBreakdown(
   const entries: ReviewerBreakdownEntry[] = [];
 
   for (const [username, review] of latestReviews) {
+    if (username === pr.author) continue; // PR author's own review comments aren't reviewer feedback
     const reviewAction = review.state === "COMMENTED" ? detectCommentAction(review.body) : undefined;
     entries.push({
       username,
@@ -122,8 +123,8 @@ function isPositiveSignal(item: Review | PRComment): boolean {
 
 function countFeedbackSinceLastPush(pr: PullRequest): number {
   const reviews = pr.reviews.filter(
-    (r) => r.state !== "PENDING" && !isBot(r.author) && r.submittedAt > pr.pushedAt
-      && !isPositiveSignal(r),
+    (r) => r.state !== "PENDING" && r.author !== pr.author && !isBot(r.author)
+      && r.submittedAt > pr.pushedAt && !isPositiveSignal(r),
   ).length;
   const comments = pr.comments.filter(
     (c) => c.author !== pr.author && !isBot(c.author) && c.createdAt > pr.pushedAt

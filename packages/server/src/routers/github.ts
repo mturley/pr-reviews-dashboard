@@ -199,6 +199,24 @@ export const githubRouter = router({
                   body
                 }
               }
+              reviewThreads(first: 100) {
+                nodes {
+                  id
+                  path
+                  line
+                  isResolved
+                  isOutdated
+                  comments(first: 50) {
+                    nodes {
+                      id
+                      author { login }
+                      createdAt
+                      updatedAt
+                      body
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -217,6 +235,24 @@ export const githubRouter = router({
                 body: string;
               }>;
             };
+            reviewThreads: {
+              nodes: Array<{
+                id: string;
+                path: string;
+                line: number | null;
+                isResolved: boolean;
+                isOutdated: boolean;
+                comments: {
+                  nodes: Array<{
+                    id: string;
+                    author: { login: string } | null;
+                    createdAt: string;
+                    updatedAt: string;
+                    body: string;
+                  }>;
+                };
+              }>;
+            };
           } | null;
         } | null;
       };
@@ -232,7 +268,7 @@ export const githubRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: `PR ${owner}/${repo}#${pullNumber} not found` });
       }
 
-      console.log(`[progress] github.getPRExtras: done, ${pr.comments.nodes.length} comments`);
+      console.log(`[progress] github.getPRExtras: done, ${pr.comments.nodes.length} comments, ${pr.reviewThreads.nodes.length} review threads`);
 
       return {
         body: pr.body || null,
@@ -242,6 +278,20 @@ export const githubRouter = router({
           createdAt: c.createdAt,
           updatedAt: c.updatedAt,
           body: c.body,
+        })),
+        reviewThreads: pr.reviewThreads.nodes.map((thread) => ({
+          id: thread.id,
+          path: thread.path,
+          line: thread.line,
+          isResolved: thread.isResolved,
+          isOutdated: thread.isOutdated,
+          comments: thread.comments.nodes.map((c) => ({
+            id: c.id,
+            author: c.author?.login ?? "ghost",
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+            body: c.body,
+          })),
         })),
         fetchedAt: new Date().toISOString(),
       };
