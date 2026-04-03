@@ -24,7 +24,7 @@ export function buildSprintIssuesJQL(projectKey: string, componentName: string, 
 }
 
 export function buildMyIssuesJQL(projectKey: string, accountId: string): string {
-  return `project = "${projectKey}" AND assignee = "${accountId}" AND status IN ("New", "Backlog", "In Progress") ORDER BY priority ASC, updated DESC`;
+  return `project = "${projectKey}" AND assignee = "${accountId}" AND status NOT IN ("Closed", "Resolved", "Done") ORDER BY priority ASC, updated DESC`;
 }
 
 export function buildFilterIssuesJQL(filterId: number): string {
