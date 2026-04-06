@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ReviewStatusCell } from "@/components/pr-table/ReviewStatusCell";
 import { AppLink } from "@/components/shared/AppLink";
+import { CopyLinkButton } from "@/components/shared/CopyLinkButton";
 import { PRStateIcon, buildLinkedPRMap, type LinkedPR } from "@/components/jira-table/cells";
 import {
   Table,
@@ -40,7 +41,7 @@ function CompactPRCell({ pr }: { pr: LinkedPR }) {
   const hasCIFailure = pr.checkState === "FAILURE" || pr.checkState === "ERROR";
   return (
     <div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 group/link">
         <PRStateIcon pr={pr} />
         <AppLink
           href={pr.url}
@@ -49,6 +50,7 @@ function CompactPRCell({ pr }: { pr: LinkedPR }) {
         >
           #{pr.number} {pr.title}
         </AppLink>
+        <CopyLinkButton url={pr.url} />
       </div>
       <div className="ml-5 mt-1">
         <ReviewStatusCell result={pr.reviewStatus} hasCIFailure={hasCIFailure} inline />
@@ -64,13 +66,15 @@ function CompactNoPRCell({ issue, isPRsLoading }: { issue: JiraIssue; isPRsLoadi
   return (
     <div className="space-y-0.5">
       {issue.linkedPRUrls.map((url) => (
-        <AppLink
-          key={url}
-          href={url}
-          className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          {url.split("/").pop()}
-        </AppLink>
+        <div key={url} className="flex items-center gap-1 group/link">
+          <AppLink
+            href={url}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {url.split("/").pop()}
+          </AppLink>
+          <CopyLinkButton url={url} />
+        </div>
       ))}
       {isPRsLoading && (
         <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
@@ -234,13 +238,16 @@ function IssueRows({
         </TableCell>
         <TableCell rowSpan={rowCount} className="py-1.5 text-sm">
           <div>
-            <AppLink
-              href={issue.url}
-              detail={{ type: "jira", key: issue.key }}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
-            >
-              {issue.key}
-            </AppLink>
+            <div className="flex items-center gap-1 group/link">
+              <AppLink
+                href={issue.url}
+                detail={{ type: "jira", key: issue.key }}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+              >
+                {issue.key}
+              </AppLink>
+              <CopyLinkButton url={issue.url} />
+            </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate text-muted-foreground">

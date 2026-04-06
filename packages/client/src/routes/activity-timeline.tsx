@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, Fragment } from "react";
 import { AppLink } from "@/components/shared/AppLink";
+import { CopyLinkButton } from "@/components/shared/CopyLinkButton";
 import { trpc } from "../trpc";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { LoadingIndicator } from "@/components/shared/LoadingIndicator";
@@ -197,14 +198,17 @@ function CollapsibleDayGroup({
                         ? { type: "jira", key: link.label }
                         : undefined;
                   return (
-                    <AppLink
-                      href={link.url}
-                      detail={detail}
-                      className="font-medium text-blue-600 hover:underline dark:text-blue-400 shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {link.label}
-                    </AppLink>
+                    <span className="inline-flex items-center gap-1 group/link shrink-0">
+                      <AppLink
+                        href={link.url}
+                        detail={detail}
+                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {link.label}
+                      </AppLink>
+                      <CopyLinkButton url={link.url} />
+                    </span>
                   );
                 })()}
                 <span className="truncate">{event.targetTitle}</span>
@@ -217,14 +221,17 @@ function CollapsibleDayGroup({
                   <span className="shrink-0 text-xs text-muted-foreground flex items-center gap-0.5">
                     ·
                     <span className="text-green-600 dark:text-green-400">⚡</span>
-                    <AppLink
-                      href={event.epicUrl}
-                      epicKey={event.epicKey}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {event.epicKey}
-                    </AppLink>
+                    <span className="inline-flex items-center gap-0.5 group/link">
+                      <AppLink
+                        href={event.epicUrl}
+                        epicKey={event.epicKey}
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {event.epicKey}
+                      </AppLink>
+                      <CopyLinkButton url={event.epicUrl} />
+                    </span>
                     {event.epicSummary && (
                       <span className="ml-1">{event.epicSummary}</span>
                     )}

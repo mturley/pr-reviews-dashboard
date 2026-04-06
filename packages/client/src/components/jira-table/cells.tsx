@@ -16,6 +16,7 @@ import {
 import type { JiraIssue } from "../../../../server/src/types/jira";
 import type { PullRequest, ReviewStatusResult } from "../../../../server/src/types/pr";
 import { AppLink } from "@/components/shared/AppLink";
+import { CopyLinkButton } from "@/components/shared/CopyLinkButton";
 
 // --- Types ---
 
@@ -81,7 +82,7 @@ export function PRStateIcon({ pr }: { pr: LinkedPR }) {
 export function PRLinkCell({ pr }: { pr: LinkedPR }) {
   return (
     <div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 group/link">
         <PRStateIcon pr={pr} />
         <AppLink
           href={pr.url}
@@ -90,6 +91,7 @@ export function PRLinkCell({ pr }: { pr: LinkedPR }) {
         >
           #{pr.number} {pr.title}
         </AppLink>
+        <CopyLinkButton url={pr.url} />
       </div>
       <span className="text-xs text-muted-foreground">{pr.repoOwner}/{pr.repoName}</span>
     </div>
@@ -114,13 +116,16 @@ export function IssueCells({
         </div>
       </TableCell>
       <TableCell rowSpan={rowSpan}>
-        <AppLink
-          href={issue.url}
-          detail={{ type: "jira", key: issue.key }}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          {issue.key}
-        </AppLink>
+        <div className="flex items-center gap-1 group/link">
+          <AppLink
+            href={issue.url}
+            detail={{ type: "jira", key: issue.key }}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {issue.key}
+          </AppLink>
+          <CopyLinkButton url={issue.url} />
+        </div>
       </TableCell>
       <TableCell rowSpan={rowSpan} className="max-w-md truncate text-sm">
         {issue.blocked && (
@@ -177,13 +182,15 @@ export function NoPRCells({ issue, isPRsLoading }: { issue: JiraIssue; isPRsLoad
         ) : (
           <div className="space-y-0.5">
             {issue.linkedPRUrls.map((url) => (
-              <AppLink
-                key={url}
-                href={url}
-                className="block text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {url.split("/").pop()}
-              </AppLink>
+              <div key={url} className="flex items-center gap-1 group/link">
+                <AppLink
+                  href={url}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {url.split("/").pop()}
+                </AppLink>
+                <CopyLinkButton url={url} />
+              </div>
             ))}
             {isPRsLoading && (
               <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>

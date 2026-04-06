@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ReviewStatusCell } from "@/components/pr-table/ReviewStatusCell";
 import { AppLink } from "@/components/shared/AppLink";
+import { CopyLinkButton } from "@/components/shared/CopyLinkButton";
 import {
   Table,
   TableBody,
@@ -132,7 +133,7 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
             <TableRow key={pr.id} className="hover:bg-muted/50">
               <TableCell className="py-1.5">
                 <div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 group/link">
                     <PRStateIcon pr={pr} />
                     <AppLink
                       href={pr.url}
@@ -141,6 +142,7 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
                     >
                       #{pr.number}: {pr.title}
                     </AppLink>
+                    <CopyLinkButton url={pr.url} />
                   </div>
                   <div className="text-xs text-muted-foreground ml-5">
                     {pr.repoOwner}/{pr.repoName}
@@ -162,16 +164,19 @@ export function CompactPRTable({ prs, reviewStatuses, hideAuthor, maxItems = 10 
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
-                        <AppLink
-                          href={issue.url}
-                          detail={{ type: "jira", key: issue.key }}
-                          className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          {issue.typeIconUrl && (
-                            <img src={issue.typeIconUrl} alt={issue.type} className="h-3.5 w-3.5" />
-                          )}
-                          {issue.key}
-                        </AppLink>
+                        <div className="flex items-center gap-1 group/link">
+                          <AppLink
+                            href={issue.url}
+                            detail={{ type: "jira", key: issue.key }}
+                            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {issue.typeIconUrl && (
+                              <img src={issue.typeIconUrl} alt={issue.type} className="h-3.5 w-3.5" />
+                            )}
+                            {issue.key}
+                          </AppLink>
+                          <CopyLinkButton url={issue.url} />
+                        </div>
                         {issue.summary && (
                           <span className="text-xs text-muted-foreground truncate block max-w-[150px]">{issue.summary}</span>
                         )}

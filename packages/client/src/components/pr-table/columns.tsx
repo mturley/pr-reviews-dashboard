@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { formatUsername } from "@/lib/bot-users";
 import { AppLink } from "@/components/shared/AppLink";
+import { CopyLinkButton } from "@/components/shared/CopyLinkButton";
 
 function PRStateIcon({ pr }: { pr: PullRequest }) {
   if (pr.state === "MERGED") return <GitMerge className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />;
@@ -94,7 +95,7 @@ return [
       const pr = info.row.original.pr;
       return (
         <div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 group/link">
             <PRStateIcon pr={pr} />
             <AppLink
               href={pr.url}
@@ -103,6 +104,7 @@ return [
             >
               #{pr.number}: {pr.title}
             </AppLink>
+            <CopyLinkButton url={pr.url} />
           </div>
           <div className="text-xs text-muted-foreground ml-5">
             {pr.repoOwner}/{pr.repoName}
@@ -171,16 +173,19 @@ return [
             <Tooltip key={issue.key}>
               <TooltipTrigger asChild>
                 <div>
-                  <AppLink
-                    href={issue.url}
-                    detail={{ type: "jira", key: issue.key }}
-                    className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    {issue.typeIconUrl && (
-                      <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
-                    )}
-                    {issue.key}
-                  </AppLink>
+                  <div className="flex items-center gap-1 group/link">
+                    <AppLink
+                      href={issue.url}
+                      detail={{ type: "jira", key: issue.key }}
+                      className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {issue.typeIconUrl && (
+                        <img src={issue.typeIconUrl} alt={issue.type} className="h-4 w-4" />
+                      )}
+                      {issue.key}
+                    </AppLink>
+                    <CopyLinkButton url={issue.url} />
+                  </div>
                   {issue.summary && (
                     <span className="text-xs text-muted-foreground truncate block max-w-[200px]">{issue.summary}</span>
                   )}
@@ -251,14 +256,17 @@ return [
         <Tooltip>
           <TooltipTrigger asChild>
             <div>
-              <AppLink
-                href={`https://${jiraHost}/browse/${epicKey}`}
-                epicKey={epicKey}
-                className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                <span className="text-green-600 dark:text-green-400">⚡</span>
-                {epicKey}
-              </AppLink>
+              <div className="flex items-center gap-1 group/link">
+                <AppLink
+                  href={`https://${jiraHost}/browse/${epicKey}`}
+                  epicKey={epicKey}
+                  className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <span className="text-green-600 dark:text-green-400">⚡</span>
+                  {epicKey}
+                </AppLink>
+                <CopyLinkButton url={`https://${jiraHost}/browse/${epicKey}`} />
+              </div>
               {epicSummary && (
                 <span className="text-xs text-muted-foreground truncate block max-w-[200px]">{epicSummary}</span>
               )}
