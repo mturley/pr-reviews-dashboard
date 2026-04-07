@@ -107,8 +107,12 @@ type ContainerId = "left" | "right";
 
 // Custom collision detection: find which droppable container the pointer is in,
 // then use closestCenter among only items in that container (+ the container itself).
+// Tracks the last resolved container to prevent oscillation near the column boundary
+// (which otherwise causes dnd-kit's internal setOver to loop).
+let lastContainerId: string | null = null;
+
 const containerAwareCollision: CollisionDetection = (args) => {
-  // First find which droppable containers the pointer is within
+  // Find which droppable containers the pointer is within
   const containerCollisions = pointerWithin({
     ...args,
     droppableContainers: args.droppableContainers.filter(
@@ -116,9 +120,18 @@ const containerAwareCollision: CollisionDetection = (args) => {
     ),
   });
 
+  let targetContainerId: string | null = null;
+
   if (containerCollisions.length > 0) {
-    const targetContainerId = containerCollisions[0].id;
-    // Now find closest item within that container (+ the container itself as fallback)
+    targetContainerId = containerCollisions[0].id as string;
+  } else if (lastContainerId) {
+    // Pointer is between containers — stick with the last known container
+    // to prevent oscillation
+    targetContainerId = lastContainerId;
+  }
+
+  if (targetContainerId) {
+    lastContainerId = targetContainerId;
     const itemsInContainer = args.droppableContainers.filter(
       (c) =>
         c.id === targetContainerId ||
@@ -129,7 +142,7 @@ const containerAwareCollision: CollisionDetection = (args) => {
       droppableContainers: itemsInContainer,
     });
     if (itemCollisions.length > 0) return itemCollisions;
-    // No items — return the container itself
+    // No items — return the container as a droppable target
     return containerCollisions;
   }
 
@@ -150,6 +163,7 @@ function SortableSectionButton({
   isHidden: boolean;
   onToggleVisibility: (section: OverviewSection) => void;
 }) {
+  const sortableData = useMemo(() => ({ containerId }), [containerId]);
   const {
     attributes,
     listeners,
@@ -158,7 +172,7 @@ function SortableSectionButton({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: section, data: { containerId } });
+  } = useSortable({ id: section, data: sortableData });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -310,63 +324,75 @@ export default function Overview() {
       next[toCol].push(section);
     }
 
-    // Update ref synchronously so subsequent onDragOver calls see the new state
+    // Only update ref — do NOT call setLayout here.
+    // Calling setLayout triggers a re-render which changes DOM layout of the
+    // droppable columns, causing dnd-kit to fire onDragOver again.  Near the
+    // column boundary this creates a flip-flop infinite loop.
+    // handleDragEnd will commit the ref to state.
     layoutRef.current = next;
-    setLayout(next);
   }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    lastContainerId = null;
     if (!over) return;
 
     const section = active.id as OverviewSection;
     const overId = over.id as string;
 
-    setLayout((prev) => {
-      // Find which column the dragged section is in
-      const fromCol: ContainerId | null =
-        prev.left.includes(section) ? "left" :
-        prev.right.includes(section) ? "right" : null;
-      if (!fromCol) return prev;
+    // Read from the ref which handleDragOver has been keeping up-to-date
+    const cur = layoutRef.current;
 
-      // Determine target column: over could be a droppable container id or a sortable item
-      let toCol: ContainerId;
-      let overSection: OverviewSection | null = null;
-      if (overId === "left" || overId === "right") {
-        toCol = overId;
-      } else {
-        overSection = overId as OverviewSection;
-        toCol = prev.left.includes(overSection) ? "left" :
-                prev.right.includes(overSection) ? "right" : fromCol;
+    // Find which column the dragged section is in
+    const fromCol: ContainerId | null =
+      cur.left.includes(section) ? "left" :
+      cur.right.includes(section) ? "right" : null;
+    if (!fromCol) return;
+
+    // Determine target column: over could be a droppable container id or a sortable item
+    let toCol: ContainerId;
+    let overSection: OverviewSection | null = null;
+    if (overId === "left" || overId === "right") {
+      toCol = overId;
+    } else {
+      overSection = overId as OverviewSection;
+      toCol = cur.left.includes(overSection) ? "left" :
+              cur.right.includes(overSection) ? "right" : fromCol;
+    }
+
+    const next = { left: [...cur.left], right: [...cur.right], hidden: cur.hidden };
+
+    if (fromCol === toCol) {
+      // Same column reorder
+      if (!overSection || section === overSection) {
+        // No reorder needed, but cross-column move may have happened in handleDragOver
+        saveLayout(next);
+        layoutRef.current = next;
+        setLayout(next);
+        return;
       }
-
-      const next = { left: [...prev.left], right: [...prev.right], hidden: prev.hidden };
-
-      if (fromCol === toCol) {
-        // Same column reorder
-        if (!overSection || section === overSection) return prev;
-        const items = next[fromCol];
-        const oldIndex = items.indexOf(section);
-        const newIndex = items.indexOf(overSection);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          next[fromCol] = arrayMove(items, oldIndex, newIndex);
-        }
-      } else {
-        // Cross-column move
-        next[fromCol] = next[fromCol].filter((s) => s !== section);
-        if (overSection) {
-          const overIndex = next[toCol].indexOf(overSection);
-          next[toCol].splice(overIndex, 0, section);
-        } else {
-          // Dropped on the column container itself — append
-          next[toCol].push(section);
-        }
+      const items = next[fromCol];
+      const oldIndex = items.indexOf(section);
+      const newIndex = items.indexOf(overSection);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        next[fromCol] = arrayMove(items, oldIndex, newIndex);
       }
+    } else {
+      // Cross-column move (may already be done by handleDragOver, apply final positioning)
+      next[fromCol] = next[fromCol].filter((s) => s !== section);
+      if (overSection) {
+        const overIndex = next[toCol].indexOf(overSection);
+        next[toCol].splice(overIndex, 0, section);
+      } else {
+        // Dropped on the column container itself — append
+        next[toCol].push(section);
+      }
+    }
 
-      saveLayout(next);
-      return next;
-    });
+    saveLayout(next);
+    layoutRef.current = next;
+    setLayout(next);
   }, []);
 
   const teamMemberUsernames = useMemo(
