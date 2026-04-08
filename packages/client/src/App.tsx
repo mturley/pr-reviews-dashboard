@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, keepPreviousData, useIsFetching } from "@tanstack/react-query";
 import { trpc, createTRPCClient } from "./trpc";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/controls/ThemeToggle";
@@ -17,40 +17,83 @@ import ActivityTimeline from "./routes/activity-timeline";
 import SprintStatus from "./routes/sprint-status";
 import EpicStatus from "./routes/epic-status";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { useBackgroundPrefetch } from "@/hooks/useBackgroundPrefetch";
+import { Loader2 } from "lucide-react";
+
+function useIsTabFetching(queryKeys: string[][]) {
+  // Each call to useIsFetching is a stable hook call since queryKeys is static per component
+  return queryKeys.reduce(
+    (sum, key) =>
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      sum + useIsFetching({ queryKey: [key] }),
+    0,
+  ) > 0;
+}
+
+function OverviewNavLink() {
+  const isFetching = useIsTabFetching([["github", "getTeamPRs"], ["jira", "getSprintIssues"], ["jira", "getMyIssues"]]);
+  return <TabNavLink to="/" label="Overview" isFetching={isFetching} />;
+}
+
+function ReviewsNavLink() {
+  const isFetching = useIsTabFetching([["github", "getTeamPRs"], ["jira", "getSprintIssues"]]);
+  return <TabNavLink to="/reviews" label="My PRs and Reviews" isFetching={isFetching} />;
+}
+
+function SprintNavLink() {
+  const isFetching = useIsTabFetching([["jira", "getSprintIssues"]]);
+  return <TabNavLink to="/sprint" label="Current Sprint Status" isFetching={isFetching} />;
+}
+
+function EpicNavLink() {
+  const isFetching = useIsTabFetching([["jira", "getEpicIssues"], ["jira", "getSprintIssues"]]);
+  return <TabNavLink to="/epic" label="Epic Status" isFetching={isFetching} />;
+}
+
+function ActivityNavLink() {
+  const isFetching = useIsTabFetching([["github", "getActivity"], ["jira", "getActivity"]]);
+  return <TabNavLink to="/activity" label="My Activity" isFetching={isFetching} />;
+}
+
+function TabNavLink({ to, label, isFetching }: { to: string; label: string; isFetching: boolean }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === "/"}
+      className={({ isActive }) =>
+        `rounded-md px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+          isActive
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {label}
+          {!isActive && isFetching && (
+            <Loader2 className="h-3 w-3 animate-spin text-blue-500 dark:text-blue-400" />
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
 
 function NavBar() {
   const { theme, setTheme } = useTheme();
   const { fontSize, setFontSize } = useFontSize();
-  const links = [
-    { to: "/", label: "Overview" },
-    { to: "/reviews", label: "My PRs and Reviews" },
-    { to: "/sprint", label: "Current Sprint Status" },
-    { to: "/epic", label: "Epic Status" },
-    { to: "/activity", label: "My Activity" },
-  ];
-
   return (
     <nav aria-label="Main navigation" className="border-b border-border bg-card px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="text-lg font-semibold">GitHub + Jira Personal Sprint Dashboard</span>
           <div className="flex gap-1">
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.to === "/"}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
+            <OverviewNavLink />
+            <ReviewsNavLink />
+            <SprintNavLink />
+            <EpicNavLink />
+            <ActivityNavLink />
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -62,12 +105,19 @@ function NavBar() {
   );
 }
 
+function BackgroundPrefetcher() {
+  useBackgroundPrefetch();
+  return null;
+}
+
 export default function App() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 2 * 60 * 1000, // 2 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes — keep cached data across tab switches
         refetchOnWindowFocus: false,
+        placeholderData: keepPreviousData,
       },
     },
   }));
@@ -80,6 +130,7 @@ export default function App() {
           <AutoRefreshProvider>
             <BrowserRouter>
               <DetailModalProvider>
+                <BackgroundPrefetcher />
                 <div className="min-h-screen bg-background">
                   <NavBar />
                   <main className="p-6">

@@ -1,6 +1,8 @@
 // T049: RefreshControls component
 
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
+import { useAutoRefreshContext } from "@/hooks/useAutoRefreshContext";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -10,6 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+function useManualRefreshHandler(onManualRefresh: () => void) {
+  const { signalManualRefresh } = useAutoRefreshContext();
+  return useCallback(() => {
+    signalManualRefresh();
+    onManualRefresh();
+  }, [signalManualRefresh, onManualRefresh]);
+}
 
 interface RefreshControlsProps {
   autoRefresh: boolean;
@@ -39,14 +49,29 @@ export function RefreshControls({
   lastRefreshedAt,
   isFetching,
 }: RefreshControlsProps) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isStale = lastRefreshedAt
+    ? now - new Date(lastRefreshedAt).getTime() > 5 * 60 * 1000
+    : false;
+
   return (
     <div className="flex items-center gap-3">
-      {lastRefreshedAt && (
+      {lastRefreshedAt && (isStale && isFetching ? (
+        <span className="text-xs text-amber-600 dark:text-amber-400">
+          Data from {new Date(lastRefreshedAt).toLocaleTimeString()} — refreshing…
+        </span>
+      ) : (
         <span className="text-xs text-muted-foreground">
           Last: {new Date(lastRefreshedAt).toLocaleTimeString()}
         </span>
-      )}
-      <Button variant="outline" size="sm" onClick={onManualRefresh} disabled={isFetching} className="gap-1.5">
+      ))}
+      <Button variant="outline" size="sm" onClick={useManualRefreshHandler(onManualRefresh)} disabled={isFetching} className="gap-1.5">
         <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
         Refresh
       </Button>

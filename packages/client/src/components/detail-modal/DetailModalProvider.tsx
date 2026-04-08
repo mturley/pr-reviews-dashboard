@@ -100,6 +100,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
   const [splitView, setSplitView] = useState(true);
   const [hideWhitespace, setHideWhitespace] = useState(false);
   const [loadingJira, setLoadingJira] = useState(false);
+  const [loadingPR, setLoadingPR] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Use refs for data registry — mutations are synchronous, no re-render on registration
@@ -154,6 +155,28 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
       if (openKeyRef.current === key) setLoadingJira(false);
     }
   }, [utils, jiraHost]);
+
+  const fetchAndResolvePR = useCallback(async (url: string) => {
+    setLoadingPR(true);
+    setLoadError(null);
+    try {
+      const result = await utils.github.getPRsByUrls.fetch({ prUrls: [url] });
+      if (openKeyRef.current !== url) return;
+      for (const pr of result.prs) {
+        prMapRef.current.set(pr.url.replace(/\/$/, ""), pr);
+      }
+      if (result.prs.length > 0) {
+        setResolved(resolvePR(url, prMapRef.current, jiraMapRef.current));
+      } else {
+        setLoadError("Pull request not found");
+      }
+    } catch (err) {
+      if (openKeyRef.current !== url) return;
+      setLoadError(err instanceof Error ? err.message : "Failed to load pull request");
+    } finally {
+      if (openKeyRef.current === url) setLoadingPR(false);
+    }
+  }, [utils]);
 
   const upgradePartialJiraTabs = useCallback(async (data: ResolvedModalData) => {
     const partialTabs = data.tabs.filter(
@@ -249,10 +272,14 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
     setResolved(data);
     setActiveTabIndex(0);
     setLoadingJira(false);
+    setLoadingPR(false);
     setLoadError(null);
     setIsOpen(true);
 
-    if (t.type === "jira" && data.tabs.length === 0) {
+    if (t.type === "pr" && data.tabs.length === 0) {
+      // PR not in map — lazy-load it
+      fetchAndResolvePR(t.url);
+    } else if (t.type === "jira" && data.tabs.length === 0) {
       // Jira issue not in map — lazy-load it
       fetchAndResolveJira(t.key);
     } else if (data.tabs.some((tab) => tab.type === "jira-detail" && (tab as JiraTab).isPartial)) {
@@ -262,7 +289,7 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
 
     // Fetch any missing PR data in the background
     fetchMissingPRs(data, openKeyRef.current);
-  }, [fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs, jiraHost]);
+  }, [fetchAndResolvePR, fetchAndResolveJira, upgradePartialJiraTabs, fetchMissingPRs, jiraHost]);
 
   const close = useCallback(() => {
     isOpenRef.current = false;
@@ -416,25 +443,28 @@ export function DetailModalProvider({ children }: { children: ReactNode }) {
                 }}
               />
             )}
-            {!activeTab && target && loadingJira && (
+            {!activeTab && target && (loadingJira || loadingPR) && (
               <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Loading Jira issue...</span>
+                <span>{loadingPR ? "Loading pull request..." : "Loading Jira issue..."}</span>
               </div>
             )}
             {!activeTab && target && loadError && (
               <div className="text-center py-8 text-muted-foreground space-y-3">
-                <p>Failed to load Jira issue: {loadError}</p>
+                <p>{loadError}</p>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => target.type === "jira" && fetchAndResolveJira(target.key)}
+                  onClick={() => {
+                    if (target.type === "jira") fetchAndResolveJira(target.key);
+                    else if (target.type === "pr") fetchAndResolvePR(target.url);
+                  }}
                 >
                   Retry
                 </Button>
               </div>
             )}
-            {!activeTab && target && !loadingJira && !loadError && (
+            {!activeTab && target && !loadingJira && !loadingPR && !loadError && (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No details available for this item.</p>
               </div>
