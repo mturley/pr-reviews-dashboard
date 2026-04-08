@@ -18,6 +18,7 @@ export interface JiraIssue {
   sprintId: number | null;
   epicKey: string | null;
   epicSummary: string | null;
+  epicStatus: string | null;
   storyPoints: number | null;
   originalStoryPoints: number | null;
   blocked: boolean;

@@ -62,14 +62,19 @@ export const jiraRouter = router({
           console.log(`[progress] jira.getSprintIssues: enriching ${epicKeys.length} epic summaries`);
           const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
           try {
-            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
-            const epicMap = new Map<string, string>();
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype", "status"], epicKeys.length);
+            const epicMap = new Map<string, { summary: string; status: string }>();
             for (const raw of epicResponse.issues) {
-              epicMap.set(raw.key, raw.fields?.summary ?? "");
+              epicMap.set(raw.key, {
+                summary: raw.fields?.summary ?? "",
+                status: raw.fields?.status?.name ?? "",
+              });
             }
             for (const issue of issues) {
               if (issue.epicKey) {
-                issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+                const epic = epicMap.get(issue.epicKey);
+                issue.epicSummary = epic?.summary ?? null;
+                issue.epicStatus = epic?.status ?? null;
               }
             }
           } catch {
@@ -331,13 +336,20 @@ export const jiraRouter = router({
         if (epicKeys.length > 0) {
           try {
             const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
-            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
-            const epicMap = new Map<string, string>();
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype", "status"], epicKeys.length);
+            const epicMap = new Map<string, { summary: string; status: string }>();
             for (const raw of epicResponse.issues) {
-              epicMap.set(raw.key, raw.fields?.summary ?? "");
+              epicMap.set(raw.key, {
+                summary: raw.fields?.summary ?? "",
+                status: raw.fields?.status?.name ?? "",
+              });
             }
             for (const issue of issues) {
-              if (issue.epicKey) issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+              if (issue.epicKey) {
+                const epic = epicMap.get(issue.epicKey);
+                issue.epicSummary = epic?.summary ?? null;
+                issue.epicStatus = epic?.status ?? null;
+              }
             }
           } catch { /* non-critical */ }
         }
@@ -419,13 +431,20 @@ export const jiraRouter = router({
         if (epicKeys.length > 0) {
           try {
             const epicJql = epicKeys.map((k) => `key = "${k}"`).join(" OR ");
-            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype"], epicKeys.length);
-            const epicMap = new Map<string, string>();
+            const epicResponse = await jiraSearch(jiraHost, jiraEmail, jiraToken, epicJql, ["summary", "issuetype", "status"], epicKeys.length);
+            const epicMap = new Map<string, { summary: string; status: string }>();
             for (const raw of epicResponse.issues) {
-              epicMap.set(raw.key, raw.fields?.summary ?? "");
+              epicMap.set(raw.key, {
+                summary: raw.fields?.summary ?? "",
+                status: raw.fields?.status?.name ?? "",
+              });
             }
             for (const issue of issues) {
-              if (issue.epicKey) issue.epicSummary = epicMap.get(issue.epicKey) ?? null;
+              if (issue.epicKey) {
+                const epic = epicMap.get(issue.epicKey);
+                issue.epicSummary = epic?.summary ?? null;
+                issue.epicStatus = epic?.status ?? null;
+              }
             }
           } catch { /* non-critical */ }
         }

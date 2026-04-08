@@ -19,6 +19,17 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ExternalLinkButtonGroup } from "@/components/ExternalLinkButtonGroup";
+import { StatusBadge, type StatusVariant } from "@/components/shared/StatusBadge";
+
+function epicStatusVariant(status: string | null): StatusVariant {
+  if (!status) return "neutral";
+  const s = status.toLowerCase();
+  if (["done", "closed", "resolved"].includes(s)) return "success";
+  if (["in progress", "in development"].includes(s)) return "info";
+  if (["review", "code review", "in review"].includes(s)) return "purple";
+  if (["testing", "qa", "in testing"].includes(s)) return "warning";
+  return "neutral";
+}
 
 export default function EpicStatus() {
   const configQuery = trpc.config.get.useQuery();
@@ -40,14 +51,17 @@ export default function EpicStatus() {
 
   const sprintEpics = useMemo(() => {
     if (!sprintQuery.data) return [];
-    const epicMap = new Map<string, string>();
+    const epicMap = new Map<string, { summary: string; status: string | null }>();
     for (const issue of sprintQuery.data.issues) {
       if (issue.epicKey && !epicMap.has(issue.epicKey)) {
-        epicMap.set(issue.epicKey, issue.epicSummary ?? "");
+        epicMap.set(issue.epicKey, {
+          summary: issue.epicSummary ?? "",
+          status: issue.epicStatus ?? null,
+        });
       }
     }
     return [...epicMap.entries()]
-      .map(([key, summary]) => ({ key, summary }))
+      .map(([key, { summary, status }]) => ({ key, summary, status }))
       .sort((a, b) => a.key.localeCompare(b.key));
   }, [sprintQuery.data]);
 
@@ -152,7 +166,13 @@ export default function EpicStatus() {
               )}
               {sprintEpics.map((epic) => (
                 <SelectItem key={epic.key} value={epic.key} className="text-sm">
-                  ⚡ {epic.key}{epic.summary ? `: ${epic.summary}` : ""}
+                  <span className="inline-flex items-center gap-2">
+                    <span>⚡ {epic.key}</span>
+                    {epic.status && (
+                      <StatusBadge label={epic.status} variant={epicStatusVariant(epic.status)} className="text-[10px] py-0" />
+                    )}
+                    {epic.summary && <span>{epic.summary}</span>}
+                  </span>
                 </SelectItem>
               ))}
               {sprintEpics.length > 0 && <SelectSeparator />}

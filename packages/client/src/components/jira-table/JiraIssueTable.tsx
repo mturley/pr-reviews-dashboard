@@ -20,6 +20,7 @@ import {
 import type { JiraIssue } from "../../../../server/src/types/jira";
 import type { PullRequest } from "../../../../server/src/types/pr";
 import { IssueRow, buildLinkedPRMap, type LinkedPR } from "./cells";
+import { IssueStatusSummary } from "./IssueStatusSummary";
 export { buildLinkedPRMap, type LinkedPR } from "./cells";
 
 // Cell-based card styling per group tbody (matches PRTable)
@@ -147,6 +148,11 @@ function SortIcon({ column, sortColumn, sortDirection }: {
     : <ArrowDown className="h-3 w-3" />;
 }
 
+// Generate a stable element ID for a group label (used for scroll-to-group)
+export function groupAnchorId(label: string): string {
+  return `jira-group-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+}
+
 function CollapsibleGroup({
   label,
   issues,
@@ -162,7 +168,7 @@ function CollapsibleGroup({
   const colCount = 9;
 
   return (
-    <TableBody className={groupCardStyles}>
+    <TableBody className={groupCardStyles} id={groupAnchorId(label)}>
       <TableRow
         className="cursor-pointer hover:!bg-transparent"
         onClick={() => setExpanded(!expanded)}
@@ -251,6 +257,8 @@ export function JiraIssueTable({
 
   return (
     <>
+      <IssueStatusSummary issues={filteredIssues} onStatusClick={() => setGroupBy("state")} />
+
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Group by:</span>

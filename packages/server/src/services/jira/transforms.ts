@@ -150,6 +150,7 @@ export function transformJiraIssue(
     sprintId: sprint.id,
     epicKey: fields[fieldMapping.epicLink] ?? null,
     epicSummary: null,
+    epicStatus: null,
     storyPoints: fields[fieldMapping.storyPoints] ?? null,
     originalStoryPoints: fields[fieldMapping.originalStoryPoints] ?? null,
     blocked: parseBlocked(fields[fieldMapping.blocked]),
