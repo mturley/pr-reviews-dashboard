@@ -12,7 +12,9 @@
       "Bash(pnpm --filter client lint)",
       "Bash(pnpm --filter client test)",
       "Bash(pnpm --filter client exec tsc --noEmit)",
-      "Bash(git status -u)"
+      "Bash(pnpm install)",
+      "Bash(npm --version)",
+      "Bash(node --version)"
     ]
   }
 }
