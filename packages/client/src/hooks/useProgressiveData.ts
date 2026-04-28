@@ -108,7 +108,8 @@ export function useProgressiveData(
     const basePRs = teamPRsQuery.data?.prs ?? [];
     // Cascade PRs come from Jira links and may include merged/closed PRs — filter to open only
     const cascadePRs = (cascadeQuery.data?.prs ?? []).filter((pr) => pr.state === "OPEN");
-    const allPRs = [...basePRs, ...cascadePRs];
+    const seenIds = new Set(basePRs.map((pr) => pr.id));
+    const allPRs = [...basePRs, ...cascadePRs.filter((pr) => !seenIds.has(pr.id))];
 
     if (jiraQuery.data) {
       return correlatePRsWithJira(allPRs, jiraQuery.data.issues);
